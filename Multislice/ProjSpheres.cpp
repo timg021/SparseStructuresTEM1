@@ -1,5 +1,6 @@
 #include "XArray2D.h"
 #include "XArray3D.h"
+#include "IXAHWave.h"
 
 using namespace xar;
 
@@ -14,18 +15,33 @@ XArray3D<double>& ProjectSphereN1(XArray2D<dcomplex>& camp, vector<double> R, ve
 	//	yr - 1D array of y - coordinates of the centres of the spheres
 	//	returns - 3D array of projection chord lengths
 	
-/*
-		nk = R.shape[0]
-		if nk != xr.shape[0] or nk != yr.shape[0]:
-	raise ValueError("some of input arrays R, xr, yr have different sizes in ProjectSphereN1()")
 
-		nx = camp.shape[0]
-		ny = camp.shape[1]
+	int nk = R.size();
+	if (nk != xr.size() || nk != yr.size())
+		throw std::invalid_argument("some of input arrays R, xr, yr have different sizes in ProjectSphereN1()");
+
+	int nx = camp.GetDim1();
+	int ny = camp.GetDim2();
+	double wl, ylo, yhi, xlo, xhi;
+	IXAHWave2D* ph2 = GetIXAHWave2D(camp);
+	if (ph2) //if the head implements IXAHWave2D
+	{
+		wl = ph2->GetWl();
+		ylo = -0.5 / GetYStep(m_rXArray2D);
+		yhi = (0.5 - 1.0 / m_rXArray2D.GetDim1()) / GetYStep(m_rXArray2D);
+		xlo = -0.5 / GetXStep(m_rXArray2D);
+		xhi = (0.5 - 1.0 / m_rXArray2D.GetDim2()) / GetXStep(m_rXArray2D);
+	}
+	else 
+		throw std::invalid_argument("input array camp does not have a header in ProjectSphereN1()");
+
+	IXAHead* pHead = camp.GetHeadPtr();
+	pHead.
 		xst = (self.xhi - self.xlo) / nx
 		yst = (self.yhi - self.ylo) / ny
 		R2 = R * *2;
 */
-	XArray3D<double>* pRo = new XArray3D<double>(1,1,1); // ((nx, ny, nk))
+	XArray3D<double>& pRo(*new XArray3D<double>(1,1,1)); // ((nx, ny, nk))
 /*
 		for i in range(0, nx) :
 			x = self.xlo + xst * i
@@ -54,9 +70,9 @@ def ProjectSphereN2(self, camp, ro, nc, zr, z0, z1) :
 	z1 - maximal coordinate of the z - slice
 	returns - input camp multipied by projection integrals of the complex refractive index(as produced by the set of spheres)
 	"""
-	nx = camp.shape[0]
+	nx = camp.size()
 	ny = camp.shape[1]
-	nk = nc.shape[0]
+	nk = nc.size()
 
 	if (ro.shape != (nx, ny, nk)) :
 		raise ValueError("input array ro has incorrect dimensions in ProjectSphereN2()")
