@@ -27,6 +27,7 @@
     <ClInclude Include="XArray.h" />
     <ClInclude Include="XArray1D.h" />
     <ClInclude Include="XArray2D.h" />
+    <ClInclude Include="XArray3D.h" />
     <ClInclude Include="XArrayB.h" />
     <ClInclude Include="XA_data.h" />
     <ClInclude Include="XA_file.h" />
@@ -37,6 +38,7 @@
   <ItemGroup>
     <ClCompile Include="IXAHWave.cpp" />
     <ClCompile Include="MultisliceCpp.cpp" />
+    <ClCompile Include="ProjSpheres.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="XAHWave.cpp" />
     <ClCompile Include="XA_file.cpp" />
