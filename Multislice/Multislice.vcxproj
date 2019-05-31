@@ -30,6 +30,7 @@
     <ClInclude Include="XArray3D.h" />
     <ClInclude Include="XArrayB.h" />
     <ClInclude Include="XA_data.h" />
+    <ClInclude Include="XA_fft2.h" />
     <ClInclude Include="XA_file.h" />
     <ClInclude Include="XA_head1.h" />
     <ClInclude Include="XA_head2.h" />

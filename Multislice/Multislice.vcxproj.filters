@@ -60,6 +60,9 @@
     <ClInclude Include="XArray3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="XA_fft2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IXAHWave.cpp">

@@ -1212,8 +1212,8 @@ Abs2(C, A);
 	template <class T> void Abs2(const XArray< std::complex<T> >& C, XArray<T>& A)
 	{ 
 		if (C.GetHeadPtr()) C.GetHeadPtr()->Validate();
-		A.resize(C.XArrayBase<T>::size()); 
-		for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) A[i] = C[i].real() * C[i].real() + C[i].imag() * C[i].imag();
+		A.resize(C.XArrayBase< std::complex<T> >::size());
+		for (index_t i = 0; i < C.XArrayBase< std::complex<T> >::size(); i++) A[i] = C[i].real() * C[i].real() + C[i].imag() * C[i].imag();
 		A.SetHeadPtr(C.GetHeadPtr() ? C.GetHeadPtr()->Clone() : 0);
 	}
 	
