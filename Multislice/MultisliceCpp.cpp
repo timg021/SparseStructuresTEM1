@@ -30,11 +30,6 @@ int main(void)
 	vHead[3] = -1; //ylo
 	vHead[4] = 1; //yhi
 
-	//	R_in = numpy.array([0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # radii of the spheres in microns
-	//	x_in = numpy.array([0.5, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8]) # x - positions of the centers of spheres in microns
-	//	y_in = numpy.array([-0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) # y - positions of the centers of spheres in microns
-	//	z_in = numpy.array([0, 0, 0.2, 0.4, 0.6, 0.8, 0.6, 0.4, 0.2, 0]) # z - positions of the centers of spheres in microns
-
 	vector<double> R_in(10), x_in(10), y_in(10), z_in(10);
 	R_in[0] = 0.3; R_in[1] = 0.1; R_in[2] = 0.1; R_in[3] = 0.1; R_in[4] = 0.1;
 	R_in[5] = 0.1; R_in[6] = 0.1; R_in[7] = 0.1; R_in[8] = 0.1; R_in[9] = 0.1;
@@ -55,7 +50,7 @@ int main(void)
 		nc[i] = dcomplex(1.0 - delta_in[i], beta_in[i]);
 
 	double zlo(-1), zhi(1);
-	int nslices = 2;
+	int nslices = 10;
 	
 	try
 	{
