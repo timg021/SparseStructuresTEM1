@@ -63,6 +63,12 @@
     <ClInclude Include="XA_fft2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="OouraFft.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultisliceCpp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IXAHWave.cpp">
@@ -84,6 +90,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ProjSpheres.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ooura_fftsg_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ooura_fftsg_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ooura_fftsg2d_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ooura_fftsg2d_flt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

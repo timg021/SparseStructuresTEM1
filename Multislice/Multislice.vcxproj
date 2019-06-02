@@ -22,6 +22,8 @@
     <ClInclude Include="BuildOptions.h" />
     <ClInclude Include="IXAHead.h" />
     <ClInclude Include="IXAHWave.h" />
+    <ClInclude Include="MultisliceCpp.h" />
+    <ClInclude Include="OouraFft.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="XAHWave.h" />
     <ClInclude Include="XArray.h" />
@@ -39,6 +41,10 @@
   <ItemGroup>
     <ClCompile Include="IXAHWave.cpp" />
     <ClCompile Include="MultisliceCpp.cpp" />
+    <ClCompile Include="Ooura_fftsg2d_dbl.c" />
+    <ClCompile Include="Ooura_fftsg2d_flt.c" />
+    <ClCompile Include="Ooura_fftsg_dbl.c" />
+    <ClCompile Include="Ooura_fftsg_flt.c" />
     <ClCompile Include="ProjSpheres.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="XAHWave.cpp" />
@@ -115,6 +121,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,6 +151,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
