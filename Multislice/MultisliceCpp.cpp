@@ -1,7 +1,7 @@
 // MultisliceCpp.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include "MultisliceCpp.h"
+#include "ProjSpheres.h"
 #include "XA_ini.h"
 #include "XA_data.h"
 #include "XAHWave.h"

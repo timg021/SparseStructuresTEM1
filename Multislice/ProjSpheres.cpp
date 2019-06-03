@@ -1,4 +1,4 @@
-#include "MultisliceCpp.h"
+#include "ProjSpheres.h"
 
 namespace xar
 {
@@ -32,18 +32,18 @@ namespace xar
 		double ylo = ph2->GetYlo();
 
 		vector<double> R2(R.size());
-		for (int i = 0; i < R.size(); i++) R2[i] = R[i] * R[i];
+		for (size_t i = 0; i < R.size(); i++) R2[i] = R[i] * R[i];
 
 		XArray3D<double>& ro(*new XArray3D<double>(ny, nx, nk)); // ((nx, ny, nk))
 		double x, y, xk, yk, r2;
 
-		for (int i = 0; i < ny; i++)
+		for (size_t i = 0; i < ny; i++)
 		{
 			y = ylo + yst * i;
-			for (int j = 0; j < nx; j++)
+			for (size_t j = 0; j < nx; j++)
 			{
 				x = xlo + xst * j;
-				for (int k = 0; k < nk; k++)
+				for (size_t k = 0; k < nk; k++)
 				{
 					xk = x - xr[k];
 					yk = y - yr[k];
@@ -83,13 +83,13 @@ namespace xar
 
 		double roijk, zk, z0ro, z1ro;
 		dcomplex ff = dcomplex(0.0, 1.0) * tPI / ph2->GetWl(), cc;
-		for (int i = 0; i < nc.size(); i++) nc[i] = (nc[i] - 1.0) * ff; // - i * 2 * pi / wl * delta - 2 * pi / wl * beta
+		for (size_t i = 0; i < nc.size(); i++) nc[i] = (nc[i] - 1.0) * ff; // - i * 2 * pi / wl * delta - 2 * pi / wl * beta
 
-		for (int i = 0; i < ny; i++)
-			for (int j = 0; j < nx; j++)
+		for (size_t i = 0; i < ny; i++)
+			for (size_t j = 0; j < nx; j++)
 			{
 				cc = dcomplex(0, 0);
-				for (int k = 0; k < nk; k++)
+				for (size_t k = 0; k < nk; k++)
 				{
 					roijk = ro[i][j][k];
 					if (roijk)
@@ -130,17 +130,17 @@ namespace xar
 		size_t nk = R.size();
 		if (nk != nc.size() || nk != xr.size() || nk != yr.size() || nk != zr.size())
 			throw std::invalid_argument("some of input arrays R, nc, xr, yr, zr have different sizes in MultisliceSphereN()");
-		for (int i = 0; i < nc.size(); i++)
+		for (size_t i = 0; i < nc.size(); i++)
 			if (1 - nc[i].real() < 0 || nc[i].imag() < 0)
 				throw std::invalid_argument("some of nc[i] have negative delta or beta in MultisliceSphereN()");
-		for (int i = 0; i < nc.size(); i++)
+		for (size_t i = 0; i < nc.size(); i++)
 			if (R[i] <= 0)
 				throw std::invalid_argument("some of R[i] are not positive in MultisliceSphereN()");
 		if (nslices < 1)
 			throw std::invalid_argument("number of slices is less than 1 in MultisliceSphereN()");
 		if (zhi <= zlo)
 			throw std::invalid_argument("zhi <= zlo in MultisliceSphereN()");
-		for (int i = 0; i < nc.size(); i++)
+		for (size_t i = 0; i < nc.size(); i++)
 			if (zlo > zr[i] - R[i] || zhi < zr[i] + R[i])
 				throw std::invalid_argument("some spheres do not fit into [zlo, zhi] in MultisliceSphereN()");
 
