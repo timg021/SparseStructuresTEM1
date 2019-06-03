@@ -8,6 +8,6 @@
 
 namespace xar
 {
-	void MultisliceSphereNF(int nx, int ny, vector<double> vHead, vector<dcomplex> nc, vector<double> R, vector<double> xr, vector<double> yr,
-		vector<double> zr, double zlo, double zhi, int nslices, const char* outfilename);
+	void MultisliceSphereNF(size_t nx, size_t ny, vector<double> vHead, vector<dcomplex> nc, vector<double> R, vector<double> xr, vector<double> yr,
+		vector<double> zr, double zlo, double zhi, size_t nslices, const char* outfilename);
 }

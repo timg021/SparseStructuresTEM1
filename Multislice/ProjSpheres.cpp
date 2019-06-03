@@ -109,7 +109,7 @@ namespace xar
 
 
 	void MultisliceSphereN(XArray2D<dcomplex>& camp, vector<dcomplex> nc, vector<double> R, vector<double> xr, vector<double> yr,
-		vector<double> zr, double zlo, double zhi, int nslices)
+		vector<double> zr, double zlo, double zhi, size_t nslices)
 	{
 		//Calculates multislice approximation for paraxial light propagation through a set of spheres
 		//This function repeadetly calls a pair of functions for calculation of the projection approximationand for the Fresnel propagation through each slice
@@ -166,8 +166,8 @@ namespace xar
 	}
 
 
-	void MultisliceSphereNF(int nx, int ny, vector<double> vHead, vector<dcomplex> nc, vector<double> R, vector<double> xr, vector<double> yr,
-		vector<double> zr, double zlo, double zhi, int nslices, const char* outfilename)
+	void MultisliceSphereNF(size_t nx, size_t ny, vector<double> vHead, vector<dcomplex> nc, vector<double> R, vector<double> xr, vector<double> yr,
+		vector<double> zr, double zlo, double zhi, size_t nslices, const char* outfilename)
 	{
 		//Same as MultisliceSphereN, but writes the output directly to a GRDC file"""
 
