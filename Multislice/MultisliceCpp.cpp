@@ -11,39 +11,40 @@ using namespace xar;
 
 int main(void)
 {
-	string outfilename("C:\\Users\\tgureyev\\Downloads\\aaa.grd");
+	string outfilename("C:\\Users\\tgureyev\\Downloads\\Cpp\\aaa.grd");
 	const size_t nslices = 2;
 	const size_t nangles = 360;
 	const size_t nx(512), ny(512);
-	vector<double> vHead(5);
-	const double energ(32.0);
-	const double D(1.e+4);
-	vHead[0] = 12.398E-4 / energ; //wl
-	vHead[1] = -D; //xlo
-	vHead[2] = D; //xhi
-	vHead[3] = -D; //ylo
-	vHead[4] = D; //yhi
-	const double zlo(-D), zhi(D);
+	vector<double> vHead(5); // analogue of Wavehead2D
+	const double energ(1.0); // E in keV
+	const double LengthScale(1.0); //scaling factor for length-type parameters
+	vHead[0] = 12.398E-4 / energ; //wl in microns
+	vHead[1] = -LengthScale; //xlo
+	vHead[2] = LengthScale; //xhi
+	vHead[3] = -LengthScale; //ylo
+	vHead[4] = LengthScale; //yhi
+	const double zlo(-LengthScale), zhi(LengthScale);
 
 	const size_t nSpheres(10);
-
 	XArray1D<double> R_in(nSpheres), x_in(nSpheres), y_in(nSpheres), z_in(nSpheres), x_in_i(nSpheres), z_in_i(nSpheres);
-	R_in[0] = 0.3; R_in[1] = 0.1; R_in[2] = 0.1; R_in[3] = 0.1; R_in[4] = 0.1;
-	R_in[5] = 0.1; R_in[6] = 0.1; R_in[7] = 0.1; R_in[8] = 0.1; R_in[9] = 0.1;
-	x_in[0] = 0.5; x_in[1] = -0.8; x_in[2] = -0.6; x_in[3] = -0.4; x_in[4] = -0.2;
-	x_in[5] = 0; x_in[6] = 0.2; x_in[7] = 0.4; x_in[8] = 0.6; x_in[9] = 0.8;
-	y_in[0] = -0.5; y_in[1] = 0.5; y_in[2] = 0.5; y_in[3] = 0.5; y_in[4] = 0.5;
-	y_in[5] = 0.5; y_in[6] = 0.5; y_in[7] = 0.5; y_in[8] = 0.5; y_in[9] = 0.5;
-	z_in[0] = 0; z_in[1] = 0; z_in[2] = 0.2; z_in[3] = 0.4; z_in[4] = 0.6;
-	z_in[5] = 0.8; z_in[6] = 0.6; z_in[7] = 0.4; z_in[8] = 0.2; z_in[9] = 0;
-	R_in *= D; x_in *= D; y_in *= D;  z_in *= D;
+
+	R_in[0] = 0.3 * LengthScale;
+	for (size_t i = 1; i < nSpheres; i++) R_in[i] = 0.1 * LengthScale;
+	
+	x_in[0] = 0;
+	for (size_t i = 1; i < nSpheres; i++) x_in[i] = pow(-1, i) * double(i % 3 + 1) * 0.2 * LengthScale;
+
+	y_in[0] = -0.5 * LengthScale;
+	for (size_t i = 1; i < nSpheres; i++) y_in[i] = 0.5 * LengthScale;
+
+	z_in[0] = 0;
+	for (size_t i = 1; i < nSpheres; i++) z_in[i] = pow(-1, int(i / 5)) * double(i % 3 + 1) * 0.2 * LengthScale;
 
 	vector<dcomplex> nc(nSpheres);
 	vector<double> beta_in(nSpheres), delta_in(nSpheres);
-	beta_in[0] = 3.0E-11; beta_in[1] = 4.0E-11; beta_in[2] = 5.0E-11; beta_in[3] = 4.0E-11; beta_in[4] = 3.0E-11;
-	beta_in[5] = 4.0E-11; beta_in[6] = 5.0E-11; beta_in[7] = 4.0E-11; beta_in[8] = 3.0E-11; beta_in[9] = 4.0E-11;
-	delta_in[0] = 3.0E-07; delta_in[1] = 4.0E-07; delta_in[2] = 5.0E-07; delta_in[3] = 4.0E-07; delta_in[4] = 3.0E-07;
-	delta_in[5] = 4.0E-07; delta_in[6] = 5.0E-07; delta_in[7] = 4.0E-07; delta_in[8] = 3.0E-07; delta_in[9] = 4.0E-07;
+	double BetaOrder = 1.E-5, DeltaOrder = 1.e-6; //scaling factors for beta and delta
+	for (size_t i = 0; i < nSpheres; i++) beta_in[i] = double(i % 5 + 1) * BetaOrder;
+	for (size_t i = 0; i < nSpheres; i++) delta_in[i] = double(i % 5 + 1) * DeltaOrder;
 	for (size_t i = 0; i < nSpheres; i++)
 		nc[i] = dcomplex(1.0 - delta_in[i], beta_in[i]);
 	

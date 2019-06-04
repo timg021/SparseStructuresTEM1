@@ -230,7 +230,7 @@ template <class T> void xar::XArray2DFFT<T>::FFT(bool bForward, bool bCheck)
 	}
 }
 
-
+/*
 inline void xar::XArray2DFFT<double>::FFT(bool bForward, bool bCheck)
 {
 	OouraFft<double> fft;
@@ -267,7 +267,7 @@ inline void xar::XArray2DFFT<double>::FFT(bool bForward, bool bCheck)
 		m_rXArray2D.SetHeadPtr(ph2a);
 	}
 }
-
+*/
 //---------------------------------------------------------------------------
 //Function XArray2DFFT<T>::Kirchhoff
 //
@@ -434,6 +434,7 @@ template <class T> void xar::XArray2DFFT<T>::Kirchhoff(double dblDistance, bool 
 //	 Calculates 2D Fresnel integral
 //
 /*!
+	!!! CHANGED 04.06.2019 !!!	
 	\brief		Calculates 2D Fresnel integral
 	\param		dblDistance	Propagation distance (in the same units as used in the Wavehead2D)
 	\param		bCheckValidity	Determines the validity of the used implementation for given parameters
@@ -462,21 +463,21 @@ InterfaceFFT2D.Fresnel(1.e+6); // calculate free space propagation (by 1 m, if u
 \endverbatim
 */	
 //	WARNING(old XY order!!!): internally, this function relates dim1 to X, and dim2 to Y, however, 
-//	X and Y	are swapped at the entry point of this function
+//	X and Y	are swapped at the entry point of this function !!!! 4.6.2019 - I AM CHANGING IT NOW
 //
 template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bCheckValidity)
 {
 	if (dblDistance==0) return;
 
-	index_t nx = m_rXArray2D.GetDim1();
-	index_t ny = m_rXArray2D.GetDim2();
+	index_t nx = m_rXArray2D.GetDim2();
+	index_t ny = m_rXArray2D.GetDim1();
 
 	index_t i = 2;
-	while (i < nx) i *= 2;
-	if (i != nx) throw std::invalid_argument("invalid_argument 'm_rXArray2D' in XArray2DFFT<T>::Fresnel (m_dim1 is not a power of 2)");
+	while (i < ny) i *= 2;
+	if (i != ny) throw std::invalid_argument("invalid_argument 'm_rXArray2D' in XArray2DFFT<T>::Fresnel (m_dim1 is not a power of 2)");
 	index_t j = 2;
-	while (j < ny) j *= 2;
-	if (j != ny) throw std::invalid_argument("invalid_argument 'm_rXArray2D' in XArray2DFFT<T>::Fresnel (m_dim2 is not a power of 2)");
+	while (j < nx) j *= 2;
+	if (j != nx) throw std::invalid_argument("invalid_argument 'm_rXArray2D' in XArray2DFFT<T>::Fresnel (m_dim2 is not a power of 2)");
 
 	IXAHWave2D* ph2 = GetIXAHWave2D(m_rXArray2D);
 	if (!ph2)
@@ -484,12 +485,12 @@ template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bC
 	ph2->Validate();
 
 	double wl = ph2->GetWl(); 
-	double xlo = ph2->GetYlo();
-	double xhi = ph2->GetYhi();
-	double xst = GetYStep(m_rXArray2D); 
-	double ylo = ph2->GetXlo();
-	double yhi = ph2->GetXhi();
-	double yst = GetXStep(m_rXArray2D); 
+	double ylo = ph2->GetYlo();
+	double yhi = ph2->GetYhi();
+	double yst = (yhi - ylo) / ny;
+	double xlo = ph2->GetXlo();
+	double xhi = ph2->GetXhi();
+	double xst = (xhi - xlo) / nx;
 
 	index_t nxd2 = nx / 2;
 	index_t nyd2 = ny / 2;
@@ -497,15 +498,10 @@ template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bC
 	index_t ny2 = ny * 2;
 	index_t nxy = nx * ny;
 	index_t nxy2 = nxy * 2;
-	double xap2 = (xhi - xlo + xst) * (xhi - xlo + xst);
-	double yap2 = (yhi - ylo + yst) * (yhi - ylo + yst);
+	double xap2 = (xhi - xlo) * (xhi - xlo);
+	double yap2 = (yhi - ylo) * (yhi - ylo);
 	double xst2 = xst * xst;
 	double yst2 = yst * yst;
-
-	if (T(xap2) == T(0))
-		throw std::invalid_argument("invalid_argument 'm_rXArray2D' in XArray2DFFT<T>::Fresnel (xlo==xhi in Wavehead2D)");
-	if (T(yap2) == T(0))
-		throw std::invalid_argument("invalid_argument 'm_rXArray2D' in XArray2DFFT<T>::Fresnel (ylo==yhi in Wavehead2D)");
 
 //  Nyquist frequency (spectral radius) of U0 = srad*wl
 	double srad = sqrt(0.25 / xst2 + 0.25 / yst2);
@@ -531,50 +527,51 @@ template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bC
 //********* Multiplying F[u] by the Fresnel_propagator
 
 	index_t k, kj;	
-	double csi2;
+	double eta2;
 	double dcsi2 = 1.0 / xap2;
 	double deta2 = 1.0 / yap2;
-	double dtemp = dblDistance / wl - floor(dblDistance / wl);
-    dcomplex fac1 = std::exp(dcomplex(0.0, 1.0) * PI * 2.0 * dtemp);
+	//double dtemp = dblDistance / wl - floor(dblDistance / wl);
+    //dcomplex fac1 = std::exp(dcomplex(0.0, 1.0) * PI * 2.0 * dtemp);
+	dcomplex fac1 = dcomplex(0.0, 1.0) * PI * 2.0 * dblDistance / wl;
 	dcomplex fac2 = -dcomplex(0.0, 1.0) * PI * wl * dblDistance;
 	dcomplex ctemp;
 
-	for (long i = -long(nxd2); i < 0; i++)
+	for (long i = -long(nyd2); i < 0; i++)
 	{
-		kj = nxy2 + ny2 * i + ny2;
-		csi2 = dcsi2 * i * i;
-		for (long j = -long(nyd2); j < 0; j++)
+		kj = nxy2 + nx2 * i + nx2;
+		eta2 = deta2 * i * i;
+		for (long j = -long(nxd2); j < 0; j++)
 		{
 			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * fac1 * std::exp(fac2 * (deta2 * j * j + csi2));
+			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
 			u[k] = T(std::real(ctemp));
 			u[k+1] = T(std::imag(ctemp));
 		}
-		kj = nxy2 + ny2 * i;
-	    for (long j=0; j < long(nyd2); j++)
+		kj = nxy2 + nx2 * i;
+	    for (long j = 0; j < long(nxd2); j++)
 		{
 			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * fac1 * std::exp(fac2 * (deta2 * j * j + csi2));
+			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
 			u[k] = T(std::real(ctemp));
 			u[k+1] = T(std::imag(ctemp));
 		}
 	}
-	for (long i = 0; i < long(nxd2); i++)
+	for (long i = 0; i < long(nyd2); i++)
 	{
-		kj = ny2 * i + ny2;
-		csi2 = dcsi2 * i * i;
-		for (long j = -long(nyd2); j < 0; j++)
+		kj = nx2 * i + nx2;
+		eta2 = deta2 * i * i;
+		for (long j = -long(nxd2); j < 0; j++)
 		{
 			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * fac1 * std::exp(fac2 * (deta2 * j * j + csi2));
+			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
 			u[k] = T(std::real(ctemp));
 			u[k+1] = T(std::imag(ctemp));
 		}
-		kj = ny2 * i;
-		for (long j = 0; j < long(nyd2); j++)
+		kj = nx2 * i;
+		for (long j = 0; j < long(nxd2); j++)
 		{
 			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * fac1 * std::exp(fac2 * (deta2 * j * j + csi2));
+			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
 			u[k] = T(std::real(ctemp));
 			u[k+1] = T(std::imag(ctemp));
 		}
