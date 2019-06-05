@@ -13,7 +13,7 @@ int main(void)
 {
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\Cpp\\aaa.grd");
 	const size_t nslices = 2;
-	const size_t nangles = 360;
+	const size_t nangles = 1;
 	const size_t nx(512), ny(512);
 	vector<double> vHead(5); // analogue of Wavehead2D
 	const double energ(1.0); // E in keV

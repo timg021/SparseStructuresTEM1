@@ -157,7 +157,7 @@ void Wavehead1D::SetData(double dblWl, double dblXlo, double dblXhi)
 //! Returns step in physical units
 double Wavehead1D::GetStep(index_t NumPoints) const
 {
-	return (NumPoints > 1) ? (m_dblXhi - m_dblXlo) / (NumPoints - 1) : 1;
+	return (NumPoints > 1) ? (m_dblXhi - m_dblXlo) / NumPoints : 1;
 }
 
 //! Resizes the head in accordance with the owner XArray1D
@@ -343,13 +343,13 @@ void Wavehead2D::SetData(double dblWl, double dblYlo, double dblYhi, double dblX
 //! Returns y-step in physical units
 double Wavehead2D::GetYStep(index_t NumYPoints) const
 {
-	return (NumYPoints > 1) ? (m_dblYhi - m_dblYlo) / (NumYPoints - 1) : 1;
+	return (NumYPoints > 1) ? (m_dblYhi - m_dblYlo) / NumYPoints : 1;
 }
 
 //! Returns x-step in physical units
 double Wavehead2D::GetXStep(index_t NumXPoints) const
 {
-	return (NumXPoints > 1) ? (m_dblXhi - m_dblXlo) / (NumXPoints - 1) : 1;
+	return (NumXPoints > 1) ? (m_dblXhi - m_dblXlo) / NumXPoints : 1;
 }
 
 //! Resizes the head in accordance with the owner XArray2D
@@ -603,19 +603,19 @@ void Wavehead3D::SetData(double dblWl, double dblZlo, double dblZhi, double dblY
 //! Returns z-step in physical units
 double Wavehead3D::GetZStep(index_t NumZPoints) const
 {
-	return (NumZPoints > 1) ? (m_dblZhi - m_dblZlo) / (NumZPoints - 1) : 1;
+	return (NumZPoints > 1) ? (m_dblZhi - m_dblZlo) / NumZPoints : 1;
 }
 
 //! Returns y-step in physical units
 double Wavehead3D::GetYStep(index_t NumYPoints) const
 {
-	return (NumYPoints > 1) ? (m_dblYhi - m_dblYlo) / (NumYPoints - 1) : 1;
+	return (NumYPoints > 1) ? (m_dblYhi - m_dblYlo) / NumYPoints : 1;
 }
 
 //! Returns x-step in physical units
 double Wavehead3D::GetXStep(index_t NumXPoints) const
 {
-	return (NumXPoints > 1) ? (m_dblXhi - m_dblXlo) / (NumXPoints - 1) : 1;
+	return (NumXPoints > 1) ? (m_dblXhi - m_dblXlo) / NumXPoints : 1;
 }
 
 //! Resizes the head in accordance with the owner XArray3D

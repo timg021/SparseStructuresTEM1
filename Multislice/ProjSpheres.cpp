@@ -34,7 +34,7 @@ namespace xar
 		vector<double> R2(R.size());
 		for (size_t i = 0; i < R.size(); i++) R2[i] = R[i] * R[i];
 
-		XArray3D<double>& ro(*new XArray3D<double>(ny, nx, nk)); // ((nx, ny, nk))
+		XArray3D<double>& ro(*new XArray3D<double>(ny, nx, nk));
 		double x, y, xk, yk, r2;
 
 		for (size_t i = 0; i < ny; i++)
@@ -160,7 +160,7 @@ namespace xar
 			//calculate the projection of the complex amplitude through the next slice
 			ProjectSphereN2(camp, ro, nc, zr, z0, z1);
 			//calculate free - space propagation through the next slice
-			FS.Fresnel(z1 - z0, true);
+			//FS.Fresnel(z1 - z0, true);
 		}
 
 	}
