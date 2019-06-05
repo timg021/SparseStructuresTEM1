@@ -13,7 +13,7 @@ int main(void)
 {
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\Cpp\\aaa.grd");
 	const size_t nslices = 2;
-	const size_t nangles = 1;
+	const size_t nangles = 4;
 	const size_t nx(512), ny(512);
 	vector<double> vHead(5); // analogue of Wavehead2D
 	const double energ(1.0); // E in keV
@@ -65,7 +65,7 @@ int main(void)
 			outfilename_i = outfilename;
 			sprintf(buffer, myformat.data(), i);
 			outfilename_i.insert(i_dot, buffer);
-			angle = PI * i / nangles;
+			angle = PI * double(i) / double(nangles);
 			for (size_t k = 0; k < nSpheres; k++)
 			{
 				x_in_i[k] = x_in[k] * cos(angle) + z_in[k] * sin(angle); //x - position of the centre of the internal sphere at the i - th rotation step

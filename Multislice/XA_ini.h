@@ -93,7 +93,7 @@ namespace xar
 	\par		Description:
 		This is the usual Pi constant
 */
-	const double PI = 3.14159265359;
+	const double PI = 3.141592653589793;
 /*!
 	\brief		Half of Pi
 	\par		Description:

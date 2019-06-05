@@ -160,7 +160,7 @@ namespace xar
 			//calculate the projection of the complex amplitude through the next slice
 			ProjectSphereN2(camp, ro, nc, zr, z0, z1);
 			//calculate free - space propagation through the next slice
-			//FS.Fresnel(z1 - z0, true);
+			FS.Fresnel(z1 - z0, true);
 		}
 
 	}
