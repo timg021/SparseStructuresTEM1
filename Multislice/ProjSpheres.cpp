@@ -32,7 +32,7 @@ namespace xar
 		double ylo = ph2->GetYlo();
 
 		vector<double> R2(R.size());
-		for (size_t i = 0; i < R.size(); i++) R2[i] = R[i] * R[i];
+		for (size_t k = 0; k < nk; k++) R2[k] = R[k] * R[k];
 
 		XArray3D<double>& ro(*new XArray3D<double>(ny, nx, nk));
 		double x, y, xk, yk, r2;
@@ -99,11 +99,11 @@ namespace xar
 						{
 							z0ro = max(zk - roijk, zlo); // left end of the integration interval
 							z1ro = min(zk + roijk, zhi); // right end of the integration interval
-							cc += nc[k] * (z1ro - z0ro); //accumulate all absorptionand phase shifts along this ray
-							camp[i][j] *= exp(cc);
+							cc += nc[k] * (z1ro - z0ro); //accumulate all absorptionand phase shifts along this ray							
 						}
 					}
 				}
+				camp[i][j] *= exp(cc);
 			}
 	}
 
@@ -154,7 +154,7 @@ namespace xar
 		XArray2DFFT<double> FS(camp);
 		for (int m = 0; m < nslices; m++)
 		{
-			printf("\nslice = %d", m + 1);
+			//printf("\nslice = %d", m + 1);
 			z0 = zlo + sliceT * m; //beginning of the slice
 			z1 = z0 + sliceT; //end of the slice
 			//calculate the projection of the complex amplitude through the next slice
@@ -183,7 +183,7 @@ namespace xar
 		XArray2D<double> inten;
 		Abs2(camp, inten);
 		XArData::WriteFileGRD(inten, outfilename, eGRDBIN);
-		printf("\nOutput file = %s", outfilename);
+		//printf("\nOutput file = %s", outfilename);
 	}
 
 

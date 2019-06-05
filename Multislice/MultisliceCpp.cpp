@@ -13,16 +13,16 @@ int main(void)
 {
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\Cpp\\aaa.grd");
 	const size_t nslices = 2;
-	const size_t nangles = 4;
+	const size_t nangles = 360;
 	const size_t nx(512), ny(512);
 	vector<double> vHead(5); // analogue of Wavehead2D
 	const double energ(1.0); // E in keV
 	const double LengthScale(1.0); //scaling factor for length-type parameters
 	vHead[0] = 12.398E-4 / energ; //wl in microns
-	vHead[1] = -LengthScale; //xlo
-	vHead[2] = LengthScale; //xhi
-	vHead[3] = -LengthScale; //ylo
-	vHead[4] = LengthScale; //yhi
+	vHead[1] = -LengthScale; //ylo
+	vHead[2] = LengthScale; //yhi
+	vHead[3] = -LengthScale; //xlo
+	vHead[4] = LengthScale; //xhi
 	const double zlo(-LengthScale), zhi(LengthScale);
 
 	const size_t nSpheres(10);
@@ -62,6 +62,7 @@ int main(void)
 	{
 		for (size_t i = 0; i < nangles; i++)
 		{
+			printf("Angle = %d\n", i);
 			outfilename_i = outfilename;
 			sprintf(buffer, myformat.data(), i);
 			outfilename_i.insert(i_dot, buffer);
