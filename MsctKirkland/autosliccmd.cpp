@@ -140,6 +140,9 @@ ANY OTHER PROGRAM).
 #include <fstream>
 #include <iomanip>   //  to format the output
 
+#include "XArray2D.h"
+#include "XA_data.h"
+
 using namespace std;
 
 #include "cfpix.hpp"       // complex image handler with FFT
@@ -160,7 +163,7 @@ const int NSMAX= 1000;   // max number of slices
 const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
-int main()
+int autosliccmd(string params[25])
 {
     string filein, fileout, filestart, filebeam, filecross, cline, description;
   
@@ -222,19 +225,19 @@ int main()
     for( ix=0; ix<NPARAM; ix++ ) param[ix] = 0.0F;
 
     //@@@@@ start temporary code
-	FILE* ff0 = fopen("autoslic.txt", "rt");
+	//FILE* ff0 = fopen("autoslic.txt", "rt");
 	char chaa[1024], cinarg[1024];
-	if (!ff0)
-	{
-		cout << "!!!Cannot open input parameter file autoslic.txt!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+	//if (!ff0)
+	//{
+	//	cout << "!!!Cannot open input parameter file autoslic.txt!!! Input any character to exit...";
+	//	cin >> chaa;
+	//	exit(-1);
+	//}
 	//cout << "Name of file with input atomic "
     //       << "coord. in x,y,z format:"  << endl;
     //cin >> filein;
 	//filein = "1grl.xyz";
-	if (fscanf(ff0, "%s %s", chaa, cinarg) != 2)
+	if (sscanf(params[0].data(), "%s %s", chaa, cinarg) != 2)
 	{
 		cout << "!!!Error reading line 1 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
@@ -250,7 +253,7 @@ int main()
     //if( ncelly < 1 ) ncelly = 1;
     //if( ncellz < 1 ) ncellz = 1;
 	//ncellx = 1; ncelly = 1; ncellz = 1;
-	if (fscanf(ff0, "%s %d %d %d", chaa, &ncellx, &ncelly, &ncellz) != 4)
+	if (sscanf(params[1].data(), "%s %d %d %d", chaa, &ncellx, &ncelly, &ncellz) != 4)
 	{
 		cout << "!!!Error reading line 2 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
@@ -261,7 +264,7 @@ int main()
     //cin.getline( fileout, NCMAX );   //  ????
     //cin >> fileout ;
 	//fileout = "1grl.tif";
-	if (fscanf(ff0, "%s %s", chaa, cinarg) != 2)
+	if (sscanf(params[2].data(), "%s %s", chaa, cinarg) != 2)
 	{
 		cout << "!!!Error reading line 3 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
@@ -271,143 +274,143 @@ int main()
 
     //lpartl = askYN("Do you want to include partial coherence");
 	//lpartl = 0;
-	if (fscanf(ff0, "%s %d", chaa, &lpartl) != 2)
+	if (sscanf(params[3].data(), "%s %d", chaa, &lpartl) != 2)
 	{
 		cout << "!!!Error reading line 4 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g %g", chaa, &acmin, &acmax) != 3)
+	if (sscanf(params[4].data(), "%s %g %g", chaa, &acmin, &acmax) != 3)
 	{
 		cout << "!!!Error reading line 5 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g %g", chaa, &Cs3, &Cs5) != 3)
+	if (sscanf(params[5].data(), "%s %g %g", chaa, &Cs3, &Cs5) != 3)
 	{
 		cout << "!!!Error reading line 6 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g %g %g", chaa, &df0, &sigmaf, &dfdelt) != 4)
+	if (sscanf(params[6].data(), "%s %g %g %g", chaa, &df0, &sigmaf, &dfdelt) != 4)
 	{
 		cout << "!!!Error reading line 7 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g", chaa, &aobj) != 2)
+	if (sscanf(params[7].data(), "%s %g", chaa, &aobj) != 2)
 	{
 		cout << "!!!Error reading line 8 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d", chaa, &lstart) != 2)
+	if (sscanf(params[8].data(), "%s %d", chaa, &lstart) != 2)
 	{
 		cout << "!!!Error reading line 9 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %s", chaa, cinarg) != 2)
+	if (sscanf(params[9].data(), "%s %s", chaa, cinarg) != 2)
 	{
 		cout << "!!!Error reading line 10 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
 	filestart = cinarg;
-	if (fscanf(ff0, "%s %g", chaa, &v0) != 2)
+	if (sscanf(params[10].data(), "%s %g", chaa, &v0) != 2)
 	{
 		cout << "!!!Error reading line 11 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d %d", chaa, &nx, &ny) != 3)
+	if (sscanf(params[11].data(), "%s %d %d", chaa, &nx, &ny) != 3)
 	{
 		cout << "!!!Error reading line 12 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g %g", chaa, &ctiltx, &ctilty) != 3)
+	if (sscanf(params[12].data(), "%s %g %g", chaa, &ctiltx, &ctilty) != 3)
 	{
 		cout << "!!!Error reading line 13 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %lg", chaa, &deltaz) != 2)
+	if (sscanf(params[13].data(), "%s %lg", chaa, &deltaz) != 2)
 	{
 		cout << "!!!Error reading line 14 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d", chaa, &lbeams) != 2)
+	if (sscanf(params[14].data(), "%s %d", chaa, &lbeams) != 2)
 	{
 		cout << "!!!Error reading line 15 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %s", chaa, cinarg) != 2)
+	if (sscanf(params[15].data(), "%s %s", chaa, cinarg) != 2)
 	{
 		cout << "!!!Error reading line 16 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
 	filebeam = cinarg;
-	if (fscanf(ff0, "%s %d", chaa, &nbout) != 2)
+	if (sscanf(params[16].data(), "%s %d", chaa, &nbout) != 2)
 	{
 		cout << "!!!Error reading line 17 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d", chaa, &lwobble) != 2)
+	if (sscanf(params[17].data(), "%s %d", chaa, &lwobble) != 2)
 	{
 		cout << "!!!Error reading line 18 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g", chaa, &temperature) != 2)
+	if (sscanf(params[18].data(), "%s %g", chaa, &temperature) != 2)
 	{
 		cout << "!!!Error reading line 19 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d", chaa, &nwobble) != 2)
+	if (sscanf(params[19].data(), "%s %d", chaa, &nwobble) != 2)
 	{
 		cout << "!!!Error reading line 20 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d", chaa, &iseed1) != 2)
+	if (sscanf(params[20].data(), "%s %d", chaa, &iseed1) != 2)
 	{
 		cout << "!!!Error reading line 21 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %d", chaa, &lcross) != 2)
+	if (sscanf(params[21].data(), "%s %d", chaa, &lcross) != 2)
 	{
 		cout << "!!!Error reading line 22 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %s", chaa, cinarg) != 2)
+	if (sscanf(params[22].data(), "%s %s", chaa, cinarg) != 2)
 	{
 		cout << "!!!Error reading line 23 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
 	filecross = cinarg;
-	if (fscanf(ff0, "%s %g", chaa, &ycross) != 2)
+	if (sscanf(params[23].data(), "%s %g", chaa, &ycross) != 2)
 	{
 		cout << "!!!Error reading line 24 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	if (fscanf(ff0, "%s %g", chaa, &angle) != 2)
+	if (sscanf(params[24].data(), "%s %g", chaa, &angle) != 2)
 	{
 		cout << "!!!Error reading line 25 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	fclose(ff0);
-	cout << "Input parameter file has been read successfully!\n";
+	//fclose(ff0);
+	//cout << "Input parameter file has been read successfully!\n";
 
     //acmin = acmax = 0;
     if( lpartl == 1 ) {
@@ -753,10 +756,17 @@ int main()
 
     //param[pNSLICES] = 0.0F;  /* ??? */
 	//@@@@@ start temporary code
-	//GRD file output code will go here
-	//@@@@@ end temporary code
+	//GRD file output
+	xar::XArray2D<double> inten(ny, nx);
+	IXAHWave2D* ph2new = CreateWavehead2D();
+	ph2new->SetData(wavlen * 1.e-4, ymin * 1.e-4, ymax * 1.e-4, xmin * 1.e-4, xmax * 1.e-4);
+	inten.SetHeadPtr(ph2new);
+	for (ix = 0; ix < nx; ix++)
+		for (iy = 0; iy < ny; iy++)
+			inten[iy][ix] = pix.re(ix, iy) * pix.re(ix, iy) + pix.im(ix, iy) * pix.im(ix, iy);
+	xar::XArData::WriteFileGRD(inten, fileout.c_str(), xar::eGRDBIN);
 
-    for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );
+ /*   for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );
 
     if ( lpartl == 1 ) {
         myFile.resize( nx, ny );
@@ -776,6 +786,8 @@ int main()
     if( i != 1 ) cout << "autoslice cannot write TIF file " << fileout << endl;
     cout << "pix range " << rmin << " to " << rmax << " real,\n" <<
             "          " << aimin << " to " << aimax << " imag" << endl;
+*/
+	//@@@@@ end temporary code
 
     /* ----- output depth cross section if requested ------- */
     if( lcross == 1 ){
@@ -804,9 +816,9 @@ int main()
     cout << "wall time = " << walltim() - walltimer << " sec." << endl;
 #endif
 	//@@@@@ start temporary code
-	char a;
-	cout << "\nPress any key to exit ...";
-	cin >> a;
+	//char a;
+	//cout << "\nPress any key to exit ...";
+	//cin >> a;
 	//@@@@@ end temporary code
     return 0;
 
