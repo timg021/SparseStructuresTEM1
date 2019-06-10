@@ -1,0 +1,39 @@
+1.Name_of_file_with_input_atomic_coordinates_in_x,y,z_format: si3n4.xyz
+2.Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ: 1 1 1
+3.Name_of_file_to_get_binary_output_of_multislice_result: si3n4_45.tif
+4.Do_you_want_to_include_partial_coherence: 0
+5.____Illumination_angle_min,_max_in_mrad: 0.0 0.0
+6.____Spherical_aberration_Cs3,_Cs5_in_mm: 0.0 0.0
+7.____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms: 0.0 0.0 0.0
+8.____Objective_aperture_in_mrad: 0.0
+9.Do_you_want_to_start_from_previous_result: 0
+10.____Name_of_file_to_start_from: 0
+11.Incident_beam_energy_in_keV: 200.0
+12.Wavefunction_size_in_pixels,_Nx,Ny: 1024 1024
+13.Crystal_tilt_x,y_in_mrad: 0.0 0.0
+14.Slice_thickness_in_Angstroms: 1.375
+15.Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness: 0
+16.____Name_of_file_for_beams_info: 0
+17.____Number_of_beams: 0
+18.Do_you_want_to_include_thermal_vibrations: 0
+19.____Type_the_temperature_in_degrees_K: 0.0
+20.____Type_number_of_configurations_to_average_over: 0
+21.____Type_initial_seed_for_random_number_generator: 0
+22.Do_you_want_to_output_intensity_vs._depth_cross_section: 0
+23.____Type_name_of_file_to_get_depth_profile_image: 0
+24.____Type_y_position_of_depth_cross_section_in_Angstroms: 0.0
+25.Sample_(xz)_rotation_angle_in_radians: 0.785398163397
+
+
+
+
+
+
+
+
+
+
+
+
+
+

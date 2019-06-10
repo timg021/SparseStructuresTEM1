@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Multislice", "Multislice\Multislice.vcxproj", "{598B7CA5-F869-411D-B325-7DD24AD42E05}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MsctKirkland", "MsctKirkland\MsctKirkland.vcxproj", "{401E48BB-10DC-4817-8B81-96973246DC74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{598B7CA5-F869-411D-B325-7DD24AD42E05}.Release|x64.Build.0 = Release|x64
 		{598B7CA5-F869-411D-B325-7DD24AD42E05}.Release|x86.ActiveCfg = Release|Win32
 		{598B7CA5-F869-411D-B325-7DD24AD42E05}.Release|x86.Build.0 = Release|Win32
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Debug|x64.ActiveCfg = Debug|x64
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Debug|x64.Build.0 = Debug|x64
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Debug|x86.ActiveCfg = Debug|Win32
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Debug|x86.Build.0 = Debug|Win32
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Release|x64.ActiveCfg = Release|x64
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Release|x64.Build.0 = Release|x64
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Release|x86.ActiveCfg = Release|Win32
+		{401E48BB-10DC-4817-8B81-96973246DC74}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -62,7 +62,7 @@ int main(void)
 	{
 		for (size_t i = 0; i < nangles; i++)
 		{
-			printf("Angle = %d\n", i);
+			printf("Angle = %zd\n", i);
 			outfilename_i = outfilename;
 			sprintf(buffer, myformat.data(), i);
 			outfilename_i.insert(i_dot, buffer);
