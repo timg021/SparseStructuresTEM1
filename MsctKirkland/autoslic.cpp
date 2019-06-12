@@ -272,6 +272,18 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         if( wobble[i] < wmin ) wmin = wobble[i];
         if( wobble[i] > wmax ) wmax = wobble[i];
     }
+
+	//@@@@@ start temporary code
+	// force square dimensions in (xz) plane, assuming that the x-size is larger or equal to the z-size
+	if (zmin < xmin || zmax > xmax)
+	{
+		sbuffer = "!!!Error: zmin < xmin or zmax > xmax in the XYZ file!!! Input any character to exit...";
+		messageAS(sbuffer);
+		exit(0);
+	}
+	zmin = xmin;
+	zmax = xmax;
+
     // --- leave this in main calling program
     //sprintf(stemp, "Total specimen range is\n %g to %g in x\n"
     //       " %g to %g in y\n %g to %g in z",
@@ -661,7 +673,11 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         istart = 0;
         islice = 1;
 
-        while( (istart < natom) && ( zslice < (zmax+deltaz) ) ) {
+		//@@@@@ start temporary code
+		//!!! Allow free-space propagation in the absense of atoms in the slice
+		//while ((istart < natom) && (zslice < (zmax + deltaz))) {
+		while (zslice < (zmax + deltaz)) {
+		//@@@@@ end temporary code
 
             /* find range of atoms for current slice */
             na = 0;

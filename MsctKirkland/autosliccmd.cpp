@@ -150,6 +150,8 @@ using namespace std;
 #include "floatTIFF.hpp"   // file I/O routines in TIFF format
 #include "autoslic.hpp"    //  the calculation engine
 
+#include "autosliccmd.h" //declaration of the function autosliccmd()
+
 #define MANY_ABERR      //  define to include many aberrations
 
 #ifdef USE_OPENMP
@@ -163,7 +165,8 @@ const int NSMAX= 1000;   // max number of slices
 const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
-int autosliccmd(string params[25])
+
+int autosliccmd(string params[numaslicpars])
 {
     string filein, fileout, filestart, filebeam, filecross, cline, description;
   
@@ -192,7 +195,8 @@ int autosliccmd(string params[25])
     double timer, deltaz, vz;
 
 	//@@@@@ start temporary code
-	float angle; // sample rotation angle in radians (in xz plane, i.e. around y axis)
+	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
+	float xc(0), zc(0); // coordinates of the centre of rotation in Angstroms
 	//@@@@@ end temporary code
         
     ofstream fp1;
@@ -406,6 +410,12 @@ int autosliccmd(string params[25])
 	if (sscanf(params[24].data(), "%s %g", chaa, &angle) != 2)
 	{
 		cout << "!!!Error reading line 25 of input parameter file autoslic.txt!!! Input any character to exit...";
+		cin >> chaa;
+		exit(-1);
+	}
+	if (sscanf(params[25].data(), "%s %g %g", chaa, &xc, &zc) != 3)
+	{
+		cout << "!!!Error reading line 26 of input parameter file autoslic.txt!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
@@ -626,7 +636,20 @@ int autosliccmd(string params[25])
         << " beams" << endl;
     cout <<"Lattice constant a,b = " << ax << ", " << by << endl;
 
-    /*  calculate the total specimen volume and echo */
+
+	//@@@@@ start temporary code
+	// rotate the sample if necessary
+	if (angle)
+	{
+		for (size_t k = 0; k < natom; k++)
+		{
+			x[k] = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
+			z[k] = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
+		}
+	}
+	//@@@@@ end temporary code
+	
+	/*  calculate the total specimen volume and echo */
     xmin = xmax = x[0];
     ymin = ymax = y[0];
     zmin = zmax = z[0];
@@ -642,6 +665,17 @@ int autosliccmd(string params[25])
         if( wobble[i] < wmin ) wmin = wobble[i];
         if( wobble[i] > wmax ) wmax = wobble[i];
     }
+	//@@@@@ start temporary code
+	// force square dimensions in (xz) plane, assuming that the x-size is larger or equal to the z-size
+	if (zmin < xmin || zmax > xmax)
+	{
+		cout << "!!!Error: zmin < xmin or zmax > xmax in the XYZ file!!! Input any character to exit...";
+		cin >> chaa;
+		exit(-1);
+	}
+	zmin = xmin;
+	zmax = xmax;
+	//@@@@@ end temporary code
     cout << "Total specimen range is\n" 
         << xmin << " to " << xmax << " in x\n"
             << ymin << " to " << ymax << " in y\n"
@@ -649,21 +683,6 @@ int autosliccmd(string params[25])
     if( lwobble == 1 )
         cout << "Range of thermal rms displacements (300K) = "
             << wmin << " to " << wmax << endl;
-
-	//@@@@@ start temporary code
-	// rotate the sample if necessary
-	float xc = (xmax - xmin) / 2.0f;
-	float zc = (zmax - zmin) / 2.0f;
-	if (angle)
-	{
-		for (size_t k = 0; k < natom; k++)
-		{
-			x[k] = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
-			z[k] = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
-		}
-	}
-	//@@@@@ end temporary code
-
 
     // ---------  setup calculation -----
     //   set calculation flags

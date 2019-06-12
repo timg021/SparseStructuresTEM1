@@ -116,6 +116,9 @@
     <ClInclude Include="..\Multislice\XArrayB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="autosliccmd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="autoslic.txt">
