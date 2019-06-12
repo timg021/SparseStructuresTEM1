@@ -319,9 +319,9 @@ cfpix& cfpix::operator+=( const cfpix& m  )
         for( i=0; i<nn; i++) {
             data[i][0] += m.data[i][0];
             data[i][1] += m.data[i][1];
-        }
-        return *this;
+        }    
     }
+	return *this;
 }
 
 //--------------------- operator*=() ----------------------------------
