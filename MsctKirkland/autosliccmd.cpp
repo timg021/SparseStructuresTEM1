@@ -646,13 +646,10 @@ int autosliccmd(string params[numaslicpars])
 
 	//@@@@@ start temporary code
 	// rotate the sample if necessary
-	if (angle)
+	for (size_t k = 0; k < natom; k++)
 	{
-		for (size_t k = 0; k < natom; k++)
-		{
-			x[k] = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
-			z[k] = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
-		}
+		x[k] = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
+		z[k] = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
 	}
 	//@@@@@ end temporary code
 	
