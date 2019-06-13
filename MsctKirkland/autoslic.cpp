@@ -196,10 +196,12 @@ autoslic::~autoslic()
                 save intensity in real part (imag part not used)
                 (ignored if lcross = 0)
 */
+//@@@@@ TEG added parameter nmode to the list of this functioin arguments
+// nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, unsigned long *iseed,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt )
+        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, int nmode )
 {
     int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams,
         nacx,nacy, iqx, iqy, iwobble, ndf, idf, ib, na, islice, nzout, nzbeams,
@@ -509,10 +511,14 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
             
                             /* remember: prop needed here to get anti-aliasing
                                     right */
-                            wave.fft();
-                            propagate( wave, propxr, propxi, propyr, propyi,
-                                kx2,  ky2,  k2max, nx, ny );
-                            wave.ifft();
+							//@@@@@ TEG added parameter nmode which switches between multislice(0), projection(1) and 1st Born(2) approximations
+							if (nmode == 0)
+							{
+								wave.fft();
+								propagate(wave, propxr, propxi, propyr, propyi,
+									kx2, ky2, k2max, nx, ny);
+								wave.ifft();
+							}
             
                             zslice += deltaz;
                             istart += na;
@@ -697,19 +703,23 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
             }
 
             /*  bandwidth limit */
-            wave.fft();
+			//@@@@@ TEG added parameter nmode which switches between multislice(0), projection(1) and 1st Born(2) approximations
+			if (nmode == 0)
+			{
+				wave.fft();
 
-            if( (lbeams== 1) && (islice<nzbeams) && (islice>0) )  {
-                for( ib=0; ib<nbout; ib++) {
-                    beams.re(ib,islice-1) = scale*wave.re(hbeam[ib],kbeam[ib] );   // real
-                    beams.im(ib,islice-1) = scale*wave.im(hbeam[ib],kbeam[ib] );   // imag
-                }
-            }
+				if ((lbeams == 1) && (islice < nzbeams) && (islice > 0)) {
+					for (ib = 0; ib < nbout; ib++) {
+						beams.re(ib, islice - 1) = scale * wave.re(hbeam[ib], kbeam[ib]);   // real
+						beams.im(ib, islice - 1) = scale * wave.im(hbeam[ib], kbeam[ib]);   // imag
+					}
+				}
 
-            /* remember: prop needed here to get anti-aliasing right */
-            propagate( wave, propxr, propxi,
-                propyr, propyi, kx2,  ky2,  k2max, nx, ny );
-            wave.ifft();
+				/* remember: prop needed here to get anti-aliasing right */
+				propagate(wave, propxr, propxi,
+					propyr, propyi, kx2, ky2, k2max, nx, ny);
+				wave.ifft();
+			}
 
             /* save depth cross section if requested */
             if( (lcross == 1) && (islice<=nz) ) {
