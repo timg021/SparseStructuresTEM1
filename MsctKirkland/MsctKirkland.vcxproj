@@ -168,9 +168,6 @@
     <ClInclude Include="pdb.h" />
     <ClInclude Include="slicelib.hpp" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="autoslic.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
