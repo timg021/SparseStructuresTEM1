@@ -196,14 +196,15 @@ autoslic::~autoslic()
                 save intensity in real part (imag part not used)
                 (ignored if lcross = 0)
 */
-//@@@@@ TEG added parameter nmode to the list of this functioin arguments
+//@@@@@ TEG added parameters ctblength and nmode to the list of this functioin arguments
+// ctblength defines the CT sample box side length in Angstroms
 // nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, unsigned long *iseed,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, int nmode )
+        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nmode )
 {
-    int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams,
+    int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams(0),
         nacx,nacy, iqx, iqy, iwobble, ndf, idf, ib, na, islice, nzout, nzbeams,
         n1, n2;
     int *Znum2(0), *hbeam(0), *kbeam(0);
@@ -220,7 +221,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
     float *x2(0), *y2(0), *z2(0), *occ2(0);
     float *propxr, *propxi, *propyr, *propyi;
 
-    double sum, xdf, chi0, t, zslice, deltaz, phirms, rsq, vz, alx, aly;
+    double sum, xdf, chi0, t, zslice, deltaz, phirms(0), rsq, vz, alx, aly;
 
     cfpix wave;            // complex probe wave functions
     cfpix trans;           // complex transmission functions
@@ -276,15 +277,23 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
     }
 
 	//@@@@@ start temporary code
-	// force square dimensions in (xz) plane, assuming that the x-size is larger or equal to the z-size
-	if (zmin < xmin || zmax > xmax)
+	// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
+	if (xmin < 0 || ymin < 0 || zmin < 0)
 	{
-		sbuffer = "!!!Error: zmin < xmin or zmax > xmax in the XYZ file!!! Input any character to exit...";
+		sbuffer = "!!!Error: xmin, ymin or zmin < 0 in the XYZ file!!!";
 		messageAS(sbuffer);
 		exit(0);
 	}
-	zmin = xmin;
-	zmax = xmax;
+	if (xmax > ctblength || ymax > ctblength || zmax > ctblength)
+	{
+		sbuffer = "!!!Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample qube side length!!!";
+		messageAS(sbuffer);
+		exit(0);
+	}
+	xmin = 0; xmax = ctblength;
+	ymin = 0; ymax = ctblength;
+	zmin = 0; zmax = ctblength;
+	//@@@@@ end temporary code
 
     // --- leave this in main calling program
     //sprintf(stemp, "Total specimen range is\n %g to %g in x\n"

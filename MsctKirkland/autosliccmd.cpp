@@ -197,7 +197,7 @@ int autosliccmd(string params[numaslicpars])
 	//@@@@@ start temporary code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
-	float xc(0), zc(0); // coordinates of the centre of rotation in Angstroms
+	float ctblength(0); // length of the CT projection simulation box (containing the sample) in Angstroms
 	//@@@@@ end temporary code
         
     ofstream fp1;
@@ -414,7 +414,7 @@ int autosliccmd(string params[numaslicpars])
 		cin >> chaa;
 		exit(-1);
 	}
-	if (sscanf(params[25].data(), "%s %g %g", chaa, &xc, &zc) != 3)
+	if (sscanf(params[25].data(), "%s %g", chaa, &ctblength) != 2)
 	{
 		cout << "!!!Error reading line 26 of input parameter array!!! Input any character to exit...";
 		cin >> chaa;
@@ -645,14 +645,15 @@ int autosliccmd(string params[numaslicpars])
 
 
 	//@@@@@ start temporary code
-	// rotate the sample if necessary
+	// rotate the sample as necessary
+	float xc(float(ctblength / 2.0)), zc(float(ctblength / 2.0));
 	for (size_t k = 0; k < natom; k++)
 	{
 		x[k] = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
 		z[k] = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
 	}
 	//@@@@@ end temporary code
-	
+		
 	/*  calculate the total specimen volume and echo */
     xmin = xmax = x[0];
     ymin = ymax = y[0];
@@ -669,24 +670,33 @@ int autosliccmd(string params[numaslicpars])
         if( wobble[i] < wmin ) wmin = wobble[i];
         if( wobble[i] > wmax ) wmax = wobble[i];
     }
+
+	cout << "Total specimen range is\n"
+		<< xmin << " to " << xmax << " in x\n"
+		<< ymin << " to " << ymax << " in y\n"
+		<< zmin << " to " << zmax << " in z" << endl;
+	if (lwobble == 1)
+		cout << "Range of thermal rms displacements (300K) = "
+		<< wmin << " to " << wmax << endl;
+	
 	//@@@@@ start temporary code
-	// force square dimensions in (xz) plane, assuming that the x-size is larger or equal to the z-size
-	if (zmin < xmin || zmax > xmax)
+	// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
+	if (xmin < 0 || ymin < 0 || zmin < 0)
 	{
-		cout << "!!!Error: zmin < xmin or zmax > xmax in the XYZ file!!! Input any character to exit...";
+		cout << "!!!Error: xmin, ymin or zmin < 0 in the XYZ file!!! Input any character to exit...";
 		cin >> chaa;
 		exit(-1);
 	}
-	zmin = xmin;
-	zmax = xmax;
+	if (xmax > ctblength || ymax > ctblength || zmax > ctblength)
+	{
+		cout << "!!!Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample qube side length!!! Input any character to exit...";
+		cin >> chaa;
+		exit(-1);
+	}
+	xmin = 0; xmax = ctblength;
+	ymin = 0; ymax = ctblength;
+	zmin = 0; zmax = ctblength;
 	//@@@@@ end temporary code
-    cout << "Total specimen range is\n" 
-        << xmin << " to " << xmax << " in x\n"
-            << ymin << " to " << ymax << " in y\n"
-        << zmin << " to " << zmax << " in z" << endl;
-    if( lwobble == 1 )
-        cout << "Range of thermal rms displacements (300K) = "
-            << wmin << " to " << wmax << endl;
 
     // ---------  setup calculation -----
     //   set calculation flags
@@ -697,9 +707,13 @@ int autosliccmd(string params[numaslicpars])
     aslice.lwobble = lwobble;
 
     //   set calculation parameters (some already set above)
-    param[ pAX ] = ax;			// supercell size
-    param[ pBY ] = by;
-    param[ pNX ] = (float) nx;
+    //param[ pAX ] = ax;			// supercell size
+    //param[ pBY ] = by;
+	//@@@@@ start temporary code
+	param[ pAX ] = ctblength;			// supercell size
+	param[ pBY ] = ctblength;
+	//@@@@@ end temporary code
+	param[ pNX ] = (float) nx;
     param[ pNY ] = (float) ny;
     param[pENERGY]   =  v0;
     param[ pDELTAZ ] = (float) deltaz;	// slice thickness
@@ -729,7 +743,7 @@ int autosliccmd(string params[numaslicpars])
     // ------- iterate the multislice algorithm proper -----------
 
     aslice.calculate( pix, wave0, depthpix, param, multiMode, natom, &iseed,
-                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, nmode);
+                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nmode);
  
     if( lpartl == 1 ) {         //    with partial coherence
         nillum = aslice.nillum;
@@ -786,7 +800,10 @@ int autosliccmd(string params[numaslicpars])
 	inten.SetHeadPtr(ph2new);
 	for (ix = 0; ix < nx; ix++)
 		for (iy = 0; iy < ny; iy++)
+		{
 			inten[iy][ix] = pix.re(ix, iy) * pix.re(ix, iy) + pix.im(ix, iy) * pix.im(ix, iy);
+			//printf("\n%d %d %f", iy, ix, inten[iy][ix]);
+		}
 	xar::XArData::WriteFileGRD(inten, fileout.c_str(), xar::eGRDBIN);
 
  /*   for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );
