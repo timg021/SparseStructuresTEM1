@@ -250,7 +250,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 
     if( (nx < 1) || (ny < 1) || (ax<0.0) || (by<0.0) ){
         sbuffer="bad size parameters in autoslic::calculate()";
-        messageAS( sbuffer );
+        messageAS( sbuffer, 2 );
         exit( 0 );
     }
             
@@ -281,13 +281,13 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 	if (xmin < 0 || ymin < 0 || zmin < 0)
 	{
 		sbuffer = "!!!Error: xmin, ymin or zmin < 0 in the XYZ file!!!";
-		messageAS(sbuffer);
+		messageAS(sbuffer, 2);
 		exit(0);
 	}
 	if (xmax > ctblength || ymax > ctblength || zmax > ctblength)
 	{
 		sbuffer = "!!!Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample qube side length!!!";
-		messageAS(sbuffer);
+		messageAS(sbuffer, 2);
 		exit(0);
 	}
 	xmin = 0; xmax = ctblength;
@@ -811,7 +811,12 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 */
 void autoslic::messageAS( std::string &smsg,  int level )
 {
+	if (!level)
+#ifdef _DEBUG
         messageSL( smsg.c_str(), level );  //  just call slicelib version for now
+#endif
+	if (level)
+		messageSL(smsg.c_str(), level);  //  just call slicelib version for now
 
 }  // end autoslic::messageAS()
 

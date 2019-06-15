@@ -599,7 +599,10 @@ void ***malloc3D( int nx, int ny, int nz, size_t size, const char *message )
 void messageSL( const char msg[],  int level )
 {
 #ifdef USE_TERMINAL
-    cout << msg << endl;  //simplest possible version
+#ifdef _DEBUG
+    if (!level) cout << msg << endl;  //simplest possible version
+#endif
+	if (level) cout << msg << endl;  //simplest possible version
 #endif
 
 #ifdef wxGUI

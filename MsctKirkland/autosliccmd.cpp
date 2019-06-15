@@ -211,7 +211,7 @@ int autosliccmd(string params[numaslicpars])
     autoslic aslice;	// has the calculation engine
 
 /*  echo version date and get input file name */
-
+#ifdef _DEBUG
     cout << "autoslic(e) version dated " << version << endl;
     cout << "Copyright (C) 1998-2013 Earl J. Kirkland"  << endl;
     cout << "This program is provided AS-IS with ABSOLUTELY NO WARRANTY"  << endl;
@@ -222,6 +222,8 @@ int autosliccmd(string params[numaslicpars])
     cout << "and multithreaded using openMP" << endl;
 #endif
     cout <<  " "  << endl;
+#endif
+
 
     pi = (float) (4.0 * atan( 1.0 ));
     NPARAM = myFile.maxParam();
@@ -243,11 +245,7 @@ int autosliccmd(string params[numaslicpars])
     //cin >> filein;
 	//filein = "1grl.xyz";
 	if (sscanf(params[0].data(), "%s %s", chaa, cinarg) != 2)
-	{
-		cout << "!!!Error reading line 1 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 1 of input parameter array.");
 	filein = cinarg;
 
 /*  get simulation options */
@@ -259,173 +257,67 @@ int autosliccmd(string params[numaslicpars])
     //if( ncellz < 1 ) ncellz = 1;
 	//ncellx = 1; ncelly = 1; ncellz = 1;
 	if (sscanf(params[1].data(), "%s %d %d %d", chaa, &ncellx, &ncelly, &ncellz) != 4)
-	{
-		cout << "!!!Error reading line 2 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 2 of input parameter array.");
 
     //cout << "Name of file to get binary output of multislice result:" << endl;
     //cin.getline( fileout, NCMAX );   //  ????
     //cin >> fileout ;
 	//fileout = "1grl.tif";
 	if (sscanf(params[2].data(), "%s %s", chaa, cinarg) != 2)
-	{
-		cout << "!!!Error reading line 3 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 3 of input parameter array.");
 	fileout = cinarg;
 
     //lpartl = askYN("Do you want to include partial coherence");
 	//lpartl = 0;
 	if (sscanf(params[3].data(), "%s %d", chaa, &lpartl) != 2)
-	{
-		cout << "!!!Error reading line 4 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 4 of input parameter array.");
 	if (sscanf(params[4].data(), "%s %g %g", chaa, &acmin, &acmax) != 3)
-	{
-		cout << "!!!Error reading line 5 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 5 of input parameter array.");
 	if (sscanf(params[5].data(), "%s %g %g", chaa, &Cs3, &Cs5) != 3)
-	{
-		cout << "!!!Error reading line 6 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 6 of input parameter array.");
 	if (sscanf(params[6].data(), "%s %g %g %g", chaa, &df0, &sigmaf, &dfdelt) != 4)
-	{
-		cout << "!!!Error reading line 7 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 7 of input parameter array.");
 	if (sscanf(params[7].data(), "%s %g", chaa, &aobj) != 2)
-	{
-		cout << "!!!Error reading line 8 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 8 of input parameter array.");
 	if (sscanf(params[8].data(), "%s %d", chaa, &lstart) != 2)
-	{
-		cout << "!!!Error reading line 9 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 9 of input parameter array.");
 	if (sscanf(params[9].data(), "%s %s", chaa, cinarg) != 2)
-	{
-		cout << "!!!Error reading line 10 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 10 of input parameter array.");
 	filestart = cinarg;
 	if (sscanf(params[10].data(), "%s %g", chaa, &v0) != 2)
-	{
-		cout << "!!!Error reading line 11 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 11 of input parameter array.");
 	if (sscanf(params[11].data(), "%s %d %d", chaa, &nx, &ny) != 3)
-	{
-		cout << "!!!Error reading line 12 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 12 of input parameter array.");
 	if (sscanf(params[12].data(), "%s %g %g", chaa, &ctiltx, &ctilty) != 3)
-	{
-		cout << "!!!Error reading line 13 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 13 of input parameter array.");
 	if (sscanf(params[13].data(), "%s %lg", chaa, &deltaz) != 2)
-	{
-		cout << "!!!Error reading line 14 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 14 of input parameter array.");
 	if (sscanf(params[14].data(), "%s %d", chaa, &lbeams) != 2)
-	{
-		cout << "!!!Error reading line 15 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 15 of input parameter array.");
 	if (sscanf(params[15].data(), "%s %s", chaa, cinarg) != 2)
-	{
-		cout << "!!!Error reading line 16 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 16 of input parameter array.");
 	filebeam = cinarg;
 	if (sscanf(params[16].data(), "%s %d", chaa, &nbout) != 2)
-	{
-		cout << "!!!Error reading line 17 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 17 of input parameter array.");
 	if (sscanf(params[17].data(), "%s %d", chaa, &lwobble) != 2)
-	{
-		cout << "!!!Error reading line 18 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 18 of input parameter array.");
 	if (sscanf(params[18].data(), "%s %g", chaa, &temperature) != 2)
-	{
-		cout << "!!!Error reading line 19 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 19 of input parameter array.");
 	if (sscanf(params[19].data(), "%s %d", chaa, &nwobble) != 2)
-	{
-		cout << "!!!Error reading line 20 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 20 of input parameter array.");
 	if (sscanf(params[20].data(), "%s %d", chaa, &iseed1) != 2)
-	{
-		cout << "!!!Error reading line 21 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 21 of input parameter array.");
 	if (sscanf(params[21].data(), "%s %d", chaa, &lcross) != 2)
-	{
-		cout << "!!!Error reading line 22 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 22 of input parameter array.");
 	if (sscanf(params[22].data(), "%s %s", chaa, cinarg) != 2)
-	{
-		cout << "!!!Error reading line 23 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 23 of input parameter array.");
 	filecross = cinarg;
 	if (sscanf(params[23].data(), "%s %g", chaa, &ycross) != 2)
-	{
-		cout << "!!!Error reading line 24 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 24 of input parameter array.");
 	if (sscanf(params[24].data(), "%s %g", chaa, &angle) != 2)
-	{
-		cout << "!!!Error reading line 25 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
-	if (sscanf(params[25].data(), "%s %g", chaa, &ctblength) != 2)
-	{
-		cout << "!!!Error reading line 26 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
-	if (sscanf(params[26].data(), "%s %d", chaa, &nmode) != 2)
-	{
-		cout << "!!!Error reading line 27 of input parameter array!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error reading line 25 of input parameter array.");
+	if (sscanf(params[25].data(), "%s %d", chaa, &nmode) != 2)
+		throw std::exception("Error reading line 26 of input parameter array.");
 	//fclose(ff0);
 	//cout << "Input parameter file has been read successfully!\n";
 
@@ -470,7 +362,9 @@ int autosliccmd(string params[numaslicpars])
 #endif
         lstart = 0;
     } else {
+#ifdef _DEBUG
         cout << "NOTE, the program image must also be run." << endl;
+#endif
 		//@@@@@ start temporary code
         //lstart = askYN("Do you want to start from previous result");
 		//lstart = 0;
@@ -608,20 +502,23 @@ int autosliccmd(string params[numaslicpars])
         by = sparam[pDY] * ny;
         v0     = sparam[pENERGY];
         nslic0 = (int) sparam[pNSLICES];
+#ifdef _DEBUG
         cout << "Starting pix range " << sparam[pRMIN] << " to " << sparam[pRMAX] 
               << " real\n" << "           " << sparam[pIMIN] << " to " 
               << sparam[pIMAX] << " imag" << endl;
         cout << "Beam voltage = " << v0 << " kV" << endl;
         cout << "Old crystal tilt x,y = " << 1000.*sparam[pXCTILT] <<  ", " 
             << 1000.*sparam[pYCTILT] << " mrad" << endl;
-
+#endif
     } else nslic0 = 0;     /* end if( lstart...) */
 
 /*  calculate relativistic factor and electron wavelength */
 
     mm0 = 1.0F + v0/511.0F;
     wavlen = (float) wavelength( v0 );
+#ifdef _DEBUG
     cout << "electron wavelength = " << wavlen << " Angstroms" << endl;
+#endif
 
 /*  read in specimen coordinates and scattering factors */
 
@@ -635,16 +532,22 @@ int autosliccmd(string params[numaslicpars])
 		cin >> chaa;
 		exit(-1);
 	}
-	
+#ifdef _DEBUG	
     cout << natom << " atomic coordinates read in"  << endl;
     cout << description << endl;
 
     cout <<"Size in pixels Nx, Ny= " << nx << " x " << ny << " = " << nx*ny 
         << " beams" << endl;
     cout <<"Lattice constant a,b = " << ax << ", " << by << endl;
-
+#endif
 
 	//@@@@@ start temporary code
+	//!!! Note that the CT projection simulation cube side length will be set equal to the largest dimension of the unit cell in the input XYZ file.
+	//Consequently, the largest "unit cell" dimension in the input XYZ file should be large enough, so that CT rotation won't take a part of the molecule outside the simulation cube.
+		if (ax > by)
+		if (ax > cz) ctblength = ax; else ctblength = cz;
+	else 
+		if (by > cz) ctblength = by; else ctblength = cz;
 	// rotate the sample as necessary
 	float xc(float(ctblength / 2.0)), zc(float(ctblength / 2.0));
 	for (size_t k = 0; k < natom; k++)
@@ -670,7 +573,7 @@ int autosliccmd(string params[numaslicpars])
         if( wobble[i] < wmin ) wmin = wobble[i];
         if( wobble[i] > wmax ) wmax = wobble[i];
     }
-
+#ifdef _DEBUG
 	cout << "Total specimen range is\n"
 		<< xmin << " to " << xmax << " in x\n"
 		<< ymin << " to " << ymax << " in y\n"
@@ -678,21 +581,13 @@ int autosliccmd(string params[numaslicpars])
 	if (lwobble == 1)
 		cout << "Range of thermal rms displacements (300K) = "
 		<< wmin << " to " << wmax << endl;
-	
+#endif	
 	//@@@@@ start temporary code
 	// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
 	if (xmin < 0 || ymin < 0 || zmin < 0)
-	{
-		cout << "!!!Error: xmin, ymin or zmin < 0 in the XYZ file!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error: xmin, ymin or zmin < 0 in the XYZ file.");
 	if (xmax > ctblength || ymax > ctblength || zmax > ctblength)
-	{
-		cout << "!!!Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample qube side length!!! Input any character to exit...";
-		cin >> chaa;
-		exit(-1);
-	}
+		throw std::exception("Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample qube side length.");
 	xmin = 0; xmax = ctblength;
 	ymin = 0; ymax = ctblength;
 	zmin = 0; zmax = ctblength;
@@ -850,10 +745,11 @@ int autosliccmd(string params[numaslicpars])
                 << filecross << endl;
         cout << "depth pix range " << rmin << " to " << rmax << " real" << endl;
     }
-
+#ifdef _DEBUG
     cout << "Total CPU time = " << cputim()-timer << " sec." << endl;
 #ifdef USE_OPENMP
     cout << "wall time = " << walltim() - walltimer << " sec." << endl;
+#endif
 #endif
 	//@@@@@ start temporary code
 	//char a;

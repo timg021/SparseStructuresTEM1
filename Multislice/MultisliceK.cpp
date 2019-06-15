@@ -14,7 +14,7 @@ using namespace xar;
 int main(void)
 {
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\aaa.grd");
-	const size_t nangles = 360;
+	const size_t nangles = 180;
 
 	size_t i_dot = outfilename.rfind('.');
 	size_t nfield_length = (nangles == 1) ? 1 : 1 + size_t(log10(double(nangles - 1))); //maximum number of digits in the output file name
@@ -37,7 +37,7 @@ int main(void)
 			angle = PI * double(i) / double(nangles);
 			sprintf(bufangle, "%f", angle); strAngle = bufangle;
 			//Here we call Kirkland's autoslic at each angle
-			//!!! One has to define at least parameters no. 0, 2, 10, 11, 13, 25 and 26 in the list below
+			//!!! One has to define at least parameters no. 0, 2, 10, 11, 13 and 25 in the list below
 			autoslictxt[0] = "1.Name_of_file_with_input_atomic_coordinates_in_x,y,z_format: aspKirck.xyz";
 			autoslictxt[1] = "2.Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ: 1 1 1";
 			autoslictxt[2] = "3.Name_of_file_to_get_binary_output_of_multislice_result: " + outfilename_i;
@@ -63,8 +63,7 @@ int main(void)
 			autoslictxt[22] = "23.____Type_name_of_file_to_get_depth_profile_image: 0";
 			autoslictxt[23] = "24.____Type_y_position_of_depth_cross_section_in_Angstroms: 0.0";
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
-			autoslictxt[25] = "26.CT_sample_qube_side_length_in_Angstroms: 7";
-			autoslictxt[26] = "27.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0";
+			autoslictxt[25] = "26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0";
 			autosliccmd(autoslictxt);
 		}
 	}
