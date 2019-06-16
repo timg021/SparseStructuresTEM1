@@ -14,7 +14,7 @@ using namespace xar;
 int main(void)
 {
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\aaa.grd");
-	const size_t nangles = 18;
+	const size_t nangles = 360;
 
 	size_t i_dot = outfilename.rfind('.');
 	size_t nfield_length = (nangles == 1) ? 1 : 1 + size_t(log10(double(nangles - 1))); //maximum number of digits in the output file name

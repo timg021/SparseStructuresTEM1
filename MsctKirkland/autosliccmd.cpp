@@ -549,11 +549,12 @@ int autosliccmd(string params[numaslicpars])
 	else 
 		if (by > cz) ctblength = by; else ctblength = cz;
 	// rotate the sample as necessary
-	float xc(float(ctblength / 2.0)), zc(float(ctblength / 2.0));
+	float xc(float(ctblength / 2.0)), zc(float(ctblength / 2.0)), xxx, zzz;
 	for (size_t k = 0; k < natom; k++)
 	{
-		x[k] = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
-		z[k] = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
+		xxx = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
+		zzz = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
+		x[k] = xxx; z[k] = zzz;
 	}
 	//@@@@@ end temporary code
 		
