@@ -132,6 +132,7 @@ ANY OTHER PROGRAM).
 #include <cstdio>  /* ANSI C libraries */
 #include <cstdlib>
 #include <cstring>
+#include <math.h>
 #include <cmath>
 #include <ctime>
 
@@ -196,6 +197,7 @@ int autosliccmd(string params[numaslicpars])
 
 	//@@@@@ start temporary code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
+	int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
 	float ctblength(0); // length of the CT projection simulation box (containing the sample) in Angstroms
 	//@@@@@ end temporary code
@@ -318,6 +320,8 @@ int autosliccmd(string params[numaslicpars])
 		throw std::exception("Error reading line 25 of input parameter array.");
 	if (sscanf(params[25].data(), "%s %d", chaa, &nmode) != 2)
 		throw std::exception("Error reading line 26 of input parameter array.");
+	if (sscanf(params[26].data(), "%s %d", chaa, &noutput) != 2)
+		throw std::exception("Error reading line 27 of input parameter array.");
 	//fclose(ff0);
 	//cout << "Input parameter file has been read successfully!\n";
 
@@ -689,18 +693,44 @@ int autosliccmd(string params[numaslicpars])
 
     //param[pNSLICES] = 0.0F;  /* ??? */
 	//@@@@@ start temporary code
-	//GRD file output
-	xar::XArray2D<double> inten(ny, nx);
+	//GRD/GRC file output
 	IXAHWave2D* ph2new = CreateWavehead2D();
 	ph2new->SetData(wavlen * 1.e-4, ymin * 1.e-4, ymax * 1.e-4, xmin * 1.e-4, xmax * 1.e-4);
-	inten.SetHeadPtr(ph2new);
-	for (ix = 0; ix < nx; ix++)
-		for (iy = 0; iy < ny; iy++)
-		{
-			inten[iy][ix] = pix.re(ix, iy) * pix.re(ix, iy) + pix.im(ix, iy) * pix.im(ix, iy);
-			//printf("\n%d %d %f", iy, ix, inten[iy][ix]);
-		}
-	xar::XArData::WriteFileGRD(inten, fileout.c_str(), xar::eGRDBIN);
+	switch (noutput)
+	{
+	case 0: // intensity out
+	{
+		xar::XArray2D<double> inten(ny, nx);
+		inten.SetHeadPtr(ph2new);
+		for (ix = 0; ix < nx; ix++)
+			for (iy = 0; iy < ny; iy++)
+				inten[iy][ix] = pix.re(ix, iy) * pix.re(ix, iy) + pix.im(ix, iy) * pix.im(ix, iy);
+		xar::XArData::WriteFileGRD(inten, fileout.c_str(), xar::eGRDBIN);
+		break;
+	}
+	case 1: // phase out
+	{
+		xar::XArray2D<double> phase(ny, nx);
+		phase.SetHeadPtr(ph2new);
+		for (ix = 0; ix < nx; ix++)
+			for (iy = 0; iy < ny; iy++)
+				phase[iy][ix] = atan2f(pix.im(ix, iy), pix.re(ix, iy));
+		xar::XArData::WriteFileGRD(phase, fileout.c_str(), xar::eGRDBIN);
+		break;
+	}
+	case 2: // complex amplitude out
+	{
+		xar::XArray2D<xar::fcomplex> camp(ny, nx);
+		camp.SetHeadPtr(ph2new);
+		for (ix = 0; ix < nx; ix++)
+			for (iy = 0; iy < ny; iy++)
+				camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
+		xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
+		break;
+	}
+	default:
+		throw std::exception("Error: unknown value of the output mode parameter.");
+	}
 
  /*   for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );
 

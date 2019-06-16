@@ -54,7 +54,7 @@ int main(void)
 	sprintf(ndig, "%zd", nfield_length); //convert the calculated maximum number of digits into a string, e.g. 3 into "3"
 	string myformat = "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded numbers into file names - see usage below
 
-	double angle, x;
+	double angle;
 	char buffer[128];
 	string outfilename_i;
 
