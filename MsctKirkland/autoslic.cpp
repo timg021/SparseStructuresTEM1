@@ -685,6 +685,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 		//@@@@@ start temporary code
 		//!!! Note that Kirkland expects all atomic position coordinates to be non-negative!!!
 		//@@@@@ end temporary code
+		zslice = deltaz;
         istart = 0;
         islice = 1;
 
