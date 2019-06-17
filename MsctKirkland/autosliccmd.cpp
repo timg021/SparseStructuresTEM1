@@ -700,7 +700,7 @@ int autosliccmd(string params[numaslicpars])
 	{
 	case 0: // intensity out
 	{
-		xar::XArray2D<double> inten(ny, nx);
+		xar::XArray2D<float> inten(ny, nx);
 		inten.SetHeadPtr(ph2new);
 		for (ix = 0; ix < nx; ix++)
 			for (iy = 0; iy < ny; iy++)
@@ -710,7 +710,7 @@ int autosliccmd(string params[numaslicpars])
 	}
 	case 1: // phase out
 	{
-		xar::XArray2D<double> phase(ny, nx);
+		xar::XArray2D<float> phase(ny, nx);
 		phase.SetHeadPtr(ph2new);
 		for (ix = 0; ix < nx; ix++)
 			for (iy = 0; iy < ny; iy++)
