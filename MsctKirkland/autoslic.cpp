@@ -276,7 +276,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         if( wobble[i] > wmax ) wmax = wobble[i];
     }
 
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
 	if (xmin < 0 || ymin < 0 || zmin < 0)
 	{
@@ -293,7 +293,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 	xmin = 0; xmax = ctblength;
 	ymin = 0; ymax = ctblength;
 	zmin = 0; zmax = ctblength;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
 
     // --- leave this in main calling program
     //sprintf(stemp, "Total specimen range is\n %g to %g in x\n"
@@ -682,18 +682,18 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         scale = 1.0F / ( ((float)nx) * ((float)ny) );
 
         zslice = 0.75*deltaz;  /*  start a little before top of unit cell */
-		//@@@@@ start temporary code
+		//@@@@@ start TEG code
 		//!!! Note that Kirkland expects all atomic position coordinates to be non-negative!!!
-		//@@@@@ end temporary code
-		zslice = deltaz;
+		//@@@@@ end TEG code
+		zslice = deltaz; // this change makes the results coincide with the one in muSTEM and Dr PROBE
         istart = 0;
         islice = 1;
 
-		//@@@@@ start temporary code
+		//@@@@@ start TEG code
 		//!!! Allow free-space propagation in the absense of atoms in the slice
 		//while ((istart < natom) && (zslice < (zmax + deltaz))) {
 		while (zslice < (zmax + deltaz)) {
-		//@@@@@ end temporary code
+		//@@@@@ end TEG code
 
             /* find range of atoms for current slice */
             na = 0;

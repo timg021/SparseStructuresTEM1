@@ -167,8 +167,11 @@ const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
 
-int autosliccmd(string params[numaslicpars])
+int autosliccmd(string params[numaslicpars], unsigned int* pthread_counter)
 {
+	Counter_Obj acounter(pthread_counter); // increments the thread counter on construction and decrements it on destruction
+	printf("\n@@@@@@nactiveINSIDE = %d\n", *pthread_counter);
+
     string filein, fileout, filestart, filebeam, filecross, cline, description;
   
     const char version[] = "2-jun-2014 (ejk)";
@@ -195,12 +198,12 @@ int autosliccmd(string params[numaslicpars])
 
     double timer, deltaz, vz;
 
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
 	int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
 	float ctblength(0); // length of the CT projection simulation box (containing the sample) in Angstroms
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
         
     ofstream fp1;
 
@@ -233,7 +236,7 @@ int autosliccmd(string params[numaslicpars])
     sparam = (float*) malloc1D( NPARAM, sizeof(float), "sparam" );
     for( ix=0; ix<NPARAM; ix++ ) param[ix] = 0.0F;
 
-    //@@@@@ start temporary code
+    //@@@@@ start TEG code
 	//FILE* ff0 = fopen("autoslic.txt", "rt");
 	char chaa[1024], cinarg[1024];
 	//if (!ff0)
@@ -342,7 +345,7 @@ int autosliccmd(string params[numaslicpars])
         param[pDDF] = (float) sigmaf;
         //cout << "Objective aperture (in mrad) =" << endl;
         //cin >> aobj;
-		//@@@@@ end temporary code
+		//@@@@@ end TEG code
         aobj = (float) fabs( aobj * 0.001F);
 #ifdef MANY_ABERR 
         /*   get higher order aberrations if necessary */
@@ -369,13 +372,13 @@ int autosliccmd(string params[numaslicpars])
 #ifdef _DEBUG
         cout << "NOTE, the program image must also be run." << endl;
 #endif
-		//@@@@@ start temporary code
+		//@@@@@ start TEG code
         //lstart = askYN("Do you want to start from previous result");
 		//lstart = 0;
-		//@@@@@ end temporary code
+		//@@@@@ end TEG code
     }
 	
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
     if ( lstart == 1 ) {
         //cout << "Name of file to start from:" << endl;
         //cin >> filestart;
@@ -386,35 +389,35 @@ int autosliccmd(string params[numaslicpars])
         //cout << "Wavefunction size in pixels, Nx,Ny:" << endl;
         //cin >> nx >> ny;
 		//nx = ny = 1024;
-		//@@@@@ end temporary code
+		//@@@@@ end TEG code
     }
 
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
     //cout << "Crystal tilt x,y in mrad.:" << endl;
     //cin >> ctiltx >> ctilty;
 	//ctiltx = ctilty = 0;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
     ctiltx = ctiltx /1000;
     ctilty = ctilty /1000;
 
     /*  remember that the slice thickness must be > atom size
         to use projected atomic potential */
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
     //cout << "Slice thickness (in Angstroms):" << endl;
     //cin >> deltaz;
 	//deltaz = 1.3575;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
     if( deltaz < 1.0 ) {
         cout << "WARNING: this slice thickness is probably too thin"
             << " for autoslice to work properly." << endl;
     }
 
     if( lpartl == 0 ) {
-		//@@@@@ start temporary code
+		//@@@@@ start TEG code
         //lbeams = askYN("Do you want to record the (real,imag) value\n"
         //" of selected beams vs. thickness");
 		//lbeams = 0;
-		//@@@@@ end temporary code
+		//@@@@@ end TEG code
         if( lbeams == 1 ) {
             //cout << "Name of file for beams info:" << endl;
             //cin >> filebeam;
@@ -430,10 +433,10 @@ int autosliccmd(string params[numaslicpars])
         }
     }
 
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	//lwobble = askYN("Do you want to include thermal vibrations");
 	//lwobble = 0;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
     if( lwobble == 1 ) {
         //cout << "Type the temperature in degrees K:" << endl;
         //cin >> temperature ;
@@ -453,10 +456,10 @@ int autosliccmd(string params[numaslicpars])
     } else temperature = 0.0F;
 
     if( lpartl == 0 ) {
-		//@@@@@ start temporary code
+		//@@@@@ start TEG code
         //lcross = askYN("Do you want to output intensity vs. depth cross section");
 		//lcross = 0;
-		//@@@@@ end temporary code
+		//@@@@@ end TEG code
         if( lcross == 1 ){
             //cout << "Type name of file to get depth profile image:" << endl;
             //cin >> filecross;
@@ -545,7 +548,7 @@ int autosliccmd(string params[numaslicpars])
     cout <<"Lattice constant a,b = " << ax << ", " << by << endl;
 #endif
 
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	//!!! Note that the CT projection simulation cube side length will be set equal to the largest dimension of the unit cell in the input XYZ file.
 	//Consequently, the largest "unit cell" dimension in the input XYZ file should be large enough, so that CT rotation won't take a part of the molecule outside the simulation cube.
 		if (ax > by)
@@ -560,7 +563,7 @@ int autosliccmd(string params[numaslicpars])
 		zzz = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
 		x[k] = xxx; z[k] = zzz;
 	}
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
 		
 	/*  calculate the total specimen volume and echo */
     xmin = xmax = x[0];
@@ -587,7 +590,7 @@ int autosliccmd(string params[numaslicpars])
 		cout << "Range of thermal rms displacements (300K) = "
 		<< wmin << " to " << wmax << endl;
 #endif	
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
 	if (xmin < 0 || ymin < 0 || zmin < 0)
 		throw std::exception("Error: xmin, ymin or zmin < 0 in the XYZ file.");
@@ -596,7 +599,7 @@ int autosliccmd(string params[numaslicpars])
 	xmin = 0; xmax = ctblength;
 	ymin = 0; ymax = ctblength;
 	zmin = 0; zmax = ctblength;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
 
     // ---------  setup calculation -----
     //   set calculation flags
@@ -609,10 +612,10 @@ int autosliccmd(string params[numaslicpars])
     //   set calculation parameters (some already set above)
     //param[ pAX ] = ax;			// supercell size
     //param[ pBY ] = by;
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	param[ pAX ] = ctblength;			// supercell size
 	param[ pBY ] = ctblength;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
 	param[ pNX ] = (float) nx;
     param[ pNY ] = (float) ny;
     param[pENERGY]   =  v0;
@@ -692,7 +695,7 @@ int autosliccmd(string params[numaslicpars])
     param[pDY] = dy = (float) ( by/((float)ny) );
 
     //param[pNSLICES] = 0.0F;  /* ??? */
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	//GRD/GRC file output
 	IXAHWave2D* ph2new = CreateWavehead2D();
 	ph2new->SetData(wavlen * 1.e-4, ymin * 1.e-4, ymax * 1.e-4, xmin * 1.e-4, xmax * 1.e-4);
@@ -753,7 +756,7 @@ int autosliccmd(string params[numaslicpars])
     cout << "pix range " << rmin << " to " << rmax << " real,\n" <<
             "          " << aimin << " to " << aimax << " imag" << endl;
 */
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
 
     /* ----- output depth cross section if requested ------- */
     if( lcross == 1 ){
@@ -782,11 +785,11 @@ int autosliccmd(string params[numaslicpars])
     cout << "wall time = " << walltim() - walltimer << " sec." << endl;
 #endif
 #endif
-	//@@@@@ start temporary code
+	//@@@@@ start TEG code
 	//char a;
 	//cout << "\nPress any key to exit ...";
 	//cin >> a;
-	//@@@@@ end temporary code
+	//@@@@@ end TEG code
     return 0;
 
 } /* end main() */

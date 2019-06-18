@@ -8,13 +8,17 @@
 #include "XA_ini.h"
 
 #include "autosliccmd.h"
+#include <thread>
+#include <chrono>
 
 using namespace xar;
 
 int main(void)
 {
+	printf("\nStarting TEG MultisliceK program ...");
+
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\aspKirckInten.grd");
-	const size_t nangles = 1;
+	const size_t nangles = 3;
 
 	size_t i_dot = outfilename.rfind('.');
 	size_t nfield_length = (nangles == 1) ? 1 : 1 + size_t(log10(double(nangles - 1))); //maximum number of digits in the output file name
@@ -26,6 +30,15 @@ int main(void)
 	char buffer[128], bufangle[128];
 	string outfilename_i;
 
+	// find out the number of CPU cores available in the computer
+	unsigned int ncores = std::thread::hardware_concurrency();
+	printf("\nNumber of CPU cores detected: %d", ncores);
+	unsigned int nactive(0); // number of active threads associated with this program (0 = just this main thread)
+
+	// start the execution timer
+	std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
+	
+	// start the cycle over projection angles
 	try
 	{
 		for (size_t i = 0; i < nangles; i++)
@@ -49,9 +62,9 @@ int main(void)
 			autoslictxt[8] = "9.Do_you_want_to_start_from_previous_result: 0";
 			autoslictxt[9] = "10.____Name_of_file_to_start_from: 0";
 			autoslictxt[10] = "11.Incident_beam_energy_in_keV: 200.0";
-			autoslictxt[11] = "12.Wavefunction_size_in_pixels,_Nx,Ny: 1024 1024";
+			autoslictxt[11] = "12.Wavefunction_size_in_pixels,_Nx,Ny: 512 512";
 			autoslictxt[12] = "13.Crystal_tilt_x,y_in_mrad: 0.0 0.0";
-			autoslictxt[13] = "14.Slice_thickness_in_Angstroms: 1.0";
+			autoslictxt[13] = "14.Slice_thickness_in_Angstroms: 5.0";
 			autoslictxt[14] = "15.Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness: 0";
 			autoslictxt[15] = "16.____Name_of_file_for_beams_info: 0";
 			autoslictxt[16] = "17.____Number_of_beams: 0";
@@ -65,13 +78,21 @@ int main(void)
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
 			autoslictxt[25] = "26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0";
 			autoslictxt[26] = "27.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0";
-			autosliccmd(autoslictxt);
+			while (nactive >= ncores) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of worker threads to be launched (not counting the main thread!)
+			std::thread threadObj(autosliccmd, autoslictxt, &nactive);
+			//threadObj.join();
+			printf("\n@@@@@@nactiveOUTSIDE = %d\n", nactive);
+			//autosliccmd(autoslictxt);
 		}
 	}
 	catch (std::exception& E)
 	{
 		printf("\n!!!Exception: %s\n", E.what());
 	}
+	
+	while (nactive) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // wait for all worker threads to finish or fail
+	std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();
+	printf("\nMain program finished. Execution time = %I64d s.\n", std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count());
 
 	return 0;
 }
