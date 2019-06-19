@@ -771,6 +771,31 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
             islice++;
 
         } /* end while(istart<natom..) */
+		  
+		  
+		//@@@@@ start TEG code 
+		// simulated free-space backpropagation to the centre of the simulation slab
+		if (nmode == 0)
+		{
+			scale = -pi * (0.5f * ctblength);
+
+			for (ix = 0; ix < nx; ix++) {
+				t = scale * (kx2[ix] * wavlen - kx[ix] * tctx);
+				propxr[ix] = (float)cos(t);
+				propxi[ix] = (float)-sin(t);
+			}
+			for (iy = 0; iy < ny; iy++) {
+				t = scale * (ky2[iy] * wavlen - ky[iy] * tcty);
+				propyr[iy] = (float)cos(t);
+				propyi[iy] = (float)-sin(t);
+			}
+
+			wave.fft();
+			propagate(wave, propxr, propxi,
+				propyr, propyi, kx2, ky2, k2max, nx, ny);
+			wave.ifft();
+		}
+		//@@@@@@ end TEG code
 
         pix.resize(nx,ny);
         pix = wave;

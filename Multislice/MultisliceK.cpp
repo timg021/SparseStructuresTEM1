@@ -20,7 +20,7 @@ int main(void)
 
 	printf("\nStarting TEG MultisliceK program ...");
 
-	const size_t nangles = 20;
+	const size_t nangles = 900;
 	string outfilename("C:\\Users\\tgureyev\\Downloads\\inten.grd");
 
 	size_t i_dot = outfilename.rfind('.');
@@ -53,7 +53,7 @@ int main(void)
 			angle = PI * double(i) / double(nangles);
 			sprintf(bufangle, "%f", angle); strAngle = bufangle;
 			//Here we call Kirkland's autoslic at each angle
-			//!!! One has to define at least parameters no. 0, 2, 10, 11, 13, 25, 26 and 27 in the list below
+			//!!! One has to define at least parameters no. 0, 2, 10, 11, 13, 25 and 26 in the list below
 			autoslictxt[0] = "1.Name_of_file_with_input_atomic_coordinates_in_x,y,z_format: 3j6kLysLesKirck.xyz";
 			autoslictxt[1] = "2.Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ: 1 1 1";
 			autoslictxt[2] = "3.Name_of_file_to_get_binary_output_of_multislice_result: " + outfilename_i;
@@ -81,7 +81,7 @@ int main(void)
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
 			autoslictxt[25] = "26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0";
 			autoslictxt[26] = "27.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0";
-			autoslictxt[27] = "28.Copy(0)_or_initialize(1)_FFTW_plan: 1";
+			autoslictxt[27] = "28.Copy(0)_or_initialize(1)_FFTW_plan: 1"; // the first thread must initialize the FFTW plan, subsequent ones can copy it
 #ifdef TEG_MULTITHREADED
 			if (i > 0) autoslictxt[27] = "28.Copy(0)_or_initialize(1)_FFTW_plan: 0";
 			thread_counter.SetUpdated(false);
@@ -91,7 +91,7 @@ int main(void)
 			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores) 
 				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
 #elif
-			autosliccmd(autoslictxt, 0); // single-threaded execution mode
+			autosliccmd(autoslictxt); // single-threaded execution mode
 #endif // TEG_MULTITHREADED
 		}
 	}
