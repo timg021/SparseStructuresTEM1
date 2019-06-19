@@ -152,8 +152,12 @@ public:
     int resize( const int nx, const int ny );
     void findRange( float &rmin, float &rmax, float &aimin, float &aimax );
 
-    void init( int mode=0, int nthreads=1 );        // for FFTW plan generation
+    void init(int mode=0, int nthreads=1 );        // for FFTW plan generation
     void copyInit( cfpix &xx );
+	//@@@@@ start TEG code
+	//void getPlan(fftwf_plan** ppplanTf, fftwf_plan** ppplanTi, int** ppinitLevel);
+	//void setPlan(fftwf_plan* pplanTf, fftwf_plan* pplanTi, int* pinitLevel);
+	//@@@@@ end TEG code
     void invert2D( );
 
     void fft();     //  perform forward FFT
@@ -174,10 +178,14 @@ private:
     //   local variables have an "l" suffix for "local
 
     int nxl, nyl, nrxyl;            // current stored image size
-    int initLevel;                  // save init level
     float *rpix;                    // data for complex to real FFT
     fftwf_complex *data;            // current complex image data buffer
-    fftwf_plan  planTf, planTi;     //  FFTW plans
+
+	//@@@@@@ start TEG code
+	// I am making these variables static to share them between threads (otherwise they are destroyed by the class object destructor)
+	static int initLevel;                  // save init level
+    static fftwf_plan planTf, planTi;     //  FFTW plans
+	//@@@@@@ end TEG code
 
     void messageCF( std::string &smsg, int level = 0 );      // common message handler
 

@@ -135,6 +135,7 @@ ANY OTHER PROGRAM).
 
 #include <sstream>	// string streams
 
+
 //=============================================================
 //---------------  creator and destructor --------------
 
@@ -198,11 +199,12 @@ autoslic::~autoslic()
 */
 //@@@@@ TEG added parameters ctblength and nmode to the list of this functioin arguments
 // ctblength defines the CT sample box side length in Angstroms
+// nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 // nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, unsigned long *iseed,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nmode )
+        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode )
 {
     int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams(0),
         nacx,nacy, iqx, iqy, iwobble, ndf, idf, ib, na, islice, nzout, nzbeams,
@@ -347,9 +349,18 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
              wave = 1.0F;  
     } else { wave = wave0; }
 
-    trans.init();
-    wave.copyInit( trans );   //  must be after "wave = wave0"
-
+	//@@@@@ start TEG code
+	if (nfftwinit)
+	{
+		trans.init();
+		//trans.getPlan(&pplanTf, &pplanTi, &pinitLevel);
+		wave.copyInit( trans );   //  must be after "wave = wave0"
+	}
+	//else trans.setPlan(pplanTf, pplanTi, pinitLevel);
+    //trans.init();
+	//wave.copyInit( trans );   //  must be after "wave = wave0"
+	// end TEG code
+    
     if( lcross == 1 ) {
         /* nz may be too small with thermal vibrations so add a few extra */
         nz = (int) ( (zmax-zmin)/ deltaz + 3.5);

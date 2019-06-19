@@ -166,11 +166,11 @@ const int NSMAX= 1000;   // max number of slices
 const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
-
-int autosliccmd(string params[numaslicpars], unsigned int* pthread_counter)
+int autosliccmd(vector<string> params)
 {
-	Counter_Obj acounter(pthread_counter); // increments the thread counter on construction and decrements it on destruction
-	printf("\n@@@@@@nactiveINSIDE = %d\n", *pthread_counter);
+	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
+	printf("\nNumber of active threads (outside) = %d", thread_counter.GetCount());
+	thread_counter.SetUpdated(true); // lets the main thread know that the thread counter has been updated
 
     string filein, fileout, filestart, filebeam, filecross, cline, description;
   
@@ -201,6 +201,7 @@ int autosliccmd(string params[numaslicpars], unsigned int* pthread_counter)
 	//@@@@@ start TEG code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
 	int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
+	int nfftwinit; // the switch between copying(0) or initializing from new (anything non-zero) the FFTW plan in autoslic
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
 	float ctblength(0); // length of the CT projection simulation box (containing the sample) in Angstroms
 	//@@@@@ end TEG code
@@ -325,6 +326,8 @@ int autosliccmd(string params[numaslicpars], unsigned int* pthread_counter)
 		throw std::exception("Error reading line 26 of input parameter array.");
 	if (sscanf(params[26].data(), "%s %d", chaa, &noutput) != 2)
 		throw std::exception("Error reading line 27 of input parameter array.");
+	if (sscanf(params[27].data(), "%s %d", chaa, &nfftwinit) != 2)
+		throw std::exception("Error reading line 28 of input parameter array.");
 	//fclose(ff0);
 	//cout << "Input parameter file has been read successfully!\n";
 
@@ -644,9 +647,10 @@ int autosliccmd(string params[numaslicpars], unsigned int* pthread_counter)
     }
 
     // ------- iterate the multislice algorithm proper -----------
-
+	//@@@@@ start TEG code
     aslice.calculate( pix, wave0, depthpix, param, multiMode, natom, &iseed,
-                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nmode);
+                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
+	//@@@@@ end TEG code
  
     if( lpartl == 1 ) {         //    with partial coherence
         nillum = aslice.nillum;
@@ -789,7 +793,10 @@ int autosliccmd(string params[numaslicpars], unsigned int* pthread_counter)
 	//char a;
 	//cout << "\nPress any key to exit ...";
 	//cin >> a;
+
+	//printf("\n@@@@@@Thread exiting. Nthreads = %d\n", thread_counter.GetCount());
 	//@@@@@ end TEG code
+
     return 0;
 
 } /* end main() */

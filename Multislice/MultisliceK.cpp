@@ -1,31 +1,35 @@
 // MultisliceCpp.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
-#define TEG_MULTISLICE //if undefined, Kirkland's multislice code is used instead
-
 #include <stdio.h>
-
-#include "XA_ini.h"
-
-#include "autosliccmd.h"
 #include <thread>
 #include <chrono>
 
+#include "XA_ini.h"
+#include "autosliccmd.h"
+
 using namespace xar;
+
+unsigned int Counter_Obj::counter = 0; // active worker thread counter (this main thread is not counted)
+bool Counter_Obj::isUpdated = false; // update status of the counter object
 
 int main(void)
 {
+#ifdef TEG_MULTITHREADED
+	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
+#endif // TEG_MULTITHREADED
+
 	printf("\nStarting TEG MultisliceK program ...");
 
-	string outfilename("C:\\Users\\tgureyev\\Downloads\\aspKirckInten.grd");
-	const size_t nangles = 3;
+	const size_t nangles = 20;
+	string outfilename("C:\\Users\\tgureyev\\Downloads\\inten.grd");
 
 	size_t i_dot = outfilename.rfind('.');
 	size_t nfield_length = (nangles == 1) ? 1 : 1 + size_t(log10(double(nangles - 1))); //maximum number of digits in the output file name
 	char ndig[8];
 	sprintf(ndig, "%zd", nfield_length); //convert the calculated maximum number of digits into a string, e.g. 3 into "3"
 	string myformat = "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded numbers into file names - see usage below
-	string autoslictxt[numaslicpars], strAngle;
+	string strAngle;
+	vector<string> autoslictxt(28);
 	double angle;
 	char buffer[128], bufangle[128];
 	string outfilename_i;
@@ -33,7 +37,6 @@ int main(void)
 	// find out the number of CPU cores available in the computer
 	unsigned int ncores = std::thread::hardware_concurrency();
 	printf("\nNumber of CPU cores detected: %d", ncores);
-	unsigned int nactive(0); // number of active threads associated with this program (0 = just this main thread)
 
 	// start the execution timer
 	std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
@@ -43,7 +46,7 @@ int main(void)
 	{
 		for (size_t i = 0; i < nangles; i++)
 		{
-			printf("Angle = %zd\n", i);
+			printf("\nAngle = %zd", i);
 			outfilename_i = outfilename;
 			sprintf(buffer, myformat.data(), i);
 			outfilename_i.insert(i_dot, buffer);
@@ -51,7 +54,7 @@ int main(void)
 			sprintf(bufangle, "%f", angle); strAngle = bufangle;
 			//Here we call Kirkland's autoslic at each angle
 			//!!! One has to define at least parameters no. 0, 2, 10, 11, 13, 25, 26 and 27 in the list below
-			autoslictxt[0] = "1.Name_of_file_with_input_atomic_coordinates_in_x,y,z_format: aspKirck.xyz";
+			autoslictxt[0] = "1.Name_of_file_with_input_atomic_coordinates_in_x,y,z_format: 3j6kLysLesKirck.xyz";
 			autoslictxt[1] = "2.Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ: 1 1 1";
 			autoslictxt[2] = "3.Name_of_file_to_get_binary_output_of_multislice_result: " + outfilename_i;
 			autoslictxt[3] = "4.Do_you_want_to_include_partial_coherence: 0";
@@ -64,7 +67,7 @@ int main(void)
 			autoslictxt[10] = "11.Incident_beam_energy_in_keV: 200.0";
 			autoslictxt[11] = "12.Wavefunction_size_in_pixels,_Nx,Ny: 512 512";
 			autoslictxt[12] = "13.Crystal_tilt_x,y_in_mrad: 0.0 0.0";
-			autoslictxt[13] = "14.Slice_thickness_in_Angstroms: 5.0";
+			autoslictxt[13] = "14.Slice_thickness_in_Angstroms: 15.0";
 			autoslictxt[14] = "15.Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness: 0";
 			autoslictxt[15] = "16.____Name_of_file_for_beams_info: 0";
 			autoslictxt[16] = "17.____Number_of_beams: 0";
@@ -78,19 +81,29 @@ int main(void)
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
 			autoslictxt[25] = "26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0";
 			autoslictxt[26] = "27.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0";
-			while (nactive >= ncores) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of worker threads to be launched (not counting the main thread!)
-			std::thread threadObj(autosliccmd, autoslictxt, &nactive);
-			//threadObj.join();
-			printf("\n@@@@@@nactiveOUTSIDE = %d\n", nactive);
-			//autosliccmd(autoslictxt);
+			autoslictxt[27] = "28.Copy(0)_or_initialize(1)_FFTW_plan: 1";
+#ifdef TEG_MULTITHREADED
+			if (i > 0) autoslictxt[27] = "28.Copy(0)_or_initialize(1)_FFTW_plan: 0";
+			thread_counter.SetUpdated(false);
+			std::thread threadObj(autosliccmd, autoslictxt);
+			if (i == 0) threadObj.join(); // we need to let the first worker thread finish execution, so that it can create the FFTW "plan" to be shared  with other threads
+			if (threadObj.joinable()) threadObj.detach(); // if we don't do this, threadObj will call Terminate() on the attached thread when the threadObj goes out of scope
+			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores) 
+				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
+#elif
+			autosliccmd(autoslictxt, 0); // single-threaded execution mode
+#endif // TEG_MULTITHREADED
 		}
 	}
 	catch (std::exception& E)
 	{
 		printf("\n!!!Exception: %s\n", E.what());
 	}
-	
-	while (nactive) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // wait for all worker threads to finish or fail
+
+#ifdef TEG_MULTITHREADED
+	while (thread_counter.GetCount() > 1) 
+		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait for all worker threads to finish or fail
+#endif // TEG_MULTITHREADED
 	std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();
 	printf("\nMain program finished. Execution time = %I64d s.\n", std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count());
 

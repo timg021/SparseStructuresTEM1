@@ -80,13 +80,20 @@ operator=()
 
 #include "slicelib.hpp"    // misc. routines for multislice
 
+int cfpix::initLevel = -1;                  // save init level
+fftwf_plan cfpix::planTf(0);
+fftwf_plan cfpix::planTi(0);
+
 //------------------ constructor --------------------------------
 
 cfpix::cfpix( int nx, int ny )
 {
     nxl = nyl = nrxyl = 0;
 
-    initLevel = -1;   // negative to indicate no initialization
+	//@@@@@ start TEG code
+	//remove this switch to allow the re-use of FFTW plan in multithreaded execution
+	//initLevel = -1;   // negative to indicate no initialization
+	//@@@@@ end TEG code
 
     if( (nx > 0 ) && ( ny > 0 ) ) resize( nx, ny );
 
@@ -102,7 +109,10 @@ cfpix::~cfpix()
     if( 2 == initLevel ) fftwf_free( rpix );
 
     nxl = nyl = nrxyl = 0;
-    initLevel = -1;
+	//@@@@@ start TEG code
+	//remove this switch to allow the re-use of FFTW plan in multithreaded execution
+    //initLevel = -1;
+	//@@@@@ end TEG code
 
 }  // end cfpix::~cfpix()
 
@@ -120,6 +130,22 @@ void cfpix::copyInit( cfpix &xx)
 
 }  // end cfpix::copyInit()
 
+//@@@@@@ start TEG code
+/*
+void cfpix::getPlan(fftwf_plan** ppplanTf, fftwf_plan** ppplanTi, int** ppinitLevel)
+{
+	*ppplanTf = &planTf;
+	*ppplanTi = &planTi;
+	*ppinitLevel = &initLevel;
+}
+void cfpix::setPlan(fftwf_plan* pplanTf, fftwf_plan* pplanTi, int* pinitLevel)
+{
+	planTf = *pplanTf;
+	planTi = *pplanTi;
+	initLevel = *pinitLevel;
+}
+*/
+//@@@@@@ end TEG code
 
 //------------------ forward transfrom ---------------------------------
 void cfpix::fft()
