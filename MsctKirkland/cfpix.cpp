@@ -80,9 +80,12 @@ operator=()
 
 #include "slicelib.hpp"    // misc. routines for multislice
 
+//@@@@@@ start TEG code
+// these variables have been made static in order to share FFTW plan across threads
 int cfpix::initLevel = -1;                  // save init level
 fftwf_plan cfpix::planTf(0);
 fftwf_plan cfpix::planTi(0);
+//@@@@@ end TEG code
 
 //------------------ constructor --------------------------------
 
@@ -129,23 +132,6 @@ void cfpix::copyInit( cfpix &xx)
     //????   must allocate real array here is needed ????
 
 }  // end cfpix::copyInit()
-
-//@@@@@@ start TEG code
-/*
-void cfpix::getPlan(fftwf_plan** ppplanTf, fftwf_plan** ppplanTi, int** ppinitLevel)
-{
-	*ppplanTf = &planTf;
-	*ppplanTi = &planTi;
-	*ppinitLevel = &initLevel;
-}
-void cfpix::setPlan(fftwf_plan* pplanTf, fftwf_plan* pplanTi, int* pinitLevel)
-{
-	planTf = *pplanTf;
-	planTi = *pplanTi;
-	initLevel = *pinitLevel;
-}
-*/
-//@@@@@@ end TEG code
 
 //------------------ forward transfrom ---------------------------------
 void cfpix::fft()

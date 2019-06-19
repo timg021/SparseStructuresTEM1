@@ -350,10 +350,11 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
     } else { wave = wave0; }
 
 	//@@@@@ start TEG code
+	// if a suitable FTTW plan has been already prepared, there is no need to recalculate it in these "init" functions
+	// !!! note that such "recalculation" of the plan causes FFTW to fail in a multithreaded execution case - see FFTW documentation about multithreading
 	if (nfftwinit)
 	{
 		trans.init();
-		//trans.getPlan(&pplanTf, &pplanTi, &pinitLevel);
 		wave.copyInit( trans );   //  must be after "wave = wave0"
 	}
 	//else trans.setPlan(pplanTf, pplanTi, pinitLevel);
@@ -692,11 +693,11 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 
         scale = 1.0F / ( ((float)nx) * ((float)ny) );
 
-        zslice = 0.75*deltaz;  /*  start a little before top of unit cell */
 		//@@@@@ start TEG code
-		//!!! Note that Kirkland expects all atomic position coordinates to be non-negative!!!
+		//zslice = 0.75*deltaz;  /*  start a little before top of unit cell */
+		zslice = deltaz; // this change makes the results coincide with the ones from muSTEM and Dr PROBE
 		//@@@@@ end TEG code
-		zslice = deltaz; // this change makes the results coincide with the one in muSTEM and Dr PROBE
+
         istart = 0;
         islice = 1;
 

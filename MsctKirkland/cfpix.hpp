@@ -154,11 +154,8 @@ public:
 
     void init(int mode=0, int nthreads=1 );        // for FFTW plan generation
     void copyInit( cfpix &xx );
-	//@@@@@ start TEG code
-	//void getPlan(fftwf_plan** ppplanTf, fftwf_plan** ppplanTi, int** ppinitLevel);
-	//void setPlan(fftwf_plan* pplanTf, fftwf_plan* pplanTi, int* pinitLevel);
-	//@@@@@ end TEG code
-    void invert2D( );
+	
+	void invert2D( );
 
     void fft();     //  perform forward FFT
     void ifft();    //  perform inverse FFT
@@ -182,7 +179,8 @@ private:
     fftwf_complex *data;            // current complex image data buffer
 
 	//@@@@@@ start TEG code
-	// I am making these variables static to share them between threads (otherwise they are destroyed by the class object destructor)
+	// these variables have been made static to share them between threads (otherwise they are destroyed by the class object destructor)
+	// this allows one to share FFTW plan across threads
 	static int initLevel;                  // save init level
     static fftwf_plan planTf, planTi;     //  FFTW plans
 	//@@@@@@ end TEG code

@@ -169,7 +169,7 @@ const int NZMAX= 103;    // max atomic number Z
 int autosliccmd(vector<string> params)
 {
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
-	printf("\nNumber of active threads (outside) = %d", thread_counter.GetCount());
+	printf("\nNumber of active threads (inside w.thread) = %d", thread_counter.GetCount());
 	thread_counter.SetUpdated(true); // lets the main thread know that the thread counter has been updated
 
     string filein, fileout, filestart, filebeam, filecross, cline, description;
@@ -201,7 +201,7 @@ int autosliccmd(vector<string> params)
 	//@@@@@ start TEG code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
 	int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
-	int nfftwinit; // the switch between copying(0) or initializing from new (anything non-zero) the FFTW plan in autoslic
+	int nfftwinit; // the switch between copying(0) or initializing from new (1) the FFTW plan in autoslic
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
 	float ctblength(0); // length of the CT projection simulation box (containing the sample) in Angstroms
 	//@@@@@ end TEG code
@@ -613,9 +613,9 @@ int autosliccmd(vector<string> params)
     aslice.lwobble = lwobble;
 
     //   set calculation parameters (some already set above)
+	//@@@@@ start TEG code
     //param[ pAX ] = ax;			// supercell size
     //param[ pBY ] = by;
-	//@@@@@ start TEG code
 	param[ pAX ] = ctblength;			// supercell size
 	param[ pBY ] = ctblength;
 	//@@@@@ end TEG code
