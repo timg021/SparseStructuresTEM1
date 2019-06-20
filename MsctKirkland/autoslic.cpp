@@ -201,10 +201,11 @@ autoslic::~autoslic()
 // ctblength defines the CT sample box side length in Angstroms
 // nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 // nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
+// nbackprop switches between doing(1) or not doing(0) free-space backpropagation of the exit amplitude to the centre of the z-slab
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, unsigned long *iseed,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode )
+        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode, int nbackprop )
 {
     int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams(0),
         nacx,nacy, iqx, iqy, iwobble, ndf, idf, ib, na, islice, nzout, nzbeams,
@@ -776,7 +777,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 		  
 		//@@@@@ start TEG code 
 		// simulated free-space backpropagation to the centre of the simulation slab
-		if (nmode == 0)
+		if (nmode == 0 && nbackprop != 0)
 		{
 			scale = -pi * (0.5f * ctblength);
 
