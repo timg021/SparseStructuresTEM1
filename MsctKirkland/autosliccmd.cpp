@@ -200,7 +200,7 @@ int autosliccmd(vector<string> params)
 
 	//@@@@@ start TEG code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
-	int nbackprop; // the switch between doing(1) or not doing(0) free-space backpropagation of the exit amplitude to the centre of the z-slab
+	float propdist; // propagation distance in Angstroms for the exit wave
 	int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
 	int nfftwinit; // the switch between copying(0) or initializing from new (1) the FFTW plan in autoslic
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
@@ -325,7 +325,7 @@ int autosliccmd(vector<string> params)
 		throw std::exception("Error reading line 25 of input parameter array.");
 	if (sscanf(params[25].data(), "%s %d", chaa, &nmode) != 2)
 		throw std::exception("Error reading line 26 of input parameter array.");
-	if (sscanf(params[26].data(), "%s %d", chaa, &nbackprop) != 2)
+	if (sscanf(params[26].data(), "%s %g", chaa, &propdist) != 2)
 		throw std::exception("Error reading line 27 of input parameter array.");
 	if (sscanf(params[27].data(), "%s %d", chaa, &noutput) != 2)
 		throw std::exception("Error reading line 28 of input parameter array.");
@@ -652,7 +652,7 @@ int autosliccmd(vector<string> params)
     // ------- iterate the multislice algorithm proper -----------
 	//@@@@@ start TEG code
     aslice.calculate( pix, wave0, depthpix, param, multiMode, natom, &iseed,
-                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode, nbackprop);
+                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode, propdist);
 	//@@@@@ end TEG code
  
     if( lpartl == 1 ) {         //    with partial coherence
