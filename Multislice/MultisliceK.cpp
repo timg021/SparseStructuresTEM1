@@ -137,7 +137,7 @@ int main(void)
 			if (threadObj.joinable()) threadObj.detach(); // if we don't do this, threadObj will call Terminate() on the attached thread when the threadObj goes out of scope
 			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores) 
 				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
-#elif
+#else
 			autosliccmd(autoslictxt); // single-threaded execution mode
 #endif // TEG_MULTITHREADED
 		}
