@@ -141,7 +141,6 @@
     <ClCompile Include="autosliccmd.cpp" />
     <ClCompile Include="cfpix.cpp" />
     <ClCompile Include="floatTIFF.cpp" />
-    <ClCompile Include="pdb.c" />
     <ClCompile Include="slicelib.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -165,7 +164,6 @@
     <ClInclude Include="cfpix.hpp" />
     <ClInclude Include="fftw3.h" />
     <ClInclude Include="floatTIFF.hpp" />
-    <ClInclude Include="pdb.h" />
     <ClInclude Include="slicelib.hpp" />
   </ItemGroup>
   <ItemGroup>

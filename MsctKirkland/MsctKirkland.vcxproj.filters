@@ -24,9 +24,6 @@
     <ClCompile Include="cfpix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pdb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="slicelib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -60,9 +57,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fftw3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pdb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="slicelib.hpp">
