@@ -21,16 +21,10 @@
     <ClCompile Include="..\MsctKirkland\autoslic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\MsctKirkland\autosliccmd.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\MsctKirkland\cfpix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\MsctKirkland\floatTIFF.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MsctKirkland\MultisliceK.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\MsctKirkland\slicelib.cpp">
@@ -49,6 +43,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Multislice\XAHWave.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pdb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pdb_run1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="1autosliccmd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -119,9 +122,15 @@
     <ClInclude Include="..\Multislice\XArrayB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pdb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\MsctKirkland\MsctKirkland.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="pdb.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

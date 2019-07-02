@@ -1,0 +1,12 @@
+3j6kLysLesVesta.xyz
+1
+150.0
+3j6kLysLesKirck.xyz
+Unit cell of Lysozyme C molecule via Vesta in xyz format
+
+//Input parameter file for pdb.exe program
+//1st line contains input file name (standard PDB file or XYZ file produced by Vesta).
+//2nd line: 0 - for PDB input file, 1 - for Vesta XYZ input file.
+//3rd line contains the desired CT sample qube side length in Angstroms (should be large enough to contain the whole sample over the desired rotation range)
+//4th line contains output file name for Kirkland-format XYZ file
+//5th line contains the free-form info line that will be recorded into the first line of the output file
