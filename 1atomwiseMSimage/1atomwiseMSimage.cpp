@@ -13,7 +13,7 @@
 
 #include "pdb.h"
 extern "C" int pdb_read(pdbdata* ppd, int nfiletype, char* pdbfile);
-extern "C" int xyz_Kirck_write1(int iii, pdbdata* ppd, char* outfile, char* cfileinfo, double ctblength, double xminx0, double yminy0, double zminz0);
+extern "C" int xyz_Kirck_write1(int i, pdbdata* ppd, char* outfile, char* cfileinfo, double ctblength, double xminx0, double yminy0, double zminz0);
 
 extern xar::XArray2D<float> intenTot; // accumulated intensity data - created in 1autosliccmd.cpp, wrtten into a file at the end in this module
 
@@ -34,78 +34,76 @@ int main(void)
 		printf("\nStarting 1atomwiseMSimage program ...");
 		// read input parameter file
 		FILE* ff0 = fopen("MsctKirkland.txt", "rt");
-		if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland.txt.");
-
-		char cline[1024], ctitle[1024], cparam[1024];
-
-		// The ordering of these parameters is 'historic', it can be changed, but then the corresponding changes need to be applied in autosliccmd.cpp too.
-		fgets(cline, 1024, ff0); // 1st line - comment
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2nd line: Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format
-		autoslictxt[0] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3rd line: Output_GRD/GRC_filename
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 3 of input parameter file.");
-		string outfilename(cparam); // output filename stub
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4th line: Output_intensity(0),_phase(1)_or_complex_amplitude(2)
-		autoslictxt[27] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5th line: Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation
-		autoslictxt[25] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6th line: Incident__electron_beam_energy_in_keV
-		autoslictxt[10] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 7th line: Wavefunction_size_in_pixels,_Nx,Ny
-		autoslictxt[11] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8th line: Slice_thickness_in_Angstroms
-		autoslictxt[13] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line: Propagation(defocus)_distance_for_exit_wave_in_Angstroms !!!!!!!!!!!!!! CHANGE
-		autoslictxt[26] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line: Total_CT_rotation_span_in_degrees
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 10 of input parameter file.");
-		double angle_max = atof(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Number_of_CT_rotation_angles
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 11 of input parameter file.");
-		size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 12 of input parameter file.");
-		unsigned int ncores = (unsigned int)atoi(cparam) + 1; // number of threads to use (expected to be equal to the number of cores) 
-		fgets(cline, 1024, ff0); // 13st line - comment
-		fgets(cline, 1024, ff0); // 14st line - comment
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
-		autoslictxt[1] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Do_you_want_to_include_partial_coherence
-		autoslictxt[3] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: ____Illumination_angle_min,_max_in_mrad
-		autoslictxt[4] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: ____Spherical_aberration_Cs3,_Cs5_in_mm
-		autoslictxt[5] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 19th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
-		autoslictxt[6] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 20th line: ____Objective_aperture_in_mrad
-		autoslictxt[7] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: Do_you_want_to_start_from_previous_result
-		autoslictxt[8] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22nd line: ____Name_of_file_to_start_from
-		autoslictxt[9] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 23nd line: Crystal_tilt_x,y_in_mrad
-		autoslictxt[12] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 24th line: Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness
-		autoslictxt[14] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 25th line: ____Name_of_file_for_beams_info
-		autoslictxt[15] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 26th line: ____Number_of_beams
-		autoslictxt[16] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 27th line: Do_you_want_to_include_thermal_vibrations
-		autoslictxt[17] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 28th line: ____Temperature_in_degrees_K
-		autoslictxt[18] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 29th line: ____Number_of_configurations_to_average_over
-		autoslictxt[19] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 30th line: ____Initial_seed_for_random_number_generator
-		autoslictxt[20] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 31st line: Do_you_want_to_output_intensity_vs._depth_cross_section
-		autoslictxt[21] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 32nd line: ____Name_of_file_to_get_depth_profile_image
-		autoslictxt[22] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 33rd line: ____Y_position_of_depth_cross_section_in_Angstroms
-		autoslictxt[23] = cline;
+			if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland.txt.");
+			char cline[1024], ctitle[1024], cparam[1024];
+			// The ordering of these parameters is 'historic', it can be changed, but then the corresponding changes need to be applied in autosliccmd.cpp too.
+			fgets(cline, 1024, ff0); // 1st line - comment
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2nd line: Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format
+			autoslictxt[0] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3rd line: Output_GRD/GRC_filename
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 3 of input parameter file.");
+			string outfilename(cparam); // output filename stub
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4th line: Output_intensity(0),_phase(1)_or_complex_amplitude(2)
+			autoslictxt[27] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5th line: Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation
+			autoslictxt[25] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6th line: Incident__electron_beam_energy_in_keV
+			autoslictxt[10] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 7th line: Wavefunction_size_in_pixels,_Nx,Ny
+			autoslictxt[11] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8th line: Slice_thickness_in_Angstroms
+			autoslictxt[13] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line: Propagation(defocus)_distance_for_exit_wave_in_Angstroms !!!!!!!!!!!!!! CHANGE
+			autoslictxt[26] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line: Total_CT_rotation_span_in_degrees
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 10 of input parameter file.");
+			double angle_max = atof(cparam); // total rotation span in degrees 
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Number_of_CT_rotation_angles
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 11 of input parameter file.");
+			size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 12 of input parameter file.");
+			unsigned int ncores = (unsigned int)atoi(cparam) + 1; // number of threads to use (expected to be equal to the number of cores) 
+			fgets(cline, 1024, ff0); // 13st line - comment
+			fgets(cline, 1024, ff0); // 14st line - comment
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
+			autoslictxt[1] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Do_you_want_to_include_partial_coherence
+			autoslictxt[3] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: ____Illumination_angle_min,_max_in_mrad
+			autoslictxt[4] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: ____Spherical_aberration_Cs3,_Cs5_in_mm
+			autoslictxt[5] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 19th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
+			autoslictxt[6] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 20th line: ____Objective_aperture_in_mrad
+			autoslictxt[7] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: Do_you_want_to_start_from_previous_result
+			autoslictxt[8] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22nd line: ____Name_of_file_to_start_from
+			autoslictxt[9] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 23nd line: Crystal_tilt_x,y_in_mrad
+			autoslictxt[12] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 24th line: Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness
+			autoslictxt[14] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 25th line: ____Name_of_file_for_beams_info
+			autoslictxt[15] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 26th line: ____Number_of_beams
+			autoslictxt[16] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 27th line: Do_you_want_to_include_thermal_vibrations
+			autoslictxt[17] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 28th line: ____Temperature_in_degrees_K
+			autoslictxt[18] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 29th line: ____Number_of_configurations_to_average_over
+			autoslictxt[19] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 30th line: ____Initial_seed_for_random_number_generator
+			autoslictxt[20] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 31st line: Do_you_want_to_output_intensity_vs._depth_cross_section
+			autoslictxt[21] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 32nd line: ____Name_of_file_to_get_depth_profile_image
+			autoslictxt[22] = cline;
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 33rd line: ____Y_position_of_depth_cross_section_in_Angstroms
+			autoslictxt[23] = cline;
 		fclose(ff0); // close input parameter file
 
 		// find out the number of CPU cores available in the computer
@@ -120,12 +118,12 @@ int main(void)
 
 		// read PDB file translate parameter file
 		FILE* ffpar = fopen("pdb.txt", "rt");
-		if (!ffpar) throw std::exception("Error: cannot open parameter file pdb.txt.");
-		fgets(inpdbfile, 256, ffpar); strtok(inpdbfile, "\n");
-		fgets(infiletype, 256, ffpar); strtok(infiletype, "\n");
-		fgets(strctblength, 256, ffpar); strtok(strctblength, "\n");
-		fgets(outfile, 256, ffpar); strtok(outfile, "\n");
-		fgets(cfileinfo, 256, ffpar); strtok(cfileinfo, "\n");
+			if (!ffpar) throw std::exception("Error: cannot open parameter file pdb.txt.");
+			fgets(inpdbfile, 256, ffpar); strtok(inpdbfile, "\n");
+			fgets(infiletype, 256, ffpar); strtok(infiletype, "\n");
+			fgets(strctblength, 256, ffpar); strtok(strctblength, "\n");
+			fgets(outfile, 256, ffpar); strtok(outfile, "\n");
+			fgets(cfileinfo, 256, ffpar); strtok(cfileinfo, "\n");
 		fclose(ffpar);
 
 		int nfiletype = 0;
