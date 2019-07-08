@@ -125,6 +125,9 @@
     <ClInclude Include="pdb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="XA_SinoCartesian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\MsctKirkland\MsctKirkland.txt">

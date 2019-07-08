@@ -7,6 +7,7 @@
 #include "XA_ini.h"
 #include "XArray2D.h"
 #include "XA_data.h"
+#include "XA_SinoCartesian.h"
 
 #include "autosliccmd.h"
 #undef TEG_MULTITHREADED // this program is intended to run single-threaded only
@@ -28,6 +29,12 @@ int main(void)
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
 #endif // TEG_MULTITHREADED
 	vector<string> autoslictxt(29); // 29 is the current number of input parameters; if it is changed, the corresponding changes need to be applied in autosliccmd.cpp too.
+
+	//@@@@@@ start temporary code
+	XArray2D<float> XArSino(1,1);
+	XArraySinoCart<float> XArSinoTransform(XArSino);
+
+	//@@@@@@ end temporary code
 
 	try
 	{
