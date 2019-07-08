@@ -543,7 +543,7 @@ namespace xar
 				//	fread(&ftemp, sizeof(float), 1, fp);
 				//	rXAr2D[i][j] = T(ftemp);
 				//}
-			float* arr;
+			float* arr(0);
 			if (rXAr2D.GetValuetype() != eXAFloat) // a buffer for type conversion is required
 			{
 				arr = new float[nx]; // the size of this buffer has to be small enough for network transmission

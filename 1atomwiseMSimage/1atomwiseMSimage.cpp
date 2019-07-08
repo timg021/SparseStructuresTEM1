@@ -33,7 +33,13 @@ int main(void)
 	//@@@@@@ start temporary code
 	XArray2D<float> XArSino(1,1);
 	XArraySinoCart<float> XArSinoTransform(XArSino);
-
+	XArData::ReadFileGRD(XArSino, "t0s0360.grd", 1.e-4);
+	bool bOdd(0);
+	XArSinoTransform.Cart2Polar(bOdd);
+	XArData::WriteFileGRD(XArSino, "t0s0360Cart.grd", xar::eGRDBIN);
+	printf("\nDone!!!");
+	exit(0);
+	
 	//@@@@@@ end temporary code
 
 	try
