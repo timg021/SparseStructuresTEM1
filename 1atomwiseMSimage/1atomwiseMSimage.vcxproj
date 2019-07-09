@@ -193,7 +193,6 @@
     <ClInclude Include="..\Multislice\XA_head2.h" />
     <ClInclude Include="..\Multislice\XA_ini.h" />
     <ClInclude Include="pdb.h" />
-    <ClInclude Include="XA_SinoCartesian.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\MsctKirkland\MsctKirkland.txt" />
