@@ -25,7 +25,7 @@ int main(void)
 		FILE* ff0 = fopen("MsctKirkland.txt", "rt");
 			if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland.txt.");
 
-		char cline[1024], ctitle[1024], cparam[1024];
+		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
 	
 		// The ordering of these parameters is 'historic', it can be changed, but then the corresponding changes need to be applied in autosliccmd.cpp too.
 		fgets(cline, 1024, ff0); // 1st line - comment
@@ -44,8 +44,11 @@ int main(void)
 		autoslictxt[11] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8th line: Slice_thickness_in_Angstroms
 		autoslictxt[13] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line: Propagation(defocus)_distance_for_exit_wave_in_Angstroms !!!!!!!!!!!!!! CHANGE
-		autoslictxt[26] = cline;
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line: Defocus_distance_MIN,MAX,STEP_in_Angstroms
+		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading line 9 of input parameter file.");
+		double defocus_min = atof(cparam); // minimum defocus in Angstroms 
+		double defocus_max = atof(cparam1); // maximum defocus in Angstroms 
+		double defocus_step = atof(cparam2); // defocus step in Angstroms 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line: Total_CT_rotation_span_in_degrees
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 10 of input parameter file.");
 		double angle_max = atof(cparam); // total rotation span in degrees 
@@ -97,17 +100,30 @@ int main(void)
 		autoslictxt[23] = cline;
 		fclose(ff0); // close input parameter file
 
-		size_t i_dot = outfilename.rfind('.');
-		size_t nfield_length = (nangles == 1) ? 1 : 1 + size_t(log10(double(nangles - 1))); //maximum number of digits in the output file name
-		char ndig[8];
-		sprintf(ndig, "%zd", nfield_length); //convert the calculated maximum number of digits into a string, e.g. 3 into "3"
-		string myformat = "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded numbers into file names - see usage below
-		
-		char buffer[128], bufangle[128];
-		string strAngle, outfilename_i;
+		char buffer[128], bufangle[128], bufdefocus[128];
+		string strAngle, strDefocus, outfilename_i;
 		double angle;
 		double angle_step = angle_max / 180.0 * PI / double(nangles); // rotation step in radians
-	
+		double defocus;
+		size_t ndefocus = 1 + size_t((defocus_max - defocus_min) / defocus_step + 0.5); // number of defocus planes to propagate to at each rotation angle		
+		
+		// create formatting string to add properly formatted indexes at the end of the output file names
+		size_t i_dot = outfilename.rfind('.'), nfieldA_length, nfieldB_length;
+		char ndig[8];
+		string myformat("");
+		if (ndefocus > 1)
+		{
+			nfieldA_length = 1 + size_t(log10(double(ndefocus - 1))); //maximum number of digits corresponding to defocuses in the output file name
+			sprintf(ndig, "%zd", nfieldA_length); //convert the calculated maximum number of digits corresponding to defocuses into a string, e.g. 5 into "5"
+			myformat = "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded defocus indexes into file names
+		}
+		if (nangles > 1)
+		{
+			nfieldB_length = 1 + size_t(log10(double(nangles - 1))); //maximum number of digits corresponding to angles in the output file name
+			sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
+			myformat += "_%0" + string(ndig) + "d"; //construct format string for inserting two 0-padded angle indexes into file names - see usage below
+		}
+		
 		// find out the number of CPU cores available in the computer
 		//unsigned int ncores = std::thread::hardware_concurrency();
 		//printf("\nNumber of CPU cores detected: %d", ncores);
@@ -120,26 +136,39 @@ int main(void)
 		for (size_t i = 0; i < nangles; i++)
 		{
 			printf("\nAngle = %zd", i);
-			outfilename_i = outfilename;
-			sprintf(buffer, myformat.data(), i);
-			outfilename_i.insert(i_dot, buffer);
 			angle = angle_step * double(i);
 			sprintf(bufangle, "%f", angle); strAngle = bufangle;
-			//Here we call Kirkland's autoslic at each angle
-			autoslictxt[2] = "3.Name_of_file_to_get_binary_output_of_multislice_result: " + outfilename_i;
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
-			autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 1"; // the first thread must initialize the FFTW plan, subsequent ones can copy it
+
+			// start the cycle over defocus distances
+			for (size_t j = 0; j < ndefocus; j++)
+			{
+				defocus = defocus_min + defocus_step * j;
+				sprintf(bufdefocus, "%f", defocus); strDefocus = bufdefocus;
+				printf("\nDefocus = %s", bufdefocus);
+
+				outfilename_i = outfilename;
+				if (ndefocus == 1 && nangles > 1) sprintf(buffer, myformat.data(), i);
+				else if (ndefocus > 1 && nangles == 1) sprintf(buffer, myformat.data(), j);
+				else sprintf(buffer, myformat.data(), j, i);
+				outfilename_i.insert(i_dot, buffer);
+
+				//Here we call Kirkland's autoslic at each angle
+				autoslictxt[2] = "3.Name_of_file_to_get_binary_output_of_multislice_result: " + outfilename_i;
+				autoslictxt[26] = "27.Propagation_distance_in_Angstroms: " + strDefocus;
+				autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 1"; // the first thread must initialize the FFTW plan, subsequent ones can copy it
 #ifdef TEG_MULTITHREADED
-			if (i > 0) autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 0";
-			thread_counter.SetUpdated(false);
-			std::thread threadObj(autosliccmd, autoslictxt);
-			if (i == 0) threadObj.join(); // we need to let the first worker thread finish execution, so that it can create the FFTW "plan" to be shared  with other threads
-			if (threadObj.joinable()) threadObj.detach(); // if we don't do this, threadObj will call Terminate() on the attached thread when the threadObj goes out of scope
-			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores) 
-				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
+				if (i + j > 0) autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 0";
+				thread_counter.SetUpdated(false);
+				std::thread threadObj(autosliccmd, autoslictxt);
+				if (i + j == 0) threadObj.join(); // we need to let the first worker thread finish execution, so that it can create the FFTW "plan" to be shared  with other threads
+				if (threadObj.joinable()) threadObj.detach(); // if we don't do this, threadObj will call Terminate() on the attached thread when the threadObj goes out of scope
+				while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores)
+					std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
 #else
-			autosliccmd(autoslictxt); // single-threaded execution mode
+				autosliccmd(autoslictxt); // single-threaded execution mode
 #endif // TEG_MULTITHREADED
+			}
 		}
 
 #ifdef TEG_MULTITHREADED

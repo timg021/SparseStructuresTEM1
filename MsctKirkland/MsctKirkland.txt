@@ -1,14 +1,14 @@
 //*****Input parameter file for MsctKirkland.exe program*****
-1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: 3j6kLysLesKirck.xyz
+1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: aspKirck.xyz
 3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\aaa.grd
 28.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0
 26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0
 11.Incident__electron_beam_energy_in_keV: 200.0
-12.Wavefunction_size_in_pixels,_Nx,Ny: 1024 1024
-14.Slice_thickness_in_Angstroms: 1.375
-27.Propagation(defocus)_distance_for_exit_wave_in_Angstroms: -75.0
+12.Wavefunction_size_in_pixels,_Nx,Ny: 256 256
+14.Slice_thickness_in_Angstroms: 1.0
+27.Defocus_distance_MIN,MAX,STEP_in_Angstroms: -10.0 0.0 1.0
 25.Total_CT_rotation_span_in_degrees: 180
-29.Number_of_CT_rotation_angles: 900
+29.Number_of_CT_rotation_angles: 1
 30.Number_of_worker_threads_to_launch_in_CT_simulation_mode: 7
 //*****
 //*****Parameters below this line have not been tested. If the "default" values are changed, the effect may be unpredictable
