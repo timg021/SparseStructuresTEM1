@@ -1278,7 +1278,7 @@ CArg(C, A);
 	{
 		if (C.GetHeadPtr()) C.GetHeadPtr()->Validate();	
 		A[0] = carg(C[0], T(0));
-		for (index_t i = 1; i < C.XArrayBase<T>::size(); i++) A[i] = carg(C[i], A[i-1]);
+		for (index_t i = 1; i < C.XArrayBase< std::complex<T> >::size(); i++) A[i] = carg(C[i], A[i-1]);
 		A.SetHeadPtr(C.GetHeadPtr() ? C.GetHeadPtr()->Clone() : 0);
 	}
 

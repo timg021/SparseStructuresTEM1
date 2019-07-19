@@ -132,6 +132,7 @@ ANY OTHER PROGRAM).
 #include <cstdio>  /* ANSI C libraries */
 #include <cstdlib>
 #include <cstring>
+#include <istream>
 #include <math.h>
 #include <cmath>
 #include <ctime>
@@ -143,6 +144,7 @@ ANY OTHER PROGRAM).
 
 #include "XArray2D.h"
 #include "XA_data.h"
+#include "XA_fft2.h"
 
 using namespace std;
 
@@ -166,13 +168,13 @@ const int NSMAX= 1000;   // max number of slices
 const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
-int autosliccmd(vector<string> params)
+int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fileout)
 {
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
 	printf("\nNumber of active threads (inside w.thread) = %d", thread_counter.GetCount());
 	thread_counter.SetUpdated(true); // lets the main thread know that the thread counter has been updated
 
-    string filein, fileout, filestart, filebeam, filecross, cline, description;
+    string filein, filestart, filebeam, filecross, cline, description;
   
     const char version[] = "2-jun-2014 (ejk)";
 
@@ -200,7 +202,6 @@ int autosliccmd(vector<string> params)
 
 	//@@@@@ start TEG code
 	int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
-	float propdist; // propagation distance in Angstroms for the exit wave
 	int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
 	int nfftwinit; // the switch between copying(0) or initializing from new (1) the FFTW plan in autoslic
 	float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
@@ -270,9 +271,9 @@ int autosliccmd(vector<string> params)
     //cin.getline( fileout, NCMAX );   //  ????
     //cin >> fileout ;
 	//fileout = "1grl.tif";
-	if (sscanf(params[2].data(), "%s %s", chaa, cinarg) != 2)
-		throw std::exception("Error reading line 3 of input parameter array.");
-	fileout = cinarg;
+	//if (sscanf(params[2].data(), "%s %s", chaa, cinarg) != 2)
+	//	throw std::exception("Error reading line 3 of input parameter array.");
+	//fileout = cinarg;
 
     //lpartl = askYN("Do you want to include partial coherence");
 	//lpartl = 0;
@@ -325,8 +326,8 @@ int autosliccmd(vector<string> params)
 		throw std::exception("Error reading line 25 of input parameter array.");
 	if (sscanf(params[25].data(), "%s %d", chaa, &nmode) != 2)
 		throw std::exception("Error reading line 26 of input parameter array.");
-	if (sscanf(params[26].data(), "%s %g", chaa, &propdist) != 2)
-		throw std::exception("Error reading line 27 of input parameter array.");
+	//if (sscanf(params[26].data(), "%s %g %g %g", chaa, &defocus_min, &defocus_max, &defocus_step) != 4)
+	//	throw std::exception("Error reading line 27 of input parameter array.");
 	if (sscanf(params[27].data(), "%s %d", chaa, &noutput) != 2)
 		throw std::exception("Error reading line 28 of input parameter array.");
 	if (sscanf(params[28].data(), "%s %d", chaa, &nfftwinit) != 2)
@@ -652,7 +653,7 @@ int autosliccmd(vector<string> params)
     // ------- iterate the multislice algorithm proper -----------
 	//@@@@@ start TEG code
     aslice.calculate( pix, wave0, depthpix, param, multiMode, natom, &iseed,
-                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode, propdist);
+                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode, 0.0f);
 	//@@@@@ end TEG code
  
     if( lpartl == 1 ) {         //    with partial coherence
@@ -701,45 +702,47 @@ int autosliccmd(vector<string> params)
     param[pDX] = dx = (float) ( ax/((float)nx) );
     param[pDY] = dy = (float) ( by/((float)ny) );
 
-    //param[pNSLICES] = 0.0F;  /* ??? */
 	//@@@@@ start TEG code
-	//GRD/GRC file output
 	IXAHWave2D* ph2new = CreateWavehead2D();
-	ph2new->SetData(wavlen * 1.e-4, ymin * 1.e-4, ymax * 1.e-4, xmin * 1.e-4, xmax * 1.e-4);
-	switch (noutput)
+	ph2new->SetData(wavlen, ymin, ymax, xmin, xmax);
+	xar::XArray2D<xar::fcomplex> camp(ny, nx);
+	camp.SetHeadPtr(ph2new);
+	xar::XArray2DFFT<float> xafft(camp);
+
+	for (size_t j = 0; j < defocus.size(); j++)
 	{
-	case 0: // intensity out
-	{
-		xar::XArray2D<float> inten(ny, nx);
-		inten.SetHeadPtr(ph2new);
-		for (ix = 0; ix < nx; ix++)
-			for (iy = 0; iy < ny; iy++)
-				inten[iy][ix] = pix.re(ix, iy) * pix.re(ix, iy) + pix.im(ix, iy) * pix.im(ix, iy);
-		xar::XArData::WriteFileGRD(inten, fileout.c_str(), xar::eGRDBIN);
-		break;
-	}
-	case 1: // phase out
-	{
-		xar::XArray2D<float> phase(ny, nx);
-		phase.SetHeadPtr(ph2new);
-		for (ix = 0; ix < nx; ix++)
-			for (iy = 0; iy < ny; iy++)
-				phase[iy][ix] = atan2f(pix.im(ix, iy), pix.re(ix, iy));
-		xar::XArData::WriteFileGRD(phase, fileout.c_str(), xar::eGRDBIN);
-		break;
-	}
-	case 2: // complex amplitude out
-	{
-		xar::XArray2D<xar::fcomplex> camp(ny, nx);
-		camp.SetHeadPtr(ph2new);
+		printf("\n  Defocus = %g", defocus[j]);
 		for (ix = 0; ix < nx; ix++)
 			for (iy = 0; iy < ny; iy++)
 				camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
-		xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
-		break;
-	}
-	default:
-		throw std::exception("Error: unknown value of the output mode parameter.");
+
+		if (defocus[j] != 0) xafft.Fresnel(defocus[j], false); // propagate to the current defocus distance
+
+		//GRD/GRC file output
+		switch (noutput)
+		{
+		case 0: // intensity out
+		{
+			xar::XArray2D<float> inten;
+			xar::Abs2(camp, inten);
+			xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
+			break;
+		}
+		case 1: // phase out
+		{
+			xar::XArray2D<float> phase;
+			xar::CArg(camp, phase);
+			xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
+			break;
+		}
+		case 2: // complex amplitude out
+		{
+			xar::XArData::WriteFileGRC(camp, fileout[j].data(), xar::eGRCBIN);
+			break;
+		}
+		default:
+			throw std::exception("Error: unknown value of the output mode parameter.");
+		}
 	}
 
  /*   for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );

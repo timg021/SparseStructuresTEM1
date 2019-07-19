@@ -133,6 +133,10 @@
   <ItemGroup>
     <ClCompile Include="..\Multislice\IXAHWave.cpp" />
     <ClCompile Include="..\Multislice\MultisliceK.cpp" />
+    <ClCompile Include="..\Multislice\Ooura_fftsg2d_dbl.c" />
+    <ClCompile Include="..\Multislice\Ooura_fftsg2d_flt.c" />
+    <ClCompile Include="..\Multislice\Ooura_fftsg_dbl.c" />
+    <ClCompile Include="..\Multislice\Ooura_fftsg_flt.c" />
     <ClCompile Include="..\Multislice\stdafx.cpp" />
     <ClCompile Include="..\Multislice\XAHWave.cpp" />
     <ClCompile Include="..\Multislice\XA_file.cpp" />
@@ -146,6 +150,7 @@
   <ItemGroup>
     <ClInclude Include="..\Multislice\IXAHead.h" />
     <ClInclude Include="..\Multislice\IXAHWave.h" />
+    <ClInclude Include="..\Multislice\OouraFft.h" />
     <ClInclude Include="..\Multislice\stdafx.h" />
     <ClInclude Include="..\Multislice\XAHWave.h" />
     <ClInclude Include="..\Multislice\XArray.h" />

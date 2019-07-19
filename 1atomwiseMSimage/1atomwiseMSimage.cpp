@@ -195,7 +195,7 @@ int main(void)
 			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores)
 				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
 #else
-			autosliccmd(autoslictxt); // single-threaded execution mode
+			//autosliccmd(autoslictxt); // single-threaded execution mode
 #endif // TEG_MULTITHREADED
 		}
 

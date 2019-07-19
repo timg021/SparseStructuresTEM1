@@ -17,6 +17,6 @@ public:
 	bool GetUpdated() { return isUpdated; }
 };
 
-int autosliccmd(std::vector<std::string> params);
+int autosliccmd(std::vector<std::string> params, std::vector<double> defocus, std::vector<std::string> fileout);
 //@@@@@ end TEG code
 
