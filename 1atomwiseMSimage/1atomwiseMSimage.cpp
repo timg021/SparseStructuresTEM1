@@ -7,7 +7,6 @@
 #include "XA_ini.h"
 #include "XArray2D.h"
 #include "XA_data.h"
-#include "XA_SinoCartesian.h"
 
 #include "autosliccmd.h"
 #undef TEG_MULTITHREADED // this program is intended to run single-threaded only
