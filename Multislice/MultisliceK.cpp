@@ -9,7 +9,7 @@
 
 using namespace xar;
 
-unsigned int Counter_Obj::counter = 0; // active worker thread counter (this main thread is not counted)
+int Counter_Obj::counter = 0; // active worker thread counter (this main thread is not counted)
 bool Counter_Obj::isUpdated = false; // update status of the counter object
 
 int main(void)
@@ -159,13 +159,16 @@ int main(void)
 			//Here we call Kirkland's autoslic at each angle
 			autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 1"; // the first thread must initialize the FFTW plan, subsequent ones can copy it
 #ifdef TEG_MULTITHREADED
+			// NOTE that in this multithreaded model, exceptions thrown by worker threads will NOT be caught in the master thread
 			if (i > 0) autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 0";
 			thread_counter.SetUpdated(false);
 			std::thread threadObj(autosliccmd, autoslictxt, vdefocus, vstrfileout);
 			if (i == 0) threadObj.join(); // we need to let the first worker thread finish execution, so that it can create the FFTW "plan" to be shared  with other threads
 			if (threadObj.joinable()) threadObj.detach(); // if we don't do this, threadObj will call Terminate() on the attached thread when the threadObj goes out of scope
-			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores)
+			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= (int)ncores)
 				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
+			if (thread_counter.GetCount() < 0) // meaning that a thread has requested the whole program to terminate
+				throw std::exception("A thread has requested the whole program to terminate.");
 #else
 			autosliccmd(autoslictxt, vdefocus, vstrfileout); // single-threaded execution mode
 #endif // TEG_MULTITHREADED

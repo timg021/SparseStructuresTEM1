@@ -19,7 +19,7 @@ extern xar::XArray2D<float> intenTot; // accumulated intensity data - created in
 
 using namespace xar;
 
-unsigned int Counter_Obj::counter = 0; // active worker thread counter (this main thread is not counted)
+int Counter_Obj::counter = 0; // active worker thread counter (this main thread is not counted)
 bool Counter_Obj::isUpdated = false; // update status of the counter object
 
 int main(void)
