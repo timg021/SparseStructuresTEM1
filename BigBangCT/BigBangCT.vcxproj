@@ -20,8 +20,9 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{401E48BB-10DC-4817-8B81-96973246DC74}</ProjectGuid>
-    <RootNamespace>MsctKirkland</RootNamespace>
+    <ProjectGuid>{DD723F48-162E-4BAF-AA94-1DF80DEB0455}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>BigBangCT</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -29,14 +30,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -69,88 +70,101 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Multislice;$(SolutionDir)MsctKirkland;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)BigBangCT;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\MsctKirkland\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\BigBangCT\x64\Debug</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Multislice;$(SolutionDir)MsctKirkland;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)BigBangCT;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\MsctKirkland\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\BigBangCT\x64\Debug</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Multislice\IXAHWave.cpp" />
-    <ClCompile Include="..\Multislice\MultisliceK.cpp" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg2d_dbl.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg2d_flt.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg_dbl.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg_flt.c" />
     <ClCompile Include="..\Multislice\stdafx.cpp" />
     <ClCompile Include="..\Multislice\XAHWave.cpp" />
     <ClCompile Include="..\Multislice\XA_file.cpp" />
     <ClCompile Include="..\Multislice\XA_ini.cpp" />
-    <ClCompile Include="autoslic.cpp" />
-    <ClCompile Include="autosliccmd.cpp" />
-    <ClCompile Include="cfpix.cpp" />
-    <ClCompile Include="floatTIFF.cpp" />
-    <ClCompile Include="slicelib.cpp" />
+    <ClCompile Include="BigBangCT.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Multislice\IXAHead.h" />
     <ClInclude Include="..\Multislice\IXAHWave.h" />
-    <ClInclude Include="..\Multislice\OouraFft.h" />
     <ClInclude Include="..\Multislice\stdafx.h" />
     <ClInclude Include="..\Multislice\XAHWave.h" />
     <ClInclude Include="..\Multislice\XArray.h" />
@@ -159,20 +173,11 @@
     <ClInclude Include="..\Multislice\XArray3D.h" />
     <ClInclude Include="..\Multislice\XArrayB.h" />
     <ClInclude Include="..\Multislice\XA_data.h" />
-    <ClInclude Include="..\Multislice\XA_fft2.h" />
     <ClInclude Include="..\Multislice\XA_file.h" />
     <ClInclude Include="..\Multislice\XA_head1.h" />
     <ClInclude Include="..\Multislice\XA_head2.h" />
     <ClInclude Include="..\Multislice\XA_ini.h" />
-    <ClInclude Include="autoslic.hpp" />
-    <ClInclude Include="autosliccmd.h" />
-    <ClInclude Include="cfpix.hpp" />
     <ClInclude Include="fftw3.h" />
-    <ClInclude Include="floatTIFF.hpp" />
-    <ClInclude Include="slicelib.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="MsctKirkland.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
