@@ -15,13 +15,14 @@ int main()
 	xar::XArray3D<float> aaa(nx, ny, nz2, 0.0);
 	xar::XArray3D<float> bbb(nx, ny, nz2, 0.0);
 
+	aaa[0][0][0] = 1.0f;
 	for (index_t i = 0; i < nx; i++)
 		for (index_t j = 0; j < ny; j++)
 			for (index_t k = 0; k < nz; k++)
 			{
-				aaa[i][j][k] = 1.0f; bbb[i][j][k] = 1.0f;
+				bbb[i][j][k] = float(i + j + k);
 			}
-
+	
 	float* inaaa = (float*)fftwf_malloc(sizeof(float) * nr);
 	fftwf_complex* outaaa = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * nc);
 
@@ -34,7 +35,7 @@ int main()
 
 	printf("\nBefore FFT:");
 	for (index_t m = 0; m < nr; m++)
-		printf("\n inaaa[%zd] = %g)", m, inaaa[m]);
+		printf("\n inaaa[%zd] = %g", m, inaaa[m]);
 
 	fftwf_plan fpa = fftwf_plan_dft_r2c_3d((int)nx, (int)ny, (int)nz, inaaa, outaaa, FFTW_ESTIMATE);
 	fftwf_execute(fpa);
@@ -57,6 +58,10 @@ int main()
 			for (index_t k = 0; k < nz; k++)
 				inaaa[m++] = bbb[i][j][k];
 
+	printf("\nBefore FFT:");
+	for (index_t m = 0; m < nr; m++)
+		printf("\n inaaa[%zd] = %g", m, inaaa[m]);
+
 	fftwf_execute(fpa);
 
 	i = 0;
@@ -73,11 +78,10 @@ int main()
 	/// multiply FFTs of 2 arrays
 	paaa = &aaa[0][0][0];
 	float* pbbb = &bbb[0][0][0];
-	float ftemp;
 	index_t m2, m21;
 	for (index_t m = 0; m < nc; m++)
 	{
-		m2 = m * 2; m21 = m2++;
+		m2 = m * 2; m21 = m2 + 1;
 		outaaa[m][0] = paaa[m2] * pbbb[m2] - paaa[m21] * pbbb[m21];
 		outaaa[m][1] = paaa[m2] * pbbb[m21] + paaa[m21] * pbbb[m2];
 	}
@@ -91,10 +95,11 @@ int main()
 	fftwf_execute(fpa1);
 
 	m = 0;
+	float fnorm = 1.0f / float(nr);
 	for (index_t i = 0; i < nx; i++)
 		for (index_t j = 0; j < ny; j++)
 			for (index_t k = 0; k < nz; k++)
-				aaa[i][j][k] = inaaa[m++];
+				aaa[i][j][k] = inaaa[m++] * fnorm;
 
 	printf("\nAfter inverse FFT:");
 	for (index_t i = 0; i < nx; i++)
