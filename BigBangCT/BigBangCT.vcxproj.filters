@@ -33,6 +33,9 @@
     <ClCompile Include="..\Multislice\XAHWave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fftwf3drc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Multislice\IXAHead.h">
@@ -78,6 +81,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fftw3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fftwf3drc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,115 +1,77 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <iostream>
 #include <complex.h>
 #include <fftw3.h>
 #include <XArray3D.h>
+#include <fftwf3drc.h>
 
 int main()
 {
-	index_t nx(4), ny(4), nz(4);
-	index_t nz1 = nz / 2 + 1, nz2 = nz1 * 2;
-	index_t nr = nx * ny * nz, nr2 = nx * ny * nz2, nc = nx * ny * nz1;
-    std::cout << "Hello World!\n";
-	xar::XArray3D<float> aaa(nx, ny, nz2, 0.0);
-	xar::XArray3D<float> bbb(nx, ny, nz2, 0.0);
-
-	aaa[0][0][0] = 1.0f;
-	for (index_t i = 0; i < nx; i++)
-		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-			{
-				bbb[i][j][k] = float(i + j + k);
-			}
-	
-	float* inaaa = (float*)fftwf_malloc(sizeof(float) * nr);
-	fftwf_complex* outaaa = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * nc);
-
-	// FFT of aaa
-	index_t m(0);
-	for (index_t i = 0; i < nx; i++)
-		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				inaaa[m++] = aaa[i][j][k];
-
-	printf("\nBefore FFT:");
-	for (index_t m = 0; m < nr; m++)
-		printf("\n inaaa[%zd] = %g", m, inaaa[m]);
-
-	fftwf_plan fpa = fftwf_plan_dft_r2c_3d((int)nx, (int)ny, (int)nz, inaaa, outaaa, FFTW_ESTIMATE);
-	fftwf_execute(fpa);
-
-	printf("\nAfter FFT:");
-	for (index_t m = 0; m < nc; m++)
-		printf("\n outaaa[%zd] = (%g, %g)", m, outaaa[m][0], outaaa[m][1]);
-
-	index_t i(0);
-	float* paaa = &aaa[0][0][0];
-	for (index_t m = 0; m < nc; m++)
+	try
 	{
-		*paaa++ = outaaa[m][0]; *paaa++ = outaaa[m][1];
+		printf("\nStarting BigBangCT program ...");
+		index_t nx(4), ny(4), nz(4);
+		index_t nz2 = nz / 2 + 1;
+		xar::XArray3D<float> aaa(nx, ny, nz, 0.0);
+		xar::XArray3D<xar::fcomplex> ccc(nx, ny, nz2);
+
+		//allocate space and create FFTW plans
+		Fftwf3drc fftf((int)nx, (int)ny, (int)nz);
+
+		// first array to transform
+		aaa[0][0][0] = 1.0f; // delta-function
+
+		// FFT of 1st array
+		fftf.SetRealXArray3D(aaa);
+		fftf.PrintRealArray("\nBefore FFT:");
+		fftf.ForwardFFT();
+		fftf.PrintComplexArray("\nAfter FFT:");
+
+		// store away the result of the 1st FFT
+		fftf.GetComplexXArray3D(ccc);
+
+		// second array to transform
+		for (index_t i = 0; i < nx; i++)
+			for (index_t j = 0; j < ny; j++)
+				for (index_t k = 0; k < nz; k++)
+					aaa[i][j][k] = float(i + j + k);
+
+		// FFT of the 2nd array
+		fftf.SetRealXArray3D(aaa);
+		fftf.PrintRealArray("\nBefore FFT:");
+		fftf.ForwardFFT();
+		fftf.PrintComplexArray("\nAfter FFT:");
+
+		/// multiply FFTs of 2 arrays
+		float ftemp;
+		fftwf_complex* pout = fftf.GetComplex();
+		int m = 0;
+		for (index_t i = 0; i < nx; i++)
+			for (index_t j = 0; j < ny; j++)
+				for (index_t k = 0; k < nz2; k++)
+				{
+					ftemp = pout[m][0] * ccc[i][j][k].real() - pout[m][1] * ccc[i][j][k].imag();
+					pout[m][1] = pout[m][1] * ccc[i][j][k].real() + pout[m][0] * ccc[i][j][k].imag();
+					pout[m][0] = ftemp;
+					m++;
+				}
+		fftf.PrintComplexArray("\nAfter multiplication:");
+
+		// inverse FFT of the product
+		fftf.ForwardFFT();
+		fftf.PrintRealArray("\nAfter inverse FFT:");
+		
+		// get the result
+		fftf.GetRealXArray3D(aaa);
+	}
+	catch (std::exception& E)
+	{
+		printf("\n!!!Exception: %s\n", E.what());
 	}
 
-	// FFT of bbb
-	m = 0;
-	for (index_t i = 0; i < nx; i++)
-		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				inaaa[m++] = bbb[i][j][k];
+	printf("\nPress any key to exit..."); getchar();
+	return 0;
 
-	printf("\nBefore FFT:");
-	for (index_t m = 0; m < nr; m++)
-		printf("\n inaaa[%zd] = %g", m, inaaa[m]);
-
-	fftwf_execute(fpa);
-
-	i = 0;
-	paaa = &bbb[0][0][0];
-	for (index_t m = 0; m < nc; m++)
-	{
-		*paaa++ = outaaa[m][0]; *paaa++ = outaaa[m][1];
-	}
-
-	printf("\nAfter FFT:");
-	for (auto it = bbb.begin(); it != bbb.end(); it++)
-		printf("\n bbb = %g", *it);
-
-	/// multiply FFTs of 2 arrays
-	paaa = &aaa[0][0][0];
-	float* pbbb = &bbb[0][0][0];
-	index_t m2, m21;
-	for (index_t m = 0; m < nc; m++)
-	{
-		m2 = m * 2; m21 = m2 + 1;
-		outaaa[m][0] = paaa[m2] * pbbb[m2] - paaa[m21] * pbbb[m21];
-		outaaa[m][1] = paaa[m2] * pbbb[m21] + paaa[m21] * pbbb[m2];
-	}
-
-	printf("\nAfter multiplication:");
-	for (index_t m = 0; m < nc; m++)
-		printf("\n outaaa[%zd] = (%g, %g)", m, outaaa[m][0], outaaa[m][1]);
-
-	// inverse FFT of the product
-	fftwf_plan fpa1 = fftwf_plan_dft_c2r_3d((int)nx, (int)ny, (int)nz, outaaa, inaaa, FFTW_ESTIMATE);
-	fftwf_execute(fpa1);
-
-	m = 0;
-	float fnorm = 1.0f / float(nr);
-	for (index_t i = 0; i < nx; i++)
-		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				aaa[i][j][k] = inaaa[m++] * fnorm;
-
-	printf("\nAfter inverse FFT:");
-	for (index_t i = 0; i < nx; i++)
-		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				printf("\ni = %zd, j = %zd, k = %zd, aaa[i,j,k] = %g", i, j, k, aaa[i][j][k]);
-	
-	fftwf_destroy_plan(fpa1);
-	fftwf_destroy_plan(fpa);
-	fftwf_free(outaaa);
-	fftwf_free(inaaa);
 }
 
