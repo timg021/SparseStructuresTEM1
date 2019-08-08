@@ -35,30 +35,32 @@ class Fftwf3drc
 public:
 	//! Default constructor
 	Fftwf3drc() { if (!IsEmpty()) Cleanup(); uiflag = FFTW_ESTIMATE;  }
-	//! Constructor opening a file  and storing its FILE pointer in the member pointer
+	//! Constructor allocating internal storage and creating "FFT plans"
 	Fftwf3drc(int nx1, int ny1, int nz1, bool bMeasure = false)
 	{ 
 		if (!IsEmpty()) Cleanup();
 		uiflag = bMeasure ? FFTW_MEASURE : FFTW_ESTIMATE;
-
 		nx = nx1; ny = ny1; nz = nz1;
-
 		pin = (float*)fftwf_malloc(sizeof(float) * GetNr());
 		pout = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * GetNc());
 		aplan = fftwf_plan_dft_r2c_3d(nx, ny, nz, pin, pout, uiflag);
 		bplan = fftwf_plan_dft_c2r_3d(nx, ny, nz, pout, pin, uiflag);
 	}
+private:
+	//! Copy constructor (declared private to prohibit copying)
+	Fftwf3drc(const Fftwf3drc& other) {  }
 public:
 	//! Destructor, destroys the plans and deallocates internal storage
 	~Fftwf3drc() { if (!IsEmpty()) Cleanup(); }
+
 	// Operators
 private:
-	//! Copy constructor (declared private to prohibit copying)
-	Fftwf3drc(const Fftwf3drc& other) {  } 
 	//! Assignment operator (declared private to prohibit copying)
 	Fftwf3drc& operator=(const Fftwf3drc& other) { return *this; }
-// Attributes
+
+	// Attributes
 public:
+
 	// Operations
 public:
 	// Member functions
@@ -83,9 +85,8 @@ public:
 	void ForwardFFT() { fftwf_execute(aplan); }
 	// Inverse FFT
 	void InverseFFT() { fftwf_execute(bplan); }
-	// Print the real array
+	// Print internal arrays
 	void PrintRealArray(const char* message);
-	// Print complex array
 	void PrintComplexArray(const char* message);
 
 private:

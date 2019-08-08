@@ -59,11 +59,15 @@ int main()
 		fftf.PrintComplexArray("\nAfter multiplication:");
 
 		// inverse FFT of the product
-		fftf.ForwardFFT();
-		fftf.PrintRealArray("\nAfter inverse FFT:");
-		
+		fftf.InverseFFT();
+				
 		// get the result
 		fftf.GetRealXArray3D(aaa);
+		printf("\nAfter inverse FFT:");
+		for (index_t i = 0; i < nx; i++)
+			for (index_t j = 0; j < ny; j++)
+				for (index_t k = 0; k < nz; k++)
+					printf("\naaa[%zd,%zd,%zd] = %g", i, j, k, aaa[i][j][k]);
 	}
 	catch (std::exception& E)
 	{

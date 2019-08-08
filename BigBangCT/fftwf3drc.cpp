@@ -1,4 +1,4 @@
-// IMplementation of the fftwf3drc class
+// Implementation of the fftwf3drc class
 
 #include "fftwf3drc.h"
 
