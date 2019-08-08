@@ -53,6 +53,7 @@ int main()
 				kk++;
 			}
 		}
+		aaa -= 1.0f;
 
 		double xstep = GetXStep(inten);
 		double ystep = GetYStep(inten);
@@ -88,6 +89,10 @@ int main()
 				kk++;
 			}
 		}
+		aaa -= 1.0f;
+		//@@@@@@
+		//aaa.Fill(0);
+		//aaa[0][0][0] = 1.0; // delta-function
 		
 		// FFT of the 2nd array
 		printf("\nFFT of the 2nd 3D set ...");
@@ -132,6 +137,23 @@ int main()
 
 		printf("\nPoint of maximum correlation is (%zd, %zd, %zd).", imax, jmax, kmax);
 		printf("\nPoint of maximum correlation is (%g, %g, %g).", imax * xstep, jmax * ystep, kmax * zstep);
+
+		printf("\nWriting the output files ...");
+		filenamebase = "C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd";
+		infiles = FileNames(nangles, ndefocus, filenamebase);
+		kk = 0;
+		for (size_t i = 0; i < nangles; i++)
+		{
+			for (size_t j = 0; j < ndefocus; j++)
+			{
+				for (size_t ii = 0; ii < inten.GetDim1(); ii++)
+					for (size_t jj = 0; jj < inten.GetDim2(); jj++)
+						inten[ii][jj] = aaa[ii][jj][kk];
+				XArData::WriteFileGRD(inten, infiles[i * ndefocus + j].c_str(), xar::eGRDBIN);
+				kk++;
+			}
+		}
+
 	}
 	catch (std::exception& E)
 	{
