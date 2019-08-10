@@ -24,11 +24,11 @@ int main()
 	try
 	{
 		printf("\nStarting BigBangCT program ...");
-		index_t nx = 256, ny = 256, nz = 256;
+		index_t ndefocus = 256;
+		index_t nx = 256, ny = 256, nz = ndefocus;
 		index_t nz2 = nz / 2 + 1;
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		index_t ndefocus = 256;
-		double zDefocusRange = 10.0;
+		double zDefocusRange = 10;
 		double zstep = zDefocusRange / double(ndefocus - 1);
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
@@ -36,15 +36,16 @@ int main()
 		string filenamebaseIn2("C:\\Users\\TimGu\\Downloads\\TempData\\bbb.grd");
 		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd");
 
-		XArray3D<float> aaa(nx, ny, nz, 0.0);
+		XArray3D<float> aaa(nx, ny, nz);
 		XArray3D<xar::fcomplex> ccc(nx, ny, nz2);
 
 		//allocate space and create FFTW plans
 		Fftwf3drc fftf((int)nx, (int)ny, (int)nz);
 
 		// first array to transform
+		aaa.Fill(0);
 #if TEST_RUN
-		aaa[0][0][0] = 1.0f; // delta-function
+		aaa[3][5][7] = 55.0f; // delta-function
 #else
 		printf("\nReading 1st set of input files %s ...", filenamebaseIn1.c_str());
 		IXAHWave2D* ph2new = CreateWavehead2D();
@@ -56,33 +57,39 @@ int main()
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-				for (index_t ii = 0; ii < inten.GetDim1(); ii++)
-					for (index_t jj = 0; jj < inten.GetDim2(); jj++)
+				if (kk) { if (inten.GetDim1() != nx) throw std::runtime_error("different nx dimension in input file"); }
+				else nx = inten.GetDim1();
+				if (kk) { if (inten.GetDim2() != ny) throw std::runtime_error("different ny dimension in input file"); }
+				else ny = inten.GetDim2();
+				for (index_t ii = 0; ii < nx; ii++)
+					for (index_t jj = 0; jj < ny; jj++)
 						aaa[ii][jj][kk] = inten[ii][jj];
 			}
 		}
 		aaa -= 1.0f; // can take log() instead
 		xstep = GetXStep(inten);
 		ystep = GetYStep(inten);
+		printf("\nDimensions of input images = (%zd,%zd); steps = (%g,%g).", nx, ny, xstep, ystep);
 #endif
 
 		// FFT of 1st array
 		printf("\nFFT of the 1st 3D set ...");
 		fftf.SetRealXArray3D(aaa);
 #if TEST_RUN		
-		fftf.PrintRealArray("\nBefore FFT:");
+		fftf.PrintRealArray("\nBefore 1st FFT:");
 #endif
 		fftf.ForwardFFT();
 #if TEST_RUN		
-		fftf.PrintComplexArray("\nAfter FFT:");
+		fftf.PrintComplexArray("\nAfter 1st FFT:");
 #endif
 
 		// store away the result of the 1st FFT
 		fftf.GetComplexXArray3D(ccc);
 
 		// second array to transform
+		aaa.Fill(0);
 #if TEST_RUN
-		aaa[0][0][0] = 1.0; // delta-function
+		aaa[2][2][2] = 1.0; // delta-function
 #else
 		printf("\nReading 2nd set of input files %s ...", filenamebaseIn2.c_str());
 		infiles = FileNames(nangles, ndefocus, filenamebaseIn2);
@@ -91,8 +98,10 @@ int main()
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-				for (index_t ii = 0; ii < inten.GetDim1(); ii++)
-					for (index_t jj = 0; jj < inten.GetDim2(); jj++)
+				if (inten.GetDim1() != nx) throw std::runtime_error("different nx dimension in input file");
+				if (inten.GetDim2() != ny) throw std::runtime_error("different ny dimension in input file");
+				for (index_t ii = 0; ii < nx; ii++)
+					for (index_t jj = 0; jj < ny; jj++)
 						aaa[ii][jj][kk] = inten[ii][jj];
 			}
 		}
@@ -103,15 +112,15 @@ int main()
 		printf("\nFFT of the 2nd 3D set ...");
 		fftf.SetRealXArray3D(aaa);
 #if TEST_RUN		
-		fftf.PrintRealArray("\nBefore FFT:");
+		fftf.PrintRealArray("\nBefore 2nd FFT:");
 #endif
 		fftf.ForwardFFT();
 #if TEST_RUN		
-		fftf.PrintComplexArray("\nAfter FFT:");
+		fftf.PrintComplexArray("\nAfter 2nd FFT:");
 #endif
 
-		/// multiply FFTs of 2 arrays
-		printf("\nMultiplying the two 3D FFTs ...");
+		/// multiply FFTs of 2 arrays, taking the conjugate of the second one
+		printf("\nMultiplying FFT of the first by the conjugate of the FFT of the second ...");
 		float ftemp;
 		fftwf_complex* pout = fftf.GetComplex();
 		int m = 0;
@@ -119,8 +128,8 @@ int main()
 			for (index_t j = 0; j < ny; j++)
 				for (index_t k = 0; k < nz2; k++)
 				{
-					ftemp = pout[m][0] * ccc[i][j][k].real() - pout[m][1] * ccc[i][j][k].imag();
-					pout[m][1] = pout[m][1] * ccc[i][j][k].real() + pout[m][0] * ccc[i][j][k].imag();
+					ftemp = pout[m][0] * ccc[i][j][k].real() + pout[m][1] * ccc[i][j][k].imag();
+					pout[m][1] = -pout[m][1] * ccc[i][j][k].real() + pout[m][0] * ccc[i][j][k].imag();
 					pout[m][0] = ftemp;
 					m++;
 				}
@@ -148,21 +157,27 @@ int main()
 		{
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
-				for (index_t ii = 0; ii < inten.GetDim1(); ii++)
-					for (index_t jj = 0; jj < inten.GetDim2(); jj++)
+				for (index_t ii = 0; ii < nx; ii++)
+					for (index_t jj = 0; jj < ny; jj++)
 						inten[ii][jj] = aaa[ii][jj][kk];
 				XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 			}
 		}
 #endif
 
-		index_t dindex = index_t(aaa.Norm(eNormIndexOfMax));
-		index_t imax = dindex / (ny * nz);
-		index_t jmax = (dindex - imax * ny * nz) / nz;
-		index_t kmax = dindex - imax * ny * nz - jmax * nz;
-
-		printf("\nIndexes of the point of maximum correlation are (%zd, %zd, %zd).", imax, jmax, kmax);
-		printf("\nCoordinates of the point of maximum correlation is (%g, %g, %g).", imax * xstep, jmax * ystep, kmax * zstep);
+		// find the maximum
+		index_t imax = 0, jmax = 0, kmax = 0;
+		double amax = aaa[imax][jmax][kmax];
+		for (index_t ii = 0; ii < nx; ii++)
+			for (index_t jj = 0; jj < ny; jj++)
+				for (index_t kk = 0; kk < nz; kk++)
+					if (aaa[ii][jj][kk] > amax)
+					{
+						amax = aaa[ii][jj][kk];
+						imax = ii; jmax = jj; kmax = kk;
+					}
+		printf("\nOptimal shift of the second array to the first one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
+		printf("\nOptimal shift of the second array to the first one in physics units = (%g, %g, %g).", imax * xstep, jmax * ystep, kmax * zstep);
 
 
 	}
