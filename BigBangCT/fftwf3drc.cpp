@@ -8,46 +8,46 @@ void Fftwf3drc::Cleanup()
 	if (bplan != 0) { fftwf_destroy_plan(bplan); bplan = 0; }
 	if (pin != 0) { fftwf_free(pin); pin = 0; }
 	if (pout != 0) { fftwf_free(pout); pout = 0; }
-	nx = ny = nz = 0;
+	nz = ny = nx = 0;
 }
 
 
 void Fftwf3drc::GetRealXArray3D(xar::XArray3D<float>& aaa)
 {
-	if ((int)aaa.GetDim1() != nx || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nz)
+	if ((int)aaa.GetDim1() != nz || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nx)
 		throw std::runtime_error("dimensions of the output real array are different from the internal one in Fftwf3drc");
 	int m = 0;
 	float fnorm = 1.0f / float(GetNr());
-	for (index_t i = 0; i < nx; i++)
+	for (index_t k = 0; k < nz; k++)
 		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				aaa[i][j][k] = pin[m++] * fnorm;
+			for (index_t i = 0; i < nx; i++)
+				aaa[k][j][i] = pin[m++] * fnorm;
 }
 
 
 void Fftwf3drc::SetRealXArray3D(xar::XArray3D<float> aaa)
 {
-	if ((int)aaa.GetDim1() != nx || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nz)
+	if ((int)aaa.GetDim1() != nz || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nx)
 		throw std::runtime_error("dimensions of the input real array are different from the internal one in Fftwf3drc");
 	int m = 0;
-	for (index_t i = 0; i < nx; i++)
+	for (index_t k = 0; k < nz; k++)
 		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				pin[m++] = aaa[i][j][k];
+			for (index_t i = 0; i < nx; i++)
+				pin[m++] = aaa[k][j][i];
 }
 
 
 void Fftwf3drc::GetComplexXArray3D(xar::XArray3D<xar::fcomplex>& aaa)
 {
-	int nz2 = GetNz2();
-	if ((int)aaa.GetDim1() != nx || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nz2)
+	int nx2 = GetNx2();
+	if ((int)aaa.GetDim1() != nz || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nx2)
 		throw std::runtime_error("dimensions of the output complex array are different from the internal one in Fftwf3drc");
 	int m = 0;
-	for (index_t i = 0; i < nx; i++)
+	for (index_t k = 0; k < nz; k++)
 		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz2; k++)
+			for (index_t i = 0; i < nx2; i++)
 			{ 
-				aaa[i][j][k] = xar::fcomplex(pout[m][0], pout[m][1]); 
+				aaa[k][j][i] = xar::fcomplex(pout[m][0], pout[m][1]); 
 				m++; 
 			}
 }
@@ -55,16 +55,16 @@ void Fftwf3drc::GetComplexXArray3D(xar::XArray3D<xar::fcomplex>& aaa)
 
 void Fftwf3drc::SetComplexXArray3D(xar::XArray3D<xar::fcomplex> aaa)
 {
-	int nz2 = GetNz2();
-	if ((int)aaa.GetDim1() != nx || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nz2)
+	int nx2 = GetNx2();
+	if ((int)aaa.GetDim1() != nz || (int)aaa.GetDim2() != ny || (int)aaa.GetDim3() != nx2)
 		throw std::runtime_error("dimensions of the input complex array are different from the internal one in Fftwf3drc");
 	int m = 0;
-	for (index_t i = 0; i < nx; i++)
+	for (index_t k = 0; k < nz; k++)
 		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz2; k++)
+			for (index_t i = 0; i < nx2; i++)
 			{
-				pout[m][0] = aaa[i][j][k].real();
-				pout[m][1] = aaa[i][j][k].imag();
+				pout[m][0] = aaa[k][j][i].real();
+				pout[m][1] = aaa[k][j][i].imag();
 				m++;
 			}
 }
@@ -75,10 +75,10 @@ void Fftwf3drc::PrintRealArray(const char* message)
 	float* pin = GetReal();
 	printf(message);
 	int m = 0;
-	for (index_t i = 0; i < nx; i++)
+	for (index_t k = 0; k < nz; k++)
 		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz; k++)
-				printf("\npin[%zd,%zd,%zd] = %g", i, j, k, pin[m++]);
+			for (index_t i = 0; i < nx; i++)
+				printf("\npin[%zd,%zd,%zd] = %g", k, j, i, pin[m++]);
 }
 
 
@@ -86,12 +86,12 @@ void Fftwf3drc::PrintComplexArray(const char* message)
 {
 	printf(message);
 	int m = 0;
-	int nz2 = GetNz2();
-	for (index_t i = 0; i < nx; i++)
+	int nx2 = GetNx2();
+	for (index_t k = 0; k < nz; k++)
 		for (index_t j = 0; j < ny; j++)
-			for (index_t k = 0; k < nz2; k++)
-			{ 
-				printf("\npout[%zd,%zd,%zd] = (%g, %g)", i, j, k, pout[m][0], pout[m][1]); 
+			for (index_t i = 0; i < nx2; i++)
+			{
+				printf("\npout[%zd,%zd,%zd] = (%g, %g)", k, j, i, pout[m][0], pout[m][1]); 
 				m++; 
 			}
 }

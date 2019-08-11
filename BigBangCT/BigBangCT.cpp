@@ -10,6 +10,10 @@
 #include "XA_data.h"
 #include "fftwf3drc.h"
 
+//!!! NOTE that fftw3 and XArray3D have the same notation for the order of the array dimensions. Both use C-style array structure, i.e. the last index changes the fastest, 
+//i.e. in XArray3D(dim1, dim2, dim3) the fastest changing dimension is dim3, and in fftw_r2c_3d(n0, n1, n2) the fastest dimension is n2.
+//Note also that these dimensions are associated with the following physical coordinates by default: dim1(n0) <-> nz, dim2(n1) <-> ny, dim3(n2) <-> nx.
+
 #define TEST_RUN 0
 
 using namespace xar;
@@ -25,10 +29,10 @@ int main()
 	{
 		printf("\nStarting BigBangCT program ...");
 		index_t ndefocus = 256;
-		index_t nx = 256, ny = 256, nz = ndefocus;
-		index_t nz2 = nz / 2 + 1;
+		index_t nz = ndefocus, ny = 256, nx = 256;
+		index_t nx2 = nx / 2 + 1;
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		double zDefocusRange = 10;
+		double zDefocusRange = 10.0;
 		double zstep = zDefocusRange / double(ndefocus - 1);
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
@@ -36,11 +40,11 @@ int main()
 		string filenamebaseIn2("C:\\Users\\TimGu\\Downloads\\TempData\\bbb.grd");
 		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd");
 
-		XArray3D<float> aaa(nx, ny, nz);
-		XArray3D<xar::fcomplex> ccc(nx, ny, nz2);
+		XArray3D<float> aaa(nz, ny, nx);
+		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
 
 		//allocate space and create FFTW plans
-		Fftwf3drc fftf((int)nx, (int)ny, (int)nz);
+		Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
 
 		// first array to transform
 		aaa.Fill(0);
@@ -57,30 +61,29 @@ int main()
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-				if (kk) { if (inten.GetDim1() != nx) throw std::runtime_error("different nx dimension in input file"); }
-				else nx = inten.GetDim1();
-				if (kk) { if (inten.GetDim2() != ny) throw std::runtime_error("different ny dimension in input file"); }
-				else ny = inten.GetDim2();
-				for (index_t ii = 0; ii < nx; ii++)
-					for (index_t jj = 0; jj < ny; jj++)
-						aaa[ii][jj][kk] = inten[ii][jj];
+				if (kk == 0) ny = inten.GetDim1(); 
+				else if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
+				if (kk == 0) nx = inten.GetDim2(); 
+				else if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file"); 
+				for (index_t jj = 0; jj < ny; jj++)
+					for (index_t ii = 0; ii < nx; ii++)
+						aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
 			}
 		}
-		aaa -= 1.0f; // can take log() instead
 		xstep = GetXStep(inten);
 		ystep = GetYStep(inten);
-		printf("\nDimensions of input images = (%zd,%zd); steps = (%g,%g).", nx, ny, xstep, ystep);
+		printf("\nDimensions of input images = (%zd, %zd, %zd); steps = (%g, %g, %g).", nz, ny, nx, zstep, ystep, xstep);
 #endif
 
 		// FFT of 1st array
 		printf("\nFFT of the 1st 3D set ...");
 		fftf.SetRealXArray3D(aaa);
 #if TEST_RUN		
-		fftf.PrintRealArray("\nBefore 1st FFT:");
+		//fftf.PrintRealArray("\nBefore 1st FFT:");
 #endif
 		fftf.ForwardFFT();
 #if TEST_RUN		
-		fftf.PrintComplexArray("\nAfter 1st FFT:");
+		//fftf.PrintComplexArray("\nAfter 1st FFT:");
 #endif
 
 		// store away the result of the 1st FFT
@@ -93,30 +96,30 @@ int main()
 #else
 		printf("\nReading 2nd set of input files %s ...", filenamebaseIn2.c_str());
 		infiles = FileNames(nangles, ndefocus, filenamebaseIn2);
+		index_t nztrunc = (ndefocus - ndefocus / 4) / 2; // we truncate the "template" atom trace in z direction
 		for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 		{
-			for (index_t kk = 0; kk < ndefocus; kk++)
+			for (index_t kk = nztrunc; kk < ndefocus - nztrunc; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-				if (inten.GetDim1() != nx) throw std::runtime_error("different nx dimension in input file");
-				if (inten.GetDim2() != ny) throw std::runtime_error("different ny dimension in input file");
-				for (index_t ii = 0; ii < nx; ii++)
-					for (index_t jj = 0; jj < ny; jj++)
-						aaa[ii][jj][kk] = inten[ii][jj];
+				if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
+				if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
+				for (index_t jj = 0; jj < ny; jj++)
+					for (index_t ii = 0; ii < nx; ii++)
+						aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;;
 			}
 		}
-		aaa -= 1.0f; // can also take log instead
 #endif
 		
 		// FFT of the 2nd array
 		printf("\nFFT of the 2nd 3D set ...");
 		fftf.SetRealXArray3D(aaa);
 #if TEST_RUN		
-		fftf.PrintRealArray("\nBefore 2nd FFT:");
+		//fftf.PrintRealArray("\nBefore 2nd FFT:");
 #endif
 		fftf.ForwardFFT();
 #if TEST_RUN		
-		fftf.PrintComplexArray("\nAfter 2nd FFT:");
+		//fftf.PrintComplexArray("\nAfter 2nd FFT:");
 #endif
 
 		/// multiply FFTs of 2 arrays, taking the conjugate of the second one
@@ -124,17 +127,17 @@ int main()
 		float ftemp;
 		fftwf_complex* pout = fftf.GetComplex();
 		int m = 0;
-		for (index_t i = 0; i < nx; i++)
+		for (index_t k = 0; k < nz; k++)
 			for (index_t j = 0; j < ny; j++)
-				for (index_t k = 0; k < nz2; k++)
+				for (index_t i = 0; i < nx2; i++)
 				{
-					ftemp = pout[m][0] * ccc[i][j][k].real() + pout[m][1] * ccc[i][j][k].imag();
-					pout[m][1] = -pout[m][1] * ccc[i][j][k].real() + pout[m][0] * ccc[i][j][k].imag();
+					ftemp = pout[m][0] * ccc[k][j][i].real() + pout[m][1] * ccc[k][j][i].imag();
+					pout[m][1] = -pout[m][1] * ccc[k][j][i].real() + pout[m][0] * ccc[k][j][i].imag();
 					pout[m][0] = ftemp;
 					m++;
 				}
 #if TEST_RUN		
-		fftf.PrintComplexArray("\nAfter multiplication:");
+		//fftf.PrintComplexArray("\nAfter multiplication:");
 #endif
 
 		// inverse FFT of the product
@@ -144,12 +147,27 @@ int main()
 		// get the result
 		fftf.GetRealXArray3D(aaa);
 
+		// find the maximum
+		index_t kmax = 0, jmax = 0, imax = 0;
+		double amax = aaa[kmax][jmax][imax];
+		for (index_t kk = 0; kk < nz; kk++)
+			for (index_t jj = 0; jj < ny; jj++)
+				for (index_t ii = 0; ii < nx; ii++)
+					if (aaa[kk][jj][ii] > amax)
+					{
+						amax = aaa[kk][jj][ii];
+						kmax = kk; jmax = jj; imax = ii;
+					}
+		printf("\nOptimal shift of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", kmax, jmax, imax);
+		printf("\nOptimal shift of the 2nd array to the 1st one in physics units = (%g, %g, %g).", kmax* zstep, jmax* ystep, imax* xstep);
+		printf("\nMaximum correlation = %g.", amax);
+
 #if TEST_RUN		
-		printf("\nAfter inverse FFT:");
-		for (index_t i = 0; i < nx; i++)
-			for (index_t j = 0; j < ny; j++)
-				for (index_t k = 0; k < nz; k++)
-					printf("\naaa[%zd,%zd,%zd] = %g", i, j, k, aaa[i][j][k]);
+		//printf("\nAfter inverse FFT:");
+		//for (index_t k = 0; k < nz; k++)
+		//	for (index_t j = 0; j < ny; j++)
+		//		for (index_t i = 0; i < nx; i++)
+		//			printf("\naaa[%zd,%zd,%zd] = %g", k, j, i, aaa[k][j][i]);
 #else
 		printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 		infiles = FileNames(nangles, ndefocus, filenamebaseOut);
@@ -157,29 +175,13 @@ int main()
 		{
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
-				for (index_t ii = 0; ii < nx; ii++)
-					for (index_t jj = 0; jj < ny; jj++)
-						inten[ii][jj] = aaa[ii][jj][kk];
+				for (index_t jj = 0; jj < ny; jj++)
+					for (index_t ii = 0; ii < nx; ii++)
+						inten[jj][ii] = aaa[kk][jj][ii];
 				XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 			}
 		}
 #endif
-
-		// find the maximum
-		index_t imax = 0, jmax = 0, kmax = 0;
-		double amax = aaa[imax][jmax][kmax];
-		for (index_t ii = 0; ii < nx; ii++)
-			for (index_t jj = 0; jj < ny; jj++)
-				for (index_t kk = 0; kk < nz; kk++)
-					if (aaa[ii][jj][kk] > amax)
-					{
-						amax = aaa[ii][jj][kk];
-						imax = ii; jmax = jj; kmax = kk;
-					}
-		printf("\nOptimal shift of the second array to the first one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
-		printf("\nOptimal shift of the second array to the first one in physics units = (%g, %g, %g).", imax * xstep, jmax * ystep, kmax * zstep);
-
-
 	}
 	catch (std::exception& E)
 	{

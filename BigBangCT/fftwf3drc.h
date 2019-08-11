@@ -36,15 +36,15 @@ public:
 	//! Default constructor
 	Fftwf3drc() { if (!IsEmpty()) Cleanup(); uiflag = FFTW_ESTIMATE;  }
 	//! Constructor allocating internal storage and creating "FFT plans"
-	Fftwf3drc(int nx1, int ny1, int nz1, bool bMeasure = false)
+	Fftwf3drc(int nz1, int ny1, int nx1, bool bMeasure = false)
 	{ 
 		if (!IsEmpty()) Cleanup();
 		uiflag = bMeasure ? FFTW_MEASURE : FFTW_ESTIMATE;
-		nx = nx1; ny = ny1; nz = nz1;
+		nz = nz1; ny = ny1; nx = nx1;
 		pin = (float*)fftwf_malloc(sizeof(float) * GetNr());
 		pout = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * GetNc());
-		aplan = fftwf_plan_dft_r2c_3d(nx, ny, nz, pin, pout, uiflag);
-		bplan = fftwf_plan_dft_c2r_3d(nx, ny, nz, pout, pin, uiflag);
+		aplan = fftwf_plan_dft_r2c_3d(nz, ny, nx, pin, pout, uiflag);
+		bplan = fftwf_plan_dft_c2r_3d(nz, ny, nx, pout, pin, uiflag);
 	}
 private:
 	//! Copy constructor (declared private to prohibit copying)
@@ -65,13 +65,13 @@ public:
 public:
 	// Member functions
 	// Get full size of the real array
-	inline int GetNr() { return nx * ny * nz; }
+	inline int GetNr() { return nz * ny * nx; }
 	// Get the last dimension of the complex array
-	inline int GetNz2() { return int(nz / 2 + 1); }
+	inline int GetNx2() { return int(nx / 2 + 1); }
 	// Get full size of the complex array
-	inline int GetNc() { return nx * ny * GetNz2(); }
+	inline int GetNc() { return nz * ny * GetNx2(); }
 	// Checks if the object is empty
-	inline bool IsEmpty() { return (nx == 0 && ny == 0 && nz == 0 && pin == 0 && pout == 0 && aplan == 0 && bplan == 0); }
+	inline bool IsEmpty() { return (nz == 0 && ny == 0 && nx == 0 && pin == 0 && pout == 0 && aplan == 0 && bplan == 0); }
 	// Empties the object: may be called if one wants to release the memory before the destructor is called
 	void Cleanup();
 	// Get/Set arrays
@@ -91,9 +91,9 @@ public:
 
 private:
 	// Member variables
-	int nx; // x dimension
-	int ny; // y dimension
-	int nz; // z dimension
+	int nz; // z dimension (= Dim1 for XArray3D, = n0 for fftw)
+	int ny; // y dimension (= Dim2 for XArray3D, = n1 for fftw)
+	int nx; // x dimension (= Dim3 for XArray3D, = n2 for fftw)
 	unsigned int uiflag; // FFTW_MEASURE or FFTW_ESTIMATE
 
 	float* pin; // pointer to the real array
