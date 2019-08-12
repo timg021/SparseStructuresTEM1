@@ -19,6 +19,7 @@
 using namespace xar;
 
 vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase);
+double FindMax(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t& kmax, index_t& jmax, index_t& imax);
 
 int main()
 {
@@ -32,13 +33,16 @@ int main()
 		index_t nz = ndefocus, ny = 256, nx = 256;
 		index_t nx2 = nx / 2 + 1;
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
+		index_t natom = 2; // how many atoms to locate
+		double atomsize = 1.0; // atom diameter in physical units
 		double zDefocusRange = 10.0;
 		double zstep = zDefocusRange / double(ndefocus - 1);
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
-		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\aaa.grd");
-		string filenamebaseIn2("C:\\Users\\TimGu\\Downloads\\TempData\\bbb.grd");
-		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd");
+		double xx2 = 5.0, yy2 = 5.0, zz2 = 5.0; // position of the template atom in the 2nd input 3D array
+		string filenamebaseIn1("C:\\Users\\tgureyev\\Downloads\\aaa.grd");
+		string filenamebaseIn2("C:\\Users\\tgureyev\\Downloads\\bbb.grd");
+		string filenamebaseOut("C:\\Users\\tgureyev\\Downloads\\ccc.grd");
 
 		XArray3D<float> aaa(nz, ny, nx);
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
@@ -147,21 +151,6 @@ int main()
 		// get the result
 		fftf.GetRealXArray3D(aaa);
 
-		// find the maximum
-		index_t kmax = 0, jmax = 0, imax = 0;
-		double amax = aaa[kmax][jmax][imax];
-		for (index_t kk = 0; kk < nz; kk++)
-			for (index_t jj = 0; jj < ny; jj++)
-				for (index_t ii = 0; ii < nx; ii++)
-					if (aaa[kk][jj][ii] > amax)
-					{
-						amax = aaa[kk][jj][ii];
-						kmax = kk; jmax = jj; imax = ii;
-					}
-		printf("\nOptimal shift of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", kmax, jmax, imax);
-		printf("\nOptimal shift of the 2nd array to the 1st one in physics units = (%g, %g, %g).", kmax* zstep, jmax* ystep, imax* xstep);
-		printf("\nMaximum correlation = %g.", amax);
-
 #if TEST_RUN		
 		//printf("\nAfter inverse FFT:");
 		//for (index_t k = 0; k < nz; k++)
@@ -181,6 +170,27 @@ int main()
 				XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 			}
 		}
+
+		// find the maximums
+		index_t kmax = 0, jmax = 0, imax = 0;
+		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5), jarad = index_t(atomsize / ystep / 2.0 + 0.5), iarad = index_t(atomsize / xstep / 2.0 + 0.5);
+		for (index_t nn = 0; nn < natom; nn++)
+		{
+			double amax = FindMax(aaa, karad, jarad, iarad, kmax, jmax, imax);
+			printf("\n\nDetected atom number %zd:", nn);
+			printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
+			printf("\nOptimal shift (x,y,z) of the 2nd array to the 1st one in physics units = (%g, %g, %g).", imax * zstep, jmax * ystep, kmax * xstep);
+			printf("\nMaximum correlation = %g.", amax);
+
+			double x1 = xstep * nx, xmax = xx2 + imax * xstep;
+			if (xmax > x1) xmax -= x1;
+			double y1 = ystep * ny, ymax = yy2 + jmax * ystep;
+			if (ymax > y1) ymax -= y1;
+			double z1 = zstep * (nz - 1), zmax = zz2 + kmax * zstep;
+			if (zmax > z1) zmax -= z1;
+			printf("\nAbsolute position (x,y,z) of the detected feature in 1st array in physics units = (%g, %g, %g).", xmax, ymax, zmax);
+		}
+
 #endif
 	}
 	catch (std::exception& E)
@@ -241,3 +251,26 @@ vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase)
 }
 
 
+double FindMax(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t& kmax, index_t& jmax, index_t& imax)
+{
+	kmax = jmax = imax = 0;
+	double amax = aaa[kmax][jmax][imax];
+	for (index_t kk = 0; kk < aaa.GetDim1(); kk++)
+		for (index_t jj = 0; jj < aaa.GetDim2(); jj++)
+			for (index_t ii = 0; ii < aaa.GetDim3(); ii++)
+				if (aaa[kk][jj][ii] > amax)
+				{
+					amax = aaa[kk][jj][ii];
+					kmax = kk; jmax = jj; imax = ii;
+				}
+
+	if (kmax - karad < 0 || kmax + karad > aaa.GetDim1() || jmax - jarad < 0 || jmax + jarad > aaa.GetDim2() || imax - iarad < 0 || imax + iarad > aaa.GetDim3())
+		throw std::runtime_error("detected atom position is less than atomic diameter from the boundary");
+
+	for (index_t kk = kmax - karad; kk < kmax + karad; kk++)
+		for (index_t jj = jmax - jarad; jj < jmax + jarad; jj++)
+			for (index_t ii = imax - iarad; ii < imax + iarad; ii++)
+				aaa[kk][jj][ii] = 0.0f;
+
+	return amax;
+}
