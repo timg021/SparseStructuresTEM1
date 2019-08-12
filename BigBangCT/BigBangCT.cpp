@@ -118,10 +118,10 @@ int main()
 			for (index_t jj = 0; jj < ny; jj++)
 				for (index_t ii = 0; ii < nx; ii++)
 				{
-					integ += aaa[kk][jj][ii];
-					xpos += aaa[kk][jj][ii] * ii;
-					ypos += aaa[kk][jj][ii] * jj;
-					zpos += aaa[kk][jj][ii] * kk;
+					integ += abs(aaa[kk][jj][ii]);
+					xpos += abs(aaa[kk][jj][ii]) * ii;
+					ypos += abs(aaa[kk][jj][ii]) * jj;
+					zpos += abs(aaa[kk][jj][ii]) * kk;
 				}
 		xpos /= integ; ypos /= integ; zpos /= integ;
 		index_t ipos = index_t(xpos + 0.5), jpos = index_t(ypos + 0.5), kpos = index_t(zpos + 0.5);
