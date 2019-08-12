@@ -20,6 +20,7 @@ using namespace xar;
 
 vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase);
 double FindMax(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t& kmax, index_t& jmax, index_t& imax);
+int mod(int n, index_t m) { return (n - int(index_t(floor(double(n) / m)) * m)); }
 
 int main()
 {
@@ -29,20 +30,20 @@ int main()
 	try
 	{
 		printf("\nStarting BigBangCT program ...");
-		index_t ndefocus = 256;
+		double zmin = -10.0, zmax = 0.0, zstep = 0.0392157;
+		index_t ndefocus = 1 + size_t((zmax - zmin) / zstep + 0.5); // number of defocus planes to propagate to at each rotation angle	
 		index_t nz = ndefocus, ny = 256, nx = 256;
 		index_t nx2 = nx / 2 + 1;
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
 		index_t natom = 4; // how many atoms to locate
 		double atomsize = 2.0; // atom diameter in physical units
-		double zDefocusRange = 10.0;
-		double zstep = zDefocusRange / double(ndefocus - 1);
+		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
+		double xpos2 = 1.0, ypos2 = 1.0, zpos2 = 1.0; // position of the template atom in the 2nd input 3D array - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
-		double xx2 = 1.0, yy2 = 1.0, zz2 = 1.0; // position of the template atom in the 2nd input 3D array
-		string filenamebaseIn1("C:\\Users\\tgureyev\\Downloads\\aaa.grd");
-		string filenamebaseIn2("C:\\Users\\tgureyev\\Downloads\\bbb.grd");
-		string filenamebaseOut("C:\\Users\\tgureyev\\Downloads\\ccc.grd");
+		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\aaa.grd");
+		string filenamebaseIn2("C:\\Users\\TimGu\\Downloads\\TempData\\bbb.grd");
+		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd");
 
 		XArray3D<float> aaa(nz, ny, nx);
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
@@ -74,9 +75,11 @@ int main()
 						aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
 			}
 		}
+		xmin = GetXlo(inten);
+		ymin = GetYlo(inten);
 		xstep = GetXStep(inten);
 		ystep = GetYStep(inten);
-		printf("\nDimensions of input images = (%zd, %zd, %zd); steps = (%g, %g, %g).", nz, ny, nx, zstep, ystep, xstep);
+		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minima = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 #endif
 
 		// FFT of 1st array
@@ -113,20 +116,21 @@ int main()
 			}
 		}
 		// find the centre of gravity
-		double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0;
+		double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
 		for (index_t kk = 0; kk < ndefocus; kk++)
 			for (index_t jj = 0; jj < ny; jj++)
 				for (index_t ii = 0; ii < nx; ii++)
 				{
-					integ += abs(aaa[kk][jj][ii]);
-					xpos += abs(aaa[kk][jj][ii]) * ii;
-					ypos += abs(aaa[kk][jj][ii]) * jj;
-					zpos += abs(aaa[kk][jj][ii]) * kk;
+					dtemp = abs(aaa[kk][jj][ii]);
+					integ += dtemp;
+					xpos += dtemp * ii;
+					ypos += dtemp * jj;
+					zpos += dtemp * kk;
 				}
 		xpos /= integ; ypos /= integ; zpos /= integ;
 		index_t ipos = index_t(xpos + 0.5), jpos = index_t(ypos + 0.5), kpos = index_t(zpos + 0.5);
-		printf("\nCentre of gravity position of the 2nd array = (%zd, %zd, %zd).", ipos, jpos, kpos);
-
+		xpos2 = xmin + xstep * ipos; ypos2 = ymin + ystep * jpos; zpos2 = zmin + zstep * kpos;
+		printf("\nCentre of gravity position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos, jpos, kpos, xpos2, ypos2, zpos2);
 #endif
 		
 		// FFT of the 2nd array
@@ -196,11 +200,11 @@ int main()
 			printf("\nOptimal shift (x,y,z) of the 2nd array to the 1st one in physics units = (%g, %g, %g).", imax * zstep, jmax * ystep, kmax * xstep);
 			printf("\nMaximum correlation = %g.", amax);
 
-			double x1 = xstep * nx, xmax = xx2 + imax * xstep;
+			double x1 = xstep * nx, xmax = xpos2 + imax * xstep;
 			if (xmax > x1) xmax -= x1;
-			double y1 = ystep * ny, ymax = yy2 + jmax * ystep;
+			double y1 = ystep * ny, ymax = ypos2 + jmax * ystep;
 			if (ymax > y1) ymax -= y1;
-			double z1 = zstep * (nz - 1), zmax = zz2 + kmax * zstep;
+			double z1 = zstep * (nz - 1), zmax = zpos2 + kmax * zstep;
 			if (zmax > z1) zmax -= z1;
 			printf("\nAbsolute position (x,y,z) of the detected feature in 1st array in physics units = (%g, %g, %g).", xmax, ymax, zmax);
 		}
@@ -271,22 +275,30 @@ double FindMax(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad
 {
 	kmax = jmax = imax = 0;
 	double amax = aaa[kmax][jmax][imax];
-	for (index_t kk = 0; kk < aaa.GetDim1(); kk++)
-		for (index_t jj = 0; jj < aaa.GetDim2(); jj++)
-			for (index_t ii = 0; ii < aaa.GetDim3(); ii++)
+	index_t nz = aaa.GetDim1(), ny = aaa.GetDim2(), nx = aaa.GetDim3();
+	for (index_t kk = 0; kk < nz; kk++)
+		for (index_t jj = 0; jj < ny; jj++)
+			for (index_t ii = 0; ii < nx; ii++)
 				if (aaa[kk][jj][ii] > amax)
 				{
 					amax = aaa[kk][jj][ii];
 					kmax = kk; jmax = jj; imax = ii;
 				}
-
-	if (kmax < karad || kmax + karad > aaa.GetDim1() || jmax < jarad || jmax + jarad > aaa.GetDim2() || imax < iarad || imax + iarad > aaa.GetDim3())
-		throw std::runtime_error("detected optimum shift position is less than atomic radius from the boundary");
-
-	for (int kk = kmax - karad; kk < kmax + karad; kk++)
-		for (int jj = jmax - jarad; jj < jmax + jarad; jj++)
-			for (int ii = imax - iarad; ii < imax + iarad; ii++)
-				aaa[kk][jj][ii] = 0.0f;
+	
+	int kk1, jj1, ii1;
+	for (int kk = int(kmax)- int(karad); kk < kmax + karad; kk++)
+	{
+		kk1 = mod(kk, nz); assert(kk1 >= 0 && kk1 < nz);
+		for (int jj = int(jmax) - int(jarad); jj < jmax + jarad; jj++)
+		{
+			jj1 = mod(jj, ny); assert(jj1 >= 0 && jj1 < ny);
+			for (int ii = int(imax) - int(iarad); ii < imax + iarad; ii++)
+			{
+				ii1 = mod(ii, nx); assert(ii1 >= 0 && ii1 < nx);
+				aaa[kk1][jj1][ii1] = 0.0f;
+			}
+		}
+	}
 
 	return amax;
 }
