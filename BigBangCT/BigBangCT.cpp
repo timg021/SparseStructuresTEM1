@@ -33,13 +33,13 @@ int main()
 		index_t nz = ndefocus, ny = 256, nx = 256;
 		index_t nx2 = nx / 2 + 1;
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		index_t natom = 2; // how many atoms to locate
-		double atomsize = 1.0; // atom diameter in physical units
+		index_t natom = 4; // how many atoms to locate
+		double atomsize = 2.0; // atom diameter in physical units
 		double zDefocusRange = 10.0;
 		double zstep = zDefocusRange / double(ndefocus - 1);
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
-		double xx2 = 5.0, yy2 = 5.0, zz2 = 5.0; // position of the template atom in the 2nd input 3D array
+		double xx2 = 1.0, yy2 = 1.0, zz2 = 1.0; // position of the template atom in the 2nd input 3D array
 		string filenamebaseIn1("C:\\Users\\tgureyev\\Downloads\\aaa.grd");
 		string filenamebaseIn2("C:\\Users\\tgureyev\\Downloads\\bbb.grd");
 		string filenamebaseOut("C:\\Users\\tgureyev\\Downloads\\ccc.grd");
@@ -100,10 +100,9 @@ int main()
 #else
 		printf("\nReading 2nd set of input files %s ...", filenamebaseIn2.c_str());
 		infiles = FileNames(nangles, ndefocus, filenamebaseIn2);
-		index_t nztrunc = (ndefocus - ndefocus / 4) / 2; // we truncate the "template" atom trace in z direction
 		for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 		{
-			for (index_t kk = nztrunc; kk < ndefocus - nztrunc; kk++)
+			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
 				if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
@@ -113,6 +112,21 @@ int main()
 						aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;;
 			}
 		}
+		// find the centre of gravity
+		double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0;
+		for (index_t kk = 0; kk < ndefocus; kk++)
+			for (index_t jj = 0; jj < ny; jj++)
+				for (index_t ii = 0; ii < nx; ii++)
+				{
+					integ += aaa[kk][jj][ii];
+					xpos += aaa[kk][jj][ii] * ii;
+					ypos += aaa[kk][jj][ii] * jj;
+					zpos += aaa[kk][jj][ii] * kk;
+				}
+		xpos /= integ; ypos /= integ; zpos /= integ;
+		index_t ipos = index_t(xpos + 0.5), jpos = index_t(ypos + 0.5), kpos = index_t(zpos + 0.5);
+		printf("\nCentre of gravity position of the 2nd array = (%zd, %zd, %zd).", ipos, jpos, kpos);
+
 #endif
 		
 		// FFT of the 2nd array
@@ -208,6 +222,7 @@ int main()
 
 
 vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase)
+// Creates a sequence of file names properly indexed by rotation angles and defocus distances (using the same algorithm as in MultisliceK.cpp)
 {
 	if (ndefocus < 1 || nangles < 1)
 		throw std::runtime_error("bad number of angles and/or defocus distances in FileNames()");
@@ -252,6 +267,7 @@ vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase)
 
 
 double FindMax(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t& kmax, index_t& jmax, index_t& imax)
+// Finds the value and position of the maximum in a 3D array, and fills a 3D vicinity of that point with zeros (to enable the search of subsequent maximums)
 {
 	kmax = jmax = imax = 0;
 	double amax = aaa[kmax][jmax][imax];
@@ -264,12 +280,12 @@ double FindMax(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad
 					kmax = kk; jmax = jj; imax = ii;
 				}
 
-	if (kmax - karad < 0 || kmax + karad > aaa.GetDim1() || jmax - jarad < 0 || jmax + jarad > aaa.GetDim2() || imax - iarad < 0 || imax + iarad > aaa.GetDim3())
-		throw std::runtime_error("detected atom position is less than atomic diameter from the boundary");
+	if (kmax < karad || kmax + karad > aaa.GetDim1() || jmax < jarad || jmax + jarad > aaa.GetDim2() || imax < iarad || imax + iarad > aaa.GetDim3())
+		throw std::runtime_error("detected optimum shift position is less than atomic radius from the boundary");
 
-	for (index_t kk = kmax - karad; kk < kmax + karad; kk++)
-		for (index_t jj = jmax - jarad; jj < jmax + jarad; jj++)
-			for (index_t ii = imax - iarad; ii < imax + iarad; ii++)
+	for (int kk = kmax - karad; kk < kmax + karad; kk++)
+		for (int jj = jmax - jarad; jj < jmax + jarad; jj++)
+			for (int ii = imax - iarad; ii < imax + iarad; ii++)
 				aaa[kk][jj][ii] = 0.0f;
 
 	return amax;
