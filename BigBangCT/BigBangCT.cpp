@@ -14,7 +14,7 @@
 //i.e. in XArray3D(dim1, dim2, dim3) the fastest changing dimension is dim3, and in fftw_r2c_3d(n0, n1, n2) the fastest dimension is n2.
 //Note also that these dimensions are associated with the following physical coordinates by default: dim1(n0) <-> nz, dim2(n1) <-> ny, dim3(n2) <-> nx.
 
-#define TEST_RUN 0
+#define TEST_RUN 1
 
 using namespace xar;
 
@@ -30,20 +30,28 @@ int main()
 	try
 	{
 		printf("\nStarting BigBangCT program ...");
-		double zmin = -10.0, zmax = 0.0, zstep = 0.0392157;
-		index_t ndefocus = 1 + size_t((zmax - zmin) / zstep + 0.5); // number of defocus planes to propagate to at each rotation angle	
-		index_t nz = ndefocus, ny = 256, nx = 256;
+#if TEST_RUN
+		double zmin = 0.0, zmax = 4, zstep = 1.0;
+#else
+		double zmin = 0.0, zmax = 10.0, zstep = 0.0392157;
+#endif
+		index_t ndefocus = index_t((zmax - zmin) / zstep); // number of defocus planes, it determines the number of input files to read
+		index_t nz = ndefocus, ny = 4, nx = 4; // nx and ny may be overwritten below by data read from input files
 		index_t nx2 = nx / 2 + 1;
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		index_t natom = 4; // how many atoms to locate
-		double atomsize = 2.0; // atom diameter in physical units
+		index_t natom = 3; // how many atoms to locate
+		double atomsize = 1.0; // atom diameter in physical units
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
-		double xpos2 = 1.0, ypos2 = 1.0, zpos2 = 1.0; // position of the template atom in the 2nd input 3D array - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
 		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\aaa.grd");
 		string filenamebaseIn2("C:\\Users\\TimGu\\Downloads\\TempData\\bbb.grd");
 		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd");
+
+		printf("\nNumber of defocus planes = %zd.", nz);
+		//@@@@@@@@@@@@@@
+		//printf("\n4 mod 10 = %d, 12 mod 10 = %d, -3 mod 10 = %d\n", mod(4, 10), mod(12, 10), mod(-3, 10));
+		//return 0;
 
 		XArray3D<float> aaa(nz, ny, nx);
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
@@ -54,7 +62,9 @@ int main()
 		// first array to transform
 		aaa.Fill(0);
 #if TEST_RUN
-		aaa[3][5][7] = 55.0f; // delta-function
+		aaa[1][2][3] = 10.0f; // delta-function
+		aaa[1][1][1] = 20.0f; // delta-function
+		aaa[1][1][2] = 30.0f; // delta-function
 #else
 		printf("\nReading 1st set of input files %s ...", filenamebaseIn1.c_str());
 		IXAHWave2D* ph2new = CreateWavehead2D();
@@ -79,8 +89,8 @@ int main()
 		ymin = GetYlo(inten);
 		xstep = GetXStep(inten);
 		ystep = GetYStep(inten);
-		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minima = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 #endif
+		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
 		// FFT of 1st array
 		printf("\nFFT of the 1st 3D set ...");
@@ -99,7 +109,7 @@ int main()
 		// second array to transform
 		aaa.Fill(0);
 #if TEST_RUN
-		aaa[2][2][2] = 1.0; // delta-function
+		aaa[1][1][1] = 1.0; // delta-function
 #else
 		printf("\nReading 2nd set of input files %s ...", filenamebaseIn2.c_str());
 		infiles = FileNames(nangles, ndefocus, filenamebaseIn2);
@@ -115,7 +125,8 @@ int main()
 						aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;;
 			}
 		}
-		// find the centre of gravity
+#endif
+		// find the centre of gravity of the second 3D array, i.e. the position of the template atom
 		double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
 		for (index_t kk = 0; kk < ndefocus; kk++)
 			for (index_t jj = 0; jj < ny; jj++)
@@ -128,10 +139,9 @@ int main()
 					zpos += dtemp * kk;
 				}
 		xpos /= integ; ypos /= integ; zpos /= integ;
-		index_t ipos = index_t(xpos + 0.5), jpos = index_t(ypos + 0.5), kpos = index_t(zpos + 0.5);
-		xpos2 = xmin + xstep * ipos; ypos2 = ymin + ystep * jpos; zpos2 = zmin + zstep * kpos;
-		printf("\nCentre of gravity position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos, jpos, kpos, xpos2, ypos2, zpos2);
-#endif
+		index_t ipos2 = index_t(xpos + 0.5), jpos2 = index_t(ypos + 0.5), kpos2 = index_t(zpos + 0.5);
+		double xpos2 = xmin + xstep * ipos2, ypos2 = ymin + ystep * jpos2, zpos2 = zmin + zstep * kpos2;
+		printf("\nCentre of gravity position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 		
 		// FFT of the 2nd array
 		printf("\nFFT of the 2nd 3D set ...");
@@ -169,13 +179,7 @@ int main()
 		// get the result
 		fftf.GetRealXArray3D(aaa);
 
-#if TEST_RUN		
-		//printf("\nAfter inverse FFT:");
-		//for (index_t k = 0; k < nz; k++)
-		//	for (index_t j = 0; j < ny; j++)
-		//		for (index_t i = 0; i < nx; i++)
-		//			printf("\naaa[%zd,%zd,%zd] = %g", k, j, i, aaa[k][j][i]);
-#else
+#if !TEST_RUN		
 		printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 		infiles = FileNames(nangles, ndefocus, filenamebaseOut);
 		for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
@@ -188,28 +192,31 @@ int main()
 				XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 			}
 		}
+#endif
 
 		// find the maximums
 		index_t kmax = 0, jmax = 0, imax = 0;
 		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5), jarad = index_t(atomsize / ystep / 2.0 + 0.5), iarad = index_t(atomsize / xstep / 2.0 + 0.5);
 		for (index_t nn = 0; nn < natom; nn++)
 		{
+#if TEST_RUN		
+			printf("\nCorrelation array (iteration %zd):", nn);
+			for (index_t k = 0; k < nz; k++)
+				for (index_t j = 0; j < ny; j++)
+					for (index_t i = 0; i < nx; i++)
+						printf("\naaa[%zd,%zd,%zd] = %g", k, j, i, aaa[k][j][i]);
+#endif
 			double amax = FindMax(aaa, karad, jarad, iarad, kmax, jmax, imax);
+			double xmax = xmin + imax * xstep, xmaxA = xpos2 + mod(int(ipos2 + imax), nx) * xstep;
+			double ymax = ymin + jmax * ystep, ymaxA = ypos2 + mod(int(jpos2 + jmax), ny) * ystep;
+			double zmax = zmin + kmax * zstep, zmaxA = zpos2 + mod(int(kpos2 + kmax), ny) * zstep;
+
 			printf("\n\nDetected atom number %zd:", nn);
 			printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
-			printf("\nOptimal shift (x,y,z) of the 2nd array to the 1st one in physics units = (%g, %g, %g).", imax * zstep, jmax * ystep, kmax * xstep);
+			printf("\nOptimal shift (x,y,z) of the 2nd array to the 1st one in physical units = (%g, %g, %g).", xmax, ymax, zmax);
 			printf("\nMaximum correlation = %g.", amax);
-
-			double x1 = xstep * nx, xmax = xpos2 + imax * xstep;
-			if (xmax > x1) xmax -= x1;
-			double y1 = ystep * ny, ymax = ypos2 + jmax * ystep;
-			if (ymax > y1) ymax -= y1;
-			double z1 = zstep * (nz - 1), zmax = zpos2 + kmax * zstep;
-			if (zmax > z1) zmax -= z1;
-			printf("\nAbsolute position (x,y,z) of the detected feature in 1st array in physics units = (%g, %g, %g).", xmax, ymax, zmax);
+			printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
 		}
-
-#endif
 	}
 	catch (std::exception& E)
 	{
