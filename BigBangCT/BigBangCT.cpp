@@ -21,7 +21,7 @@ using namespace xar;
 vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase);
 double FindMax(XArray3D<float>& aaa, index_t& kmax, index_t& jmax, index_t& imax);
 void MaskZero(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t kmax, index_t jmax, index_t imax);
-int mod(int n, index_t m) { return (n - int(index_t(floor(double(n) / m)) * m)); }
+int mod(int n, double m) { return (n - int(floor(double(n) / m) * m)); } // the return value is always inside [0, m) (the period)
 
 int main()
 {
@@ -44,14 +44,14 @@ int main()
 		double atomsize = 0.99; // atom diameter in physical units
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
-		double wl = 0.025; // wavelength in input file units (usually, Angstroms)
+		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
 		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\aaa.grd");
 		string filenamebaseIn2("C:\\Users\\TimGu\\Downloads\\TempData\\bbb.grd");
 		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd");
 
 		printf("\nNumber of defocus planes = %zd.", nz);
 		//@@@@@@@@@@@@@@
-		//printf("\n4 mod 10 = %d, 12 mod 10 = %d, -3 mod 10 = %d\n", mod(4, 10), mod(12, 10), mod(-3, 10));
+		//printf("\n4 mod 10 = %d, 12 mod 10 = %d, -3 mod 10 = %d\n", mod(4, 10.0), mod(12, 10.0), mod(-3, 10.0));
 		//return 0;
 
 		// first array to transform
@@ -72,27 +72,38 @@ int main()
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-				if (kk == 0) ny = inten.GetDim1(); 
-				else if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
-				if (kk == 0) nx = inten.GetDim2(); 
-				else if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file"); 
-				if (kk == 0) aaa.Resize(nz, ny, nx, 0.0f);
+				if (nn = 0 && kk == 0)
+				{
+					nx = inten.GetDim2();
+					ny = inten.GetDim1();
+					xmin = GetXlo(inten);
+					ymin = GetYlo(inten);
+					xstep = GetXStep(inten);
+					ystep = GetYStep(inten);
+					nx2 = nx / 2 + 1;
+					aaa.Resize(nz, ny, nx, 0.0f);
+					IXAHWave3D* ph3new = CreateWavehead3D();
+					ph3new->SetData(wl, zmin, zmax, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
+					aaa.SetHeadPtr(ph3new);
+				}
+				else
+				{
+					if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
+					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
+				}
 				for (index_t jj = 0; jj < ny; jj++)
 					for (index_t ii = 0; ii < nx; ii++)
 						aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
 			}
 		}
-		xmin = GetXlo(inten);
-		ymin = GetYlo(inten);
-		xstep = GetXStep(inten);
-		ystep = GetYStep(inten);
-		nx2 = nx / 2 + 1;
 #endif
 		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 		
-		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5), jarad = index_t(atomsize / ystep / 2.0 + 0.5), iarad = index_t(atomsize / xstep / 2.0 + 0.5);
+		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5);
+		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5);
+		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5);
 
-		//allocate space and create FFTW plans
+		//allocate space for FFT transform and create FFTW plans
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
 		Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
 
@@ -212,9 +223,9 @@ int main()
 #endif
 			double amax = FindMax(aaa, kmax, jmax, imax);
 			MaskZero(aaa, karad, jarad, iarad, kmax, jmax, imax);
-			double xmax = xmin + imax * xstep, xmaxA = xmin + mod(int(ipos2 + imax), nx) * xstep;
-			double ymax = ymin + jmax * ystep, ymaxA = ymin + mod(int(jpos2 + jmax), ny) * ystep;
-			double zmax = zmin + kmax * zstep, zmaxA = zmin + mod(int(kpos2 + kmax), ny) * zstep;
+			double xmax = xmin + imax * xstep, xmaxA = xmin + mod(int(ipos2 + imax), double(nx)) * xstep;
+			double ymax = ymin + jmax * ystep, ymaxA = ymin + mod(int(jpos2 + jmax), double(ny)) * ystep;
+			double zmax = zmin + kmax * zstep, zmaxA = zmin + mod(int(kpos2 + kmax), double(ny)) * zstep;
 
 			printf("\n\nDetected atom number %zd:", nn);
 			printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
@@ -309,13 +320,13 @@ void MaskZero(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad,
 	int kk1, jj1, ii1;
 	for (int kk = int(kmax) - int(karad); kk <= int(kmax + karad); kk++)
 	{
-		kk1 = mod(kk, nz); assert(kk1 >= 0 && kk1 < nz);
+		kk1 = mod(kk, double(nz)); assert(kk1 >= 0 && kk1 < nz);
 		for (int jj = int(jmax) - int(jarad); jj <= int(jmax + jarad); jj++)
 		{
-			jj1 = mod(jj, ny); assert(jj1 >= 0 && jj1 < ny);
+			jj1 = mod(jj, double(ny)); assert(jj1 >= 0 && jj1 < ny);
 			for (int ii = int(imax) - int(iarad); ii <= int(imax + iarad); ii++)
 			{
-				ii1 = mod(ii, nx); assert(ii1 >= 0 && ii1 < nx);
+				ii1 = mod(ii, double(nx)); assert(ii1 >= 0 && ii1 < nx);
 				aaa[kk1][jj1][ii1] = 0.0f;
 			}
 		}

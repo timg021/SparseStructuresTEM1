@@ -86,5 +86,11 @@
     <ClInclude Include="fftwf3drc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Multislice\XA_move3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Multislice\XA_head3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

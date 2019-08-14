@@ -177,7 +177,9 @@
     <ClInclude Include="..\Multislice\XA_file.h" />
     <ClInclude Include="..\Multislice\XA_head1.h" />
     <ClInclude Include="..\Multislice\XA_head2.h" />
+    <ClInclude Include="..\Multislice\XA_head3.h" />
     <ClInclude Include="..\Multislice\XA_ini.h" />
+    <ClInclude Include="..\Multislice\XA_move3.h" />
     <ClInclude Include="fftw3.h" />
     <ClInclude Include="fftwf3drc.h" />
   </ItemGroup>
