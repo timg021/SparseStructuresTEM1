@@ -39,7 +39,7 @@ int main()
 		index_t nz = ndefocus;
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		index_t natom = 3; // how many atoms to locate
+		index_t natom = 4; // how many atoms to locate
 		double atomsize = 0.99; // atom diameter in physical units
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files

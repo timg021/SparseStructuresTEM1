@@ -107,7 +107,8 @@ int main(void)
 		double angle;
 		double angle_step = angle_max / 180.0 * PI / double(nangles); // rotation step in radians
 		
-		size_t ndefocus = 1 + size_t((defocus_max - defocus_min) / defocus_step + 0.5); // number of defocus planes to propagate to at each rotation angle		
+		size_t ndefocus = size_t((defocus_max - defocus_min) / defocus_step); // number of defocus planes to propagate to at each rotation angle		
+		printf("\nNumber of defocus planes = %zd.", ndefocus);
 		vector<string> vstrfileout(ndefocus); // vector of full output filenames
 		vector<double> vdefocus(ndefocus); // vector of defocus distances
 		for (size_t j = 0; j < ndefocus; j++) vdefocus[j] = defocus_min + defocus_step * j;
