@@ -40,7 +40,7 @@ int main()
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
 		index_t natom = 4; // how many atoms to locate
-		double atomsize = 0.99; // atom diameter in physical units
+		double atomsize = 2.0; // atom diameter in physical units
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
@@ -55,10 +55,9 @@ int main()
 		//return 0;
 
 		// first array to transform
-		XArray3D<float> aaa(nz, ny, nx);
+		XArray3D<float> aaa(nz, ny, nx, 0.0f);
 		XArray3DMove<float> aaamove(aaa); // the associated class for applying masks to aaa later
 #if TEST_RUN
-		aaa.Fill(0);
 		aaa[1][2][3] = 10.0f; // delta-function
 		aaa[1][1][1] = 20.0f; // delta-function
 		aaa[2][1][1] = 30.0f; // delta-function
@@ -100,6 +99,11 @@ int main()
 		}
 #endif
 		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
+
+		//@@@@@@@@@@@@ testing the result of truncation of the second array
+		//aaa.Fill(0.0f);
+		//aaa[0][0][0] = 1.0;
+
 		
 		//allocate space for FFT transform and create FFTW plans
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
