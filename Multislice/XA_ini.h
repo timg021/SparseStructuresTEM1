@@ -174,10 +174,12 @@ namespace xar
 	template <class T> const T& max(const T& a, const T& b) { return (a > b) ? a : b; } 
 	//! Calculates mimimum of the two values
 	template <class T> const T& min(const T& a, const T& b) { return (a < b) ? a : b; }
-	//! Calculates a modulo b for double values
-	inline double amodb(double a, double b) { return a - b * (long)(a / b) ; }
-	//! Calculates a modulo b for float values
-	inline float amodb(float a, float b) { return a - b * (long)(a / b) ; }
+	//! Calculates a modulo b for double values (non-cyclic for negative vs positive values)
+	inline double amodb(double a, double b) { return a - b * (long)(a / b) ; } // note that amod(-3, 10) = -3, while nmodm(-3, 10) = 7
+	//! Calculates a modulo b for float values (non-cyclic for negative vs positive values)
+	inline float amodb(float a, float b) { return a - b * (long)(a / b) ; } // note that amod(-3, 10) = -3, while nmodm(-3, 10) = 7
+	//! Calculates n modulo m for integer values (usually the second argument will be converted into double during the call; cyclic for all negative and positive values)
+	inline int nmodm(int n, double m) { return (n - int(floor(double(n) / m) * m)); } // the return value is always inside [0, m) (the period)
 	//! Calculates n! = n * (n - 1) * (n - 2) * ... * 3 * 2 * 1
 	inline index_t factorial(index_t n) { return (n < 2) ? 1 : n * factorial(n - 1); }
 	//! Returns the sign of a number

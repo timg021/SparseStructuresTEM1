@@ -8,6 +8,7 @@
 #include "XArray2D.h"
 #include "XArray3D.h"
 #include "XA_data.h"
+#include "XA_move3.h"
 #include "fftwf3drc.h"
 
 //!!! NOTE that fftw3 and XArray3D have the same notation for the order of the array dimensions. Both use C-style array structure, i.e. the last index changes the fastest, 
@@ -18,10 +19,8 @@
 
 using namespace xar;
 
-vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase);
-double FindMax(XArray3D<float>& aaa, index_t& kmax, index_t& jmax, index_t& imax);
-void MaskZero(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t kmax, index_t jmax, index_t imax);
-int mod(int n, double m) { return (n - int(floor(double(n) / m) * m)); } // the return value is always inside [0, m) (the period)
+void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output);
+
 
 int main()
 {
@@ -38,7 +37,7 @@ int main()
 #endif
 		index_t ndefocus = index_t((zmax - zmin) / zstep); // number of defocus planes, it determines the number of input files to read
 		index_t nz = ndefocus;
-		index_t ny = 4, nx = 4, nx2 = nx / 2; // nx and ny may be overwritten below by data read from input files
+		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
 		index_t natom = 3; // how many atoms to locate
 		double atomsize = 0.99; // atom diameter in physical units
@@ -51,11 +50,13 @@ int main()
 
 		printf("\nNumber of defocus planes = %zd.", nz);
 		//@@@@@@@@@@@@@@
-		//printf("\n4 mod 10 = %d, 12 mod 10 = %d, -3 mod 10 = %d\n", mod(4, 10.0), mod(12, 10.0), mod(-3, 10.0));
+		//printf("\n4 mod 10 = %d, 12 mod 10 = %d, -3 mod 10 = %d\n", nmodm(4, 10.0), nmodm(12, 10.0), nmodm(-3, 10.0));
+		//printf("\n4 mod 10 = %g, 12 mod 10 = %g, -3 mod 10 = %g\n", amodb(4.0, 10.0), amodb(12.0, 10.0), amodb(-3.0, 10.0));
 		//return 0;
 
 		// first array to transform
 		XArray3D<float> aaa(nz, ny, nx);
+		XArray3DMove<float> aaamove(aaa); // the associated class for applying masks to aaa later
 #if TEST_RUN
 		aaa.Fill(0);
 		aaa[1][2][3] = 10.0f; // delta-function
@@ -66,13 +67,14 @@ int main()
 		IXAHWave2D* ph2new = CreateWavehead2D();
 		XArray2D<float> inten;
 		inten.SetHeadPtr(ph2new);
-		vector<string> infiles = FileNames(nangles, ndefocus, filenamebaseIn1);
+		vector<string> infiles;
+		FileNames(nangles, ndefocus, filenamebaseIn1, infiles);
 		for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 		{
 			for (index_t kk = 0; kk < ndefocus; kk++)
 			{
 				XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-				if (nn = 0 && kk == 0)
+				if (nn == 0 && kk == 0)
 				{
 					nx = inten.GetDim2();
 					ny = inten.GetDim1();
@@ -99,10 +101,6 @@ int main()
 #endif
 		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 		
-		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5);
-		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5);
-		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5);
-
 		//allocate space for FFT transform and create FFTW plans
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
 		Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
@@ -122,12 +120,13 @@ int main()
 		fftf.GetComplexXArray3D(ccc);
 
 		// second array to transform
-		aaa.Fill(0);
 #if TEST_RUN
+		aaa.Fill(0.5); // this is for testing the masking of the central feature
 		aaa[1][1][1] = 1.0; // delta-function
 #else
+		aaa.Fill(0.0);
 		printf("\nReading 2nd set of input files %s ...", filenamebaseIn2.c_str());
-		infiles = FileNames(nangles, ndefocus, filenamebaseIn2);
+		FileNames(nangles, ndefocus, filenamebaseIn2, infiles);
 		for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 		{
 			for (index_t kk = 0; kk < ndefocus; kk++)
@@ -156,8 +155,13 @@ int main()
 		xpos /= integ; ypos /= integ; zpos /= integ;
 		index_t ipos2 = index_t(xpos + 0.5), jpos2 = index_t(ypos + 0.5), kpos2 = index_t(zpos + 0.5);
 		double xpos2 = xmin + xstep * ipos2, ypos2 = ymin + ystep * jpos2, zpos2 = zmin + zstep * kpos2;
-		printf("\nCentre of gravity position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
-		//@@@@@ !!!! MaskZero(aaa, karad, jarad, iarad, kpos2, jpos2, ipos2); - the complement of this vicinity needs to be zeroed
+		printf("\nCentre of mass position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
+
+		// set to zero the values of all pixels outside atomsize vicinity of the centre of mass
+		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5);
+		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5);
+		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5);
+		aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karad, jarad, iarad, 0.0f);
 		
 		// FFT of the 2nd array
 		printf("\nFFT of the 2nd 3D set ...");
@@ -197,7 +201,7 @@ int main()
 
 #if !TEST_RUN		
 		printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
-		infiles = FileNames(nangles, ndefocus, filenamebaseOut);
+		FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 		for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 		{
 			for (index_t kk = 0; kk < ndefocus; kk++)
@@ -221,17 +225,20 @@ int main()
 					for (index_t i = 0; i < nx; i++)
 						printf("\naaa[%zd,%zd,%zd] = %g", k, j, i, aaa[k][j][i]);
 #endif
-			double amax = FindMax(aaa, kmax, jmax, imax);
-			MaskZero(aaa, karad, jarad, iarad, kmax, jmax, imax);
-			double xmax = xmin + imax * xstep, xmaxA = xmin + mod(int(ipos2 + imax), double(nx)) * xstep;
-			double ymax = ymin + jmax * ystep, ymaxA = ymin + mod(int(jpos2 + jmax), double(ny)) * ystep;
-			double zmax = zmin + kmax * zstep, zmaxA = zmin + mod(int(kpos2 + kmax), double(ny)) * zstep;
+			float amax = aaa.Max3D(kmax, jmax, imax);
+			double xmax = xmin + imax * xstep, xmaxA = xmin + nmodm(int(ipos2 + imax), double(nx)) * xstep;
+			double ymax = ymin + jmax * ystep, ymaxA = ymin + nmodm(int(jpos2 + jmax), double(ny)) * ystep;
+			double zmax = zmin + kmax * zstep, zmaxA = zmin + nmodm(int(kpos2 + kmax), double(ny)) * zstep;
 
 			printf("\n\nDetected atom number %zd:", nn);
 			printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
 			printf("\nOptimal shift (x,y,z) of the 2nd array to the 1st one in physical units = (%g, %g, %g).", xmax, ymax, zmax);
 			printf("\nMaximum correlation = %g.", amax);
 			printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
+
+			// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
+			if (nn < natom - 1) aaamove.FillRectPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
+
 		}
 	}
 	catch (std::exception& E)
@@ -248,7 +255,7 @@ int main()
 }
 
 
-vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase)
+void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output)
 // Creates a sequence of file names properly indexed by rotation angles and defocus distances (using the same algorithm as in MultisliceK.cpp)
 {
 	if (ndefocus < 1 || nangles < 1)
@@ -257,7 +264,7 @@ vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase)
 	char buffer[128];
 	string strAngle, outfilename_i, outfilename_j;
 
-	vector<string> vstrfileout(ndefocus * nangles); // vector of full output filenames
+	output.resize(ndefocus * nangles); // vector of full output filenames
 
 	// create formatting string to add properly formatted indexes at the end of the output file names
 	index_t i_dot = filenamebase.rfind('.'), nfieldA_length, nfieldB_length;
@@ -285,50 +292,7 @@ vector<string> FileNames(index_t nangles, index_t ndefocus, string filenamebase)
 			else if (ndefocus > 1 && nangles == 1) sprintf(buffer, myformat.data(), j);
 			else sprintf(buffer, myformat.data(), j, i);
 			outfilename_j.insert(i_dot, buffer);
-			vstrfileout[i * ndefocus + j] = outfilename_j;
-		}
-	}
-
-	return vstrfileout;
-}
-
-
-double FindMax(XArray3D<float>& aaa, index_t& kmax, index_t& jmax, index_t& imax)
-// Finds the value and position of the maximum in a 3D array
-{
-	kmax = jmax = imax = 0;
-	double amax = aaa[kmax][jmax][imax];
-	index_t nz = aaa.GetDim1(), ny = aaa.GetDim2(), nx = aaa.GetDim3();
-	for (index_t kk = 0; kk < nz; kk++)
-		for (index_t jj = 0; jj < ny; jj++)
-			for (index_t ii = 0; ii < nx; ii++)
-				if (aaa[kk][jj][ii] > amax)
-				{
-
-					amax = aaa[kk][jj][ii];
-					kmax = kk; jmax = jj; imax = ii;
-				}
-	
-	return amax;
-}
-
-
-void MaskZero(XArray3D<float>& aaa, index_t karad, index_t jarad, index_t iarad, index_t kmax, index_t jmax, index_t imax)
-// Fills a 3D vicinity of a point with zeros (to enable the search of subsequent maximums)
-{
-	index_t nz = aaa.GetDim1(), ny = aaa.GetDim2(), nx = aaa.GetDim3();
-	int kk1, jj1, ii1;
-	for (int kk = int(kmax) - int(karad); kk <= int(kmax + karad); kk++)
-	{
-		kk1 = mod(kk, double(nz)); assert(kk1 >= 0 && kk1 < nz);
-		for (int jj = int(jmax) - int(jarad); jj <= int(jmax + jarad); jj++)
-		{
-			jj1 = mod(jj, double(ny)); assert(jj1 >= 0 && jj1 < ny);
-			for (int ii = int(imax) - int(iarad); ii <= int(imax + iarad); ii++)
-			{
-				ii1 = mod(ii, double(nx)); assert(ii1 >= 0 && ii1 < nx);
-				aaa[kk1][jj1][ii1] = 0.0f;
-			}
+			output[i * ndefocus + j] = outfilename_j;
 		}
 	}
 }

@@ -102,6 +102,10 @@ namespace xar
 		// void Move(long lngMoveZPoints, long lngMoveYPoints, long lngMoveXPoints, T tFillVal);
 		//! Fills a rectangular subarray with a given value
 		void FillRect(index_t LowDim1, index_t HighDim1, index_t LowDim2, index_t HighDim2, index_t LowDim3, index_t HighDim3, T tFillVal);
+		//! Fills a vicinity of a given point with a given value, continuing periodically over the boundary where relevant
+		void FillRectPeriodic(index_t kmax, index_t jmax, index_t imax, index_t karad, index_t jarad, index_t iarad, T tFillVal);
+		// Fills all points OUTSIDE the defined 3D vicinity of a point with tFillVal; if the point is near the edge, the non-filled area may extend periodically across the boundaries
+		void FillRectComplementPeriodic(index_t kmax, index_t jmax, index_t imax, index_t karad, index_t jarad, index_t iarad, T tFillVal);
 
 		// Overridables
 
@@ -450,25 +454,62 @@ template <class T> void xar::XArray3DMove<T>::FillRect(index_t LowDim1, index_t 
 }
 
 
-template <class T> void xar::XArray3DMove<T>::FillRectPeriodic(index_t karad, index_t jarad, index_t iarad, index_t kmax, index_t jmax, index_t imax, T tFillVal)
-// Fills a 3D vicinity of a point with zeros (to enable the search of subsequent maximums)
+template <class T> void xar::XArray3DMove<T>::FillRectPeriodic(index_t k0, index_t j0, index_t i0, index_t karad, index_t jarad, index_t iarad, T tFillVal)
+// Fills a 3D vicinity of a point with tFillVal; if the point is near the edge, the filling area may extend periodically across the boundaries
 {
-	index_t nz = aaa.GetDim1(), ny = aaa.GetDim2(), nx = aaa.GetDim3();
+	index_t nz = m_rXArray3D.GetDim1(), ny = m_rXArray3D.GetDim2(), nx = m_rXArray3D.GetDim3();
+	double dnz = double(nz), dny = double(ny), dnx = double(nx);
+	
 	int kk1, jj1, ii1;
-	for (int kk = int(kmax) - int(karad); kk <= int(kmax + karad); kk++)
+	for (int kk = int(k0) - int(karad); kk <= int(k0 + karad); kk++)
 	{
-		kk1 = mod(kk, double(nz)); assert(kk1 >= 0 && kk1 < nz);
-		for (int jj = int(jmax) - int(jarad); jj <= int(jmax + jarad); jj++)
+		kk1 = nmodm(kk, dnz);
+		for (int jj = int(j0) - int(jarad); jj <= int(j0 + jarad); jj++)
 		{
-			jj1 = mod(jj, double(ny)); assert(jj1 >= 0 && jj1 < ny);
-			for (int ii = int(imax) - int(iarad); ii <= int(imax + iarad); ii++)
+			jj1 = nmodm(jj, dny);
+			for (int ii = int(i0) - int(iarad); ii <= int(i0 + iarad); ii++)
 			{
-				ii1 = mod(ii, double(nx)); assert(ii1 >= 0 && ii1 < nx);
+				ii1 = nmodm(ii, dnx);
 				m_rXArray3D[kk1][jj1][ii1] = tFillVal;
 			}
 		}
 	}
 }
+
+
+template <class T> void xar::XArray3DMove<T>::FillRectComplementPeriodic(index_t k0, index_t j0, index_t i0, index_t karad, index_t jarad, index_t iarad, T tFillVal)
+// Fills all points OUTSIDE the defined 3D vicinity of a point with tFillVal; if the point is near the edge, the non-filled area may extend periodically across the boundaries
+{
+	index_t nz = m_rXArray3D.GetDim1(), ny = m_rXArray3D.GetDim2(), nx = m_rXArray3D.GetDim3();
+	double dnz = double(nz), dny = double(ny), dnx = double(nx);
+
+	// create the set of indexes corresponding to the elements that need to be filled with tFillVal by knocking out the indexes of elements that should not be touched
+	vector<int> kindexes(nz), jindexes(ny), iindexes(nx);
+	vector<int>::iterator kk0 = kindexes.begin(), jj0 = jindexes.begin(), ii0 = iindexes.begin(), kk, jj, ii;
+	
+	for (int k = 0; k < nz; k++) kindexes[k] = k;
+	for (int j = 0; j < ny; j++) jindexes[j] = j;
+	for (int i = 0; i < nx; i++) iindexes[i] = i;
+	
+	for (int k = int(k0) - int(karad); k <= int(k0 + karad); k++) { kk = kk0; advance(kk, nmodm(k, dnz)); kindexes.erase(kk); }
+	for (int j = int(j0) - int(jarad); j <= int(j0 + jarad); j++) { jj = jj0; advance(jj, nmodm(j, dny)); jindexes.erase(jj); }
+	for (int i = int(i0) - int(iarad); i <= int(i0 + iarad); i++) { ii = ii0; advance(ii, nmodm(i, dnx)); iindexes.erase(ii); }
+
+	// fill the appropriate elements with tFillVal
+	for (auto k = kindexes.begin(); k != kindexes.end(); k++)
+		for (int j = 0; j < ny; j++)
+			for (int i = 0; i < nx; i++)
+				m_rXArray3D[*k][j][i] = tFillVal;
+	for (int k = 0; k < nz; k++)
+		for (auto j = jindexes.begin(); j != jindexes.end(); j++)
+			for (int i = 0; i < nx; i++)
+				m_rXArray3D[k][*j][i] = tFillVal;
+	for (int k = 0; k < nz; k++)
+		for (int j = 0; j < ny; j++)
+			for (auto i = iindexes.begin(); i != iindexes.end(); i++)
+				m_rXArray3D[k][j][*i] = tFillVal;
+}
+
 
 //---------------------------------------------------------------------------
 //	EXPLICIT TEMPLATE INSTANTIATION STATEMENTS
