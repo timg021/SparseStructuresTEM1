@@ -51,12 +51,14 @@ int main()
 		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd"); // optional output for 3D correlation array
 
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
-		double atomsize = 2.0; // atom diameter in physical units
+		double atomsize = 1.0; // atom diameter in physical units
+		double atomsizeZ = 10.0; // length of an atom image "trace" in the defocus direction - this is used to mask-off the traces of detected atoms
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
-		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units - may be overwritten below by data read from input files
+		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
 		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
+		index_t karad1 = index_t(atomsizeZ / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction in the number of physical z-step units
 
 		vector< vector< vector<index_t> > > vvvatompos(natomtypes); // positions of all atoms
 
@@ -66,10 +68,6 @@ int main()
 			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // alocate 3*unsigned_int space for (k,j,i) indexes of the position of each atom
 
 			printf("\nNumber of defocus planes = %zd.", nz);
-			//@@@@@@@@@@@@@@
-			//printf("\n4 mod 10 = %d, 12 mod 10 = %d, -3 mod 10 = %d\n", nmodm(4, 10.0), nmodm(12, 10.0), nmodm(-3, 10.0));
-			//printf("\n4 mod 10 = %g, 12 mod 10 = %g, -3 mod 10 = %g\n", amodb(4.0, 10.0), amodb(12.0, 10.0), amodb(-3.0, 10.0));
-			//return 0;
 
 			// first array to transform
 			XArray3D<float> aaa(nz, ny, nx, 0.0f);
@@ -98,7 +96,6 @@ int main()
 						ymin = GetYlo(inten);
 						xstep = GetXStep(inten);
 						ystep = GetYStep(inten);
-						karad = index_t(atomsize / zstep / 2.0 + 0.5);
 						jarad = index_t(atomsize / ystep / 2.0 + 0.5);
 						iarad = index_t(atomsize / xstep / 2.0 + 0.5);
 						nx2 = nx / 2 + 1;
@@ -123,7 +120,25 @@ int main()
 			// mask with zeros the vicinity of locations of previously found atoms of other types
 			for (index_t natprev = 0; natprev < nat; natprev++)
 				for (index_t na = 0; na < natom[natprev]; na++)
-					aaamove.FillRectPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad, jarad, iarad, 0.0f);
+					//aaamove.FillRectPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
+					aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
+
+			//@@@@@@@@@@@@@@@@@@@@ TEST
+			if (0 && nat == natomtypes - 1) // output the masked input array
+			{
+				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
+				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
+				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+				{
+					for (index_t kk = 0; kk < ndefocus; kk++)
+					{
+						for (index_t jj = 0; jj < ny; jj++)
+							for (index_t ii = 0; ii < nx; ii++)
+								inten[jj][ii] = aaa[kk][jj][ii];
+						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
+					}
+				}
+			}
 
 			//allocate space for FFT transform and create FFTW plans
 			XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
@@ -221,7 +236,8 @@ int main()
 			fftf.GetRealXArray3D(aaa);
 
 #if !TEST_RUN	
-			if (0) // output the 3D correlation distribution array
+			//@@@@@@@@@@@@@@@@@ TEST
+			if (0 && nat == natomtypes - 1) // output the 3D correlation distribution array
 			{
 				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
@@ -265,7 +281,8 @@ int main()
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
 
 				// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
-				if (na < natom[nat] - 1) aaamove.FillRectPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
+				//if (na < natom[nat] - 1) aaamove.FillRectPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
+				if (na < natom[nat] - 1) aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
 
 			}
 		} // end of cycle over different atom types

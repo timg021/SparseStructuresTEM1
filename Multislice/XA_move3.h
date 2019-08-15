@@ -104,6 +104,8 @@ namespace xar
 		void FillRect(index_t LowDim1, index_t HighDim1, index_t LowDim2, index_t HighDim2, index_t LowDim3, index_t HighDim3, T tFillVal);
 		//! Fills a vicinity of a given point with a given value, continuing periodically over the boundary where relevant
 		void FillRectPeriodic(index_t kmax, index_t jmax, index_t imax, index_t karad, index_t jarad, index_t iarad, T tFillVal);
+		//! Fills a vicinity of a given point with a given value, continuing periodically over the boundary where relevant
+		void FillCylinderPeriodic(index_t k0, index_t j0, index_t i0, index_t karad, index_t jarad, index_t iarad, T tFillVal);
 		// Fills all points OUTSIDE the defined 3D vicinity of a point with tFillVal; if the point is near the edge, the non-filled area may extend periodically across the boundaries
 		void FillRectComplementPeriodic(index_t kmax, index_t jmax, index_t imax, index_t karad, index_t jarad, index_t iarad, T tFillVal);
 
@@ -471,6 +473,36 @@ template <class T> void xar::XArray3DMove<T>::FillRectPeriodic(index_t k0, index
 			{
 				ii1 = nmodm(ii, dnx);
 				m_rXArray3D[kk1][jj1][ii1] = tFillVal;
+			}
+		}
+	}
+}
+
+
+template <class T> void xar::XArray3DMove<T>::FillCylinderPeriodic(index_t k0, index_t j0, index_t i0, index_t karad, index_t jarad, index_t iarad, T tFillVal)
+// Fills a 3D vicinity of a point with tFillVal; if the point is near the edge, the filling area may extend periodically across the boundaries
+{
+	index_t nz = m_rXArray3D.GetDim1(), ny = m_rXArray3D.GetDim2(), nx = m_rXArray3D.GetDim3();
+	double dnz = double(nz), dny = double(ny), dnx = double(nx);
+	int ijrad2 = int((jarad * jarad + iarad * iarad) / 2.0 + 0.5);
+	int kk1, jj1, ii1, jdist2, idist2;
+	int kk0 = int(k0), kkarad = int(karad), jj0 = int(j0), jjarad = int(jarad), ii0 = int(i0), iiarad = int(iarad);
+
+	for (int kk = kk0 - kkarad; kk <= kk0 + kkarad; kk++)
+	{
+		kk1 = nmodm(kk, dnz);
+		for (int jj = jj0 - jjarad; jj <= jj0 + jjarad; jj++)
+		{
+			jj1 = nmodm(jj, dny);
+			jdist2 = (jj - jj0) * (jj - jj0);
+			for (int ii = ii0 - iiarad; ii <= ii0 + iiarad; ii++)
+			{
+				idist2 = (ii - ii0) * (ii - ii0);
+				if (idist2 + jdist2 <= ijrad2)
+				{
+					ii1 = nmodm(ii, dnx);
+					m_rXArray3D[kk1][jj1][ii1] = tFillVal;
+				}
 			}
 		}
 	}
