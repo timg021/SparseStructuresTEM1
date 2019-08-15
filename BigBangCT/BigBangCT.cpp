@@ -100,10 +100,6 @@ int main()
 #endif
 		printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
-		//@@@@@@@@@@@@ testing the result of truncation of the second array
-		//aaa.Fill(0.0f);
-		//aaa[0][0][0] = 1.0;
-
 		
 		//allocate space for FFT transform and create FFTW plans
 		XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
@@ -166,7 +162,7 @@ int main()
 		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5);
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5);
 		aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karad, jarad, iarad, 0.0f);
-		
+
 		// FFT of the 2nd array
 		printf("\nFFT of the 2nd 3D set ...");
 		fftf.SetRealXArray3D(aaa);

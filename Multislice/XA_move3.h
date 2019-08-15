@@ -484,30 +484,40 @@ template <class T> void xar::XArray3DMove<T>::FillRectComplementPeriodic(index_t
 	double dnz = double(nz), dny = double(ny), dnx = double(nx);
 
 	// create the set of indexes corresponding to the elements that need to be filled with tFillVal by knocking out the indexes of elements that should not be touched
+	int i, j, k;
 	vector<int> kindexes(nz), jindexes(ny), iindexes(nx);
 	vector<int>::iterator kk0 = kindexes.begin(), jj0 = jindexes.begin(), ii0 = iindexes.begin(), kk, jj, ii;
 	
-	for (int k = 0; k < nz; k++) kindexes[k] = k;
-	for (int j = 0; j < ny; j++) jindexes[j] = j;
-	for (int i = 0; i < nx; i++) iindexes[i] = i;
+	for (k = 0; k < nz; k++) kindexes[k] = k;
+	for (j = 0; j < ny; j++) jindexes[j] = j;
+	for (i = 0; i < nx; i++) iindexes[i] = i;
 	
-	for (int k = int(k0) - int(karad); k <= int(k0 + karad); k++) { kk = kk0; advance(kk, nmodm(k, dnz)); kindexes.erase(kk); }
-	for (int j = int(j0) - int(jarad); j <= int(j0 + jarad); j++) { jj = jj0; advance(jj, nmodm(j, dny)); jindexes.erase(jj); }
-	for (int i = int(i0) - int(iarad); i <= int(i0 + iarad); i++) { ii = ii0; advance(ii, nmodm(i, dnx)); iindexes.erase(ii); }
-
+	for (k = int(k0) - int(karad); k <= int(k0 + karad); k++) kindexes[nmodm(k, dnz)] = -1;
+	for (j = int(j0) - int(jarad); j <= int(j0 + jarad); j++) jindexes[nmodm(j, dny)] = -1;
+	for (i = int(i0) - int(iarad); i <= int(i0 + iarad); i++) iindexes[nmodm(i, dnx)] = -1;
+	
 	// fill the appropriate elements with tFillVal
-	for (auto k = kindexes.begin(); k != kindexes.end(); k++)
-		for (int j = 0; j < ny; j++)
-			for (int i = 0; i < nx; i++)
-				m_rXArray3D[*k][j][i] = tFillVal;
-	for (int k = 0; k < nz; k++)
-		for (auto j = jindexes.begin(); j != jindexes.end(); j++)
-			for (int i = 0; i < nx; i++)
-				m_rXArray3D[k][*j][i] = tFillVal;
-	for (int k = 0; k < nz; k++)
-		for (int j = 0; j < ny; j++)
-			for (auto i = iindexes.begin(); i != iindexes.end(); i++)
-				m_rXArray3D[k][j][*i] = tFillVal;
+	for (kk = kindexes.begin(); kk != kindexes.end(); kk++)
+	{
+		if ((k = *kk) < 0) continue;
+		for (j = 0; j < ny; j++)
+			for (i = 0; i < nx; i++)
+				m_rXArray3D[k][j][i] = tFillVal;
+	}
+	for (jj = jindexes.begin(); jj != jindexes.end(); jj++)
+	{
+		if ((j = *jj) < 0) continue;
+		for (k = 0; k < nz; k++)
+			for (i = 0; i < nx; i++)
+				m_rXArray3D[k][j][i] = tFillVal;
+	}
+	for (ii = iindexes.begin(); ii != iindexes.end(); ii++)
+	{
+		if ((i = *ii) < 0) continue;
+		for (k = 0; k < nz; k++)
+			for (j = 0; j < ny; j++)
+				m_rXArray3D[k][j][i] = tFillVal;
+	}
 }
 
 
