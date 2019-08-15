@@ -37,16 +37,18 @@ int main()
 #endif
 		index_t ndefocus = index_t((zmax - zmin) / zstep); // number of defocus planes, it determines the number of input files to read
 		index_t nz = ndefocus;
+		printf("\nNumber of defocus planes = %zd.", nz);
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		index_t natomtypes = 3; // number of different atom types in the sample
+		index_t natomtypes = 1; // number of different atom types in the sample
 		//vector<index_t> natom(natomtypes); natom = {4, 1, 4, 7}; // how many atoms of each type to locate
-		vector<index_t> natom(natomtypes); natom = {4, 1, 4}; // how many atoms of each type to locate
-		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\asp.grd"); // defocus series of the whole molecule
+		//vector<index_t> natom(natomtypes); natom = {4, 1, 4}; // how many atoms of each type to locate
+		vector<index_t> natom(natomtypes); natom = {3}; // how many atoms of each type to locate
+		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\ON.grd"); // defocus series of the whole molecule
 		vector<string> filenamebaseIn2(natomtypes); // defocus series of the individual atoms
 		filenamebaseIn2[0] = "C:\\Users\\TimGu\\Downloads\\TempData\\O1_.grd"; // single Oxygen atom
-		filenamebaseIn2[1] = "C:\\Users\\TimGu\\Downloads\\TempData\\N1_.grd"; // single Nitrogen atom
-		filenamebaseIn2[2] = "C:\\Users\\TimGu\\Downloads\\TempData\\C1_.grd"; // single Carbon atom
+		//filenamebaseIn2[1] = "C:\\Users\\TimGu\\Downloads\\TempData\\N1_.grd"; // single Nitrogen atom
+		//filenamebaseIn2[2] = "C:\\Users\\TimGu\\Downloads\\TempData\\C1_.grd"; // single Carbon atom
 		//filenamebaseIn2[3] = "C:\\Users\\TimGu\\Downloads\\TempData\\H1_.grd"; // single Hydrogen atom
 		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd"); // optional output for 3D correlation array
 
@@ -66,9 +68,7 @@ int main()
 		{
 			vvvatompos[nat].resize(natom[nat]); // vvvatompos[nat] is a nat-size vector of vatompos
 			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // alocate 3*unsigned_int space for (k,j,i) indexes of the position of each atom
-
-			printf("\nNumber of defocus planes = %zd.", nz);
-
+						
 			// first array to transform
 			XArray3D<float> aaa(nz, ny, nx, 0.0f);
 			XArray3DMove<float> aaamove(aaa); // the associated class for applying masks to aaa later
@@ -77,6 +77,7 @@ int main()
 			aaa[1][1][1] = 20.0f; // delta-function
 			aaa[2][1][1] = 30.0f; // delta-function
 #else
+			printf("\n\nNow searching for atom type no. %zd ...", nat);
 			printf("\nReading 1st set of input files %s ...", filenamebaseIn1.c_str());
 			IXAHWave2D* ph2new = CreateWavehead2D();
 			XArray2D<float> inten;
@@ -115,7 +116,7 @@ int main()
 				}
 			}
 #endif
-			printf("\nDimensions of input images (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
+			printf("\nSize of input images: (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
 			// mask with zeros the vicinity of locations of previously found atoms of other types
 			for (index_t natprev = 0; natprev < nat; natprev++)
@@ -237,7 +238,7 @@ int main()
 
 #if !TEST_RUN	
 			//@@@@@@@@@@@@@@@@@ TEST
-			if (0 && nat == natomtypes - 1) // output the 3D correlation distribution array
+			if (1 && nat == natomtypes - 1) // output the 3D correlation distribution array
 			{
 				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
@@ -275,10 +276,11 @@ int main()
 				double ymaxA = ymin + vvvatompos[nat][na][1] * ystep;
 				double zmaxA = zmin + vvvatompos[nat][na][0] * zstep;
 
-				printf("\n\nAtom type %zd, atom number %zd:", nat, na);
+				printf("\nAtom type %zd, atom number %zd:", nat, na);
 				//printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
 				//printf("\nMaximum correlation = %g.", amax);
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
+				printf("\nCorrelation coefficient = %g.", amax);
 
 				// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
 				//if (na < natom[nat] - 1) aaamove.FillRectPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
