@@ -34,7 +34,7 @@ class Fftwf3drc
 	// Constructors
 public:
 	//! Default constructor
-	Fftwf3drc() { if (!IsEmpty()) Cleanup(); uiflag = FFTW_ESTIMATE;  }
+	//Fftwf3drc() { if (!IsEmpty()) Cleanup(); uiflag = FFTW_ESTIMATE;  }
 	//! Constructor allocating internal storage and creating "FFT plans"
 	Fftwf3drc(int nz1, int ny1, int nx1, bool bMeasure = false)
 	{ 

@@ -41,7 +41,7 @@ int main()
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
 		index_t natomtypes = 4; // number of different atom types in the sample
-		vector<index_t> natom(natomtypes); natom = {4, 1, 4, 7}; // how many atoms of each type to locate
+		vector<index_t> natom(natomtypes); natom = { 4, 1, 4, 7 }; // how many atoms of each type to locate
 		//vector<index_t> natom(natomtypes); natom = {4, 1, 4}; // how many atoms of each type to locate
 		//vector<index_t> natom(natomtypes); natom = {1, 1}; // how many atoms of each type to locate
 		//vector<index_t> natom(natomtypes); natom = {3}; // how many atoms of each type to locate
@@ -52,6 +52,7 @@ int main()
 		filenamebaseIn2[2] = "C:\\Users\\tgureyev\\Downloads\\C.grd"; // single Carbon atom
 		filenamebaseIn2[3] = "C:\\Users\\tgureyev\\Downloads\\H.grd"; // single Hydrogen atom
 		string filenamebaseOut("C:\\Users\\tgureyev\\Downloads\\zzz.grd"); // optional output for 3D correlation array
+		string filenameOutXYZ("C:\\Users\\tgureyev\\Downloads\\000BigBang.xyz"); // output file in Vesta XYZ format for detected atom locations
 
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
 		double atomsize = 1.0; // atom diameter in physical units
@@ -62,14 +63,29 @@ int main()
 		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
 		index_t karad1 = index_t(atomsizeZ / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction in the number of physical z-step units
+		index_t natomtotal = 0; // total number of found atoms
 
+		// allocate storage for detected atom positions
 		vector< vector< vector<index_t> > > vvvatompos(natomtypes); // positions of all atoms
-
-		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
+		for (index_t nat = 0; nat < natomtypes; nat++)
 		{
 			vvvatompos[nat].resize(natom[nat]); // vvvatompos[nat] is a nat-size vector of vatompos
-			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // alocate 3*unsigned_int space for (k,j,i) indexes of the position of each atom
-						
+			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // each vector vvvatompos[nat][na] stores (k,j,i) indexes of the position of one atom
+		}
+
+		// make a vector of atom names
+		vector<string> strAtomNames(natomtypes); // array of atom names
+		for (index_t nat = 0; nat < natomtypes; nat++)
+		{
+			index_t ii0 = filenamebaseIn2[nat].rfind("\\") + 1;
+			index_t ii1 = filenamebaseIn2[nat].find('.', ii0);
+			strAtomNames[nat] = filenamebaseIn2[nat].substr(ii0, ii1 - ii0);
+		}
+		
+		//****************************************************
+		// start searching for atom positions
+		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
+		{
 			// first array to transform
 			XArray3D<float> aaa(nz, ny, nx, 0.0f);
 			XArray3DMove<float> aaamove(aaa); // the associated class for applying masks to aaa later
@@ -78,7 +94,7 @@ int main()
 			aaa[1][1][1] = 20.0f; // delta-function
 			aaa[2][1][1] = 30.0f; // delta-function
 #else
-			printf("\n\nNow searching for atom type no. %zd ...", nat);
+			printf("\n\nNow searching for atom type no. %zd (%s) ...", nat, strAtomNames[nat].c_str());
 			printf("\nReading 1st set of input files %s ...", filenamebaseIn1.c_str());
 			IXAHWave2D* ph2new = CreateWavehead2D();
 			XArray2D<float> inten;
@@ -122,7 +138,6 @@ int main()
 			// mask with zeros the vicinity of locations of previously found atoms of other types
 			for (index_t natprev = 0; natprev < nat; natprev++)
 				for (index_t na = 0; na < natom[natprev]; na++)
-					//aaamove.FillRectPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
 					aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
 
 			//@@@@@@@@@@@@@@@@@@@@ TEST
@@ -202,7 +217,7 @@ int main()
 			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, 2 * karad, jarad, iarad, 0.0f);
 
 			//@@@@@@@@@@@@@@@@@@@@ TEST
-			if (1 && nat == natomtypes - 1) // output the masked 2nd input array
+			if (0 && nat == natomtypes - 1) // output the masked 2nd input array
 			{
 				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
@@ -277,6 +292,7 @@ int main()
 			index_t kmax = 0, jmax = 0, imax = 0;
 			for (index_t na = 0; na < natom[nat]; na++)
 			{
+				natomtotal++;
 #if TEST_RUN		
 				printf("\nCorrelation array (iteration %zd):", nn);
 				for (index_t k = 0; k < nz; k++)
@@ -301,19 +317,29 @@ int main()
 				printf("\nCorrelation coefficient = %g.", amax);
 
 				// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
-				//if (na < natom[nat] - 1) aaamove.FillRectPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
 				if (na < natom[nat] - 1) aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
 
 			}
 		} // end of cycle over different atom types
+
+		// write the locations of the detected atoms into an XYZ file
+		FILE* ff = fopen(filenameOutXYZ.c_str(), "wt");
+		printf("\n\nWriting output file %s in Vesta XYZ format ...\n", filenameOutXYZ.c_str());
+		fprintf(ff, "%zd\n", natomtotal); // number of detected atoms
+		fprintf(ff, "%s\n", "Atom positions detected by BigBangCT"); // free-form file info line
+		for (index_t nat = 0; nat < natomtypes; nat++)
+			for (index_t na = 0; na < natom[nat]; na++)
+				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, 1.0);
+		fclose(ff);
+
 	}
 	catch (std::exception& E)
 	{
-		printf("\n!!!Exception: %s\n", E.what());
+		printf("\n\n!!!Exception: %s\n", E.what());
 	}
 
 	std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();
-	printf("\nMain program finished. Execution time = %I64d s.", std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count());
+	printf("\n\nMain program finished. Execution time = %I64d s.", std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count());
 
 	printf("\nPress any key to exit..."); getchar();
 	return 0;
