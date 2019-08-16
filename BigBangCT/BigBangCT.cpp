@@ -40,17 +40,18 @@ int main()
 		printf("\nNumber of defocus planes = %zd.", nz);
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-		index_t natomtypes = 1; // number of different atom types in the sample
-		//vector<index_t> natom(natomtypes); natom = {4, 1, 4, 7}; // how many atoms of each type to locate
+		index_t natomtypes = 4; // number of different atom types in the sample
+		vector<index_t> natom(natomtypes); natom = {4, 1, 4, 7}; // how many atoms of each type to locate
 		//vector<index_t> natom(natomtypes); natom = {4, 1, 4}; // how many atoms of each type to locate
-		vector<index_t> natom(natomtypes); natom = {3}; // how many atoms of each type to locate
-		string filenamebaseIn1("C:\\Users\\TimGu\\Downloads\\TempData\\ON.grd"); // defocus series of the whole molecule
+		//vector<index_t> natom(natomtypes); natom = {1, 1}; // how many atoms of each type to locate
+		//vector<index_t> natom(natomtypes); natom = {3}; // how many atoms of each type to locate
+		string filenamebaseIn1("C:\\Users\\tgureyev\\Downloads\\asp.grd"); // defocus series of the whole molecule
 		vector<string> filenamebaseIn2(natomtypes); // defocus series of the individual atoms
-		filenamebaseIn2[0] = "C:\\Users\\TimGu\\Downloads\\TempData\\O1_.grd"; // single Oxygen atom
-		//filenamebaseIn2[1] = "C:\\Users\\TimGu\\Downloads\\TempData\\N1_.grd"; // single Nitrogen atom
-		//filenamebaseIn2[2] = "C:\\Users\\TimGu\\Downloads\\TempData\\C1_.grd"; // single Carbon atom
-		//filenamebaseIn2[3] = "C:\\Users\\TimGu\\Downloads\\TempData\\H1_.grd"; // single Hydrogen atom
-		string filenamebaseOut("C:\\Users\\TimGu\\Downloads\\TempData\\ccc.grd"); // optional output for 3D correlation array
+		filenamebaseIn2[0] = "C:\\Users\\tgureyev\\Downloads\\O.grd"; // single Oxygen atom
+		filenamebaseIn2[1] = "C:\\Users\\tgureyev\\Downloads\\N.grd"; // single Nitrogen atom
+		filenamebaseIn2[2] = "C:\\Users\\tgureyev\\Downloads\\C.grd"; // single Carbon atom
+		filenamebaseIn2[3] = "C:\\Users\\tgureyev\\Downloads\\H.grd"; // single Hydrogen atom
+		string filenamebaseOut("C:\\Users\\tgureyev\\Downloads\\zzz.grd"); // optional output for 3D correlation array
 
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
 		double atomsize = 1.0; // atom diameter in physical units
@@ -125,7 +126,7 @@ int main()
 					aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
 
 			//@@@@@@@@@@@@@@@@@@@@ TEST
-			if (0 && nat == natomtypes - 1) // output the masked input array
+			if (0 && nat == natomtypes - 1) // output the masked 1st input array
 			{
 				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
@@ -198,7 +199,24 @@ int main()
 			printf("\nCentre of mass position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
 			// set to zero the values of all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
-			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karad, jarad, iarad, 0.0f);
+			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, 2 * karad, jarad, iarad, 0.0f);
+
+			//@@@@@@@@@@@@@@@@@@@@ TEST
+			if (1 && nat == natomtypes - 1) // output the masked 2nd input array
+			{
+				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
+				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
+				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+				{
+					for (index_t kk = 0; kk < ndefocus; kk++)
+					{
+						for (index_t jj = 0; jj < ny; jj++)
+							for (index_t ii = 0; ii < nx; ii++)
+								inten[jj][ii] = aaa[kk][jj][ii];
+						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
+					}
+				}
+			}
 
 			// FFT of the 2nd array
 			printf("\nFFT of the 2nd 3D set ...");
@@ -238,7 +256,7 @@ int main()
 
 #if !TEST_RUN	
 			//@@@@@@@@@@@@@@@@@ TEST
-			if (1 && nat == natomtypes - 1) // output the 3D correlation distribution array
+			if (0 && nat == natomtypes - 1) // output the 3D correlation distribution array
 			{
 				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
