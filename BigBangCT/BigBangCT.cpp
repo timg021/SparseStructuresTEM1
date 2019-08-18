@@ -41,7 +41,7 @@ int main()
 		double zmin = atof(cparam); // minimum defocus in Angstroms 
 		double zmax = atof(cparam1); // maximum defocus in Angstroms 
 		double zstep = atof(cparam2); // defocus step in Angstroms
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for defocus series of the whole molecule
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for defocus series of the whole sample
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base for the whole sample from input parameter file.");
 		string filenamebaseIn1 = cparam;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of different atom types
@@ -78,32 +78,12 @@ int main()
 
 		//************************************ end reading input parameters from file
 
+		// calculate some useful parameters
 		index_t ndefocus = index_t((zmax - zmin) / zstep); // number of defocus planes, it determines the number of input files to read
 		index_t nz = ndefocus;
 		printf("\nNumber of defocus planes = %zd.", nz);
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
-		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
-	
-	/*
-		index_t natomtypes = 4; // number of different atom types in the sample
-		vector<index_t> natom(natomtypes); natom = { 4, 1, 4, 7 }; // how many atoms of each type to locate
-		//vector<index_t> natom(natomtypes); natom = {4, 1, 4}; // how many atoms of each type to locate
-		//vector<index_t> natom(natomtypes); natom = {1, 1}; // how many atoms of each type to locate
-		//vector<index_t> natom(natomtypes); natom = {3}; // how many atoms of each type to locate
-		string filenamebaseIn1("C:\\Users\\tgureyev\\Downloads\\asp.grd"); // defocus series of the whole molecule
-		vector<string> filenamebaseIn2(natomtypes); // defocus series of the individual atoms
-		filenamebaseIn2[0] = "C:\\Users\\tgureyev\\Downloads\\O.grd"; // single Oxygen atom
-		filenamebaseIn2[1] = "C:\\Users\\tgureyev\\Downloads\\N.grd"; // single Nitrogen atom
-		filenamebaseIn2[2] = "C:\\Users\\tgureyev\\Downloads\\C.grd"; // single Carbon atom
-		filenamebaseIn2[3] = "C:\\Users\\tgureyev\\Downloads\\H.grd"; // single Hydrogen atom
-		string filenamebaseOut("C:\\Users\\tgureyev\\Downloads\\zzz.grd"); // optional output for 3D correlation array
-		string filenameOutXYZ("C:\\Users\\tgureyev\\Downloads\\000BigBang.xyz"); // output file in Vesta XYZ format for detected atom locations
-
-		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
-		double atomsize = 1.0; // atom diameter in physical units
-		double atomsizeZ = 10.0; // length of an atom image "trace" in the defocus direction - this is used to mask-off the traces of detected atoms
-*/
-
+		index_t nangles = 1; // !!! nangles values other than 1 are currently not supported in the code below
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
@@ -120,8 +100,8 @@ int main()
 			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // each vector vvvatompos[nat][na] stores (k,j,i) indexes of the position of one atom
 		}
 
-		// make a vector of atom names
-		vector<string> strAtomNames(natomtypes); // array of atom names
+		// make a vector of atom type names (extracted from input 1-atom defocus series file names and used for output only)
+		vector<string> strAtomNames(natomtypes); // array of atom type names
 		for (index_t nat = 0; nat < natomtypes; nat++)
 		{
 			index_t ii0 = filenamebaseIn2[nat].rfind("\\") + 1;
@@ -129,20 +109,20 @@ int main()
 			strAtomNames[nat] = filenamebaseIn2[nat].substr(ii0, ii1 - ii0);
 		}
 		
-		//****************************************************
-		// start searching for atom positions
+		//**************************************************** start searching for atom positions
+
 		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
 		{
 			// first array to transform
 			XArray3D<float> aaa(nz, ny, nx, 0.0f);
-			XArray3DMove<float> aaamove(aaa); // the associated class for applying masks to aaa later
+			XArray3DMove<float> aaamove(aaa); // the associated XArray class for applying masks to aaa later
 #if TEST_RUN
 			aaa[1][2][3] = 10.0f; // delta-function
 			aaa[1][1][1] = 20.0f; // delta-function
 			aaa[2][1][1] = 30.0f; // delta-function
 #else
-			printf("\n\nNow searching for atom type no. %zd (%s) ...", nat + 1, strAtomNames[nat].c_str());
-			printf("\nReading 1st set of input files %s ...", filenamebaseIn1.c_str());
+			printf("\n\nNow searching for atoms type no. %zd (%s) ...", nat + 1, strAtomNames[nat].c_str());
+			printf("\nReading sample defocus series files %s ...", filenamebaseIn1.c_str());
 			IXAHWave2D* ph2new = CreateWavehead2D();
 			XArray2D<float> inten;
 			inten.SetHeadPtr(ph2new);
@@ -209,7 +189,7 @@ int main()
 			Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
 
 			// FFT of 1st array
-			printf("\nFFT of the 1st 3D set ...");
+			printf("\nFFT of the sample defocus series ...");
 			fftf.SetRealXArray3D(aaa);
 #if TEST_RUN		
 			//fftf.PrintRealArray("\nBefore 1st FFT:");
@@ -228,7 +208,7 @@ int main()
 			aaa[1][1][1] = 1.0; // delta-function
 #else
 			aaa.Fill(0.0);
-			printf("\nReading 2nd set of input files %s ...", filenamebaseIn2[nat].c_str());
+			printf("\nReading single atom defocus series files %s ...", filenamebaseIn2[nat].c_str());
 			FileNames(nangles, ndefocus, filenamebaseIn2[nat], infiles);
 			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 			{
@@ -258,7 +238,7 @@ int main()
 			xpos /= integ; ypos /= integ; zpos /= integ;
 			index_t ipos2 = index_t(xpos + 0.5), jpos2 = index_t(ypos + 0.5), kpos2 = index_t(zpos + 0.5);
 			double xpos2 = xmin + xstep * ipos2, ypos2 = ymin + ystep * jpos2, zpos2 = zmin + zstep * kpos2;
-			printf("\nCentre of mass position of the 2nd array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
+			printf("\nCentre of mass position of single atom array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
 			// set to zero the values of all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
 			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, 2 * karad, jarad, iarad, 0.0f);
@@ -281,7 +261,7 @@ int main()
 			}
 
 			// FFT of the 2nd array
-			printf("\nFFT of the 2nd 3D set ...");
+			printf("\nFFT of the single atom defocus series ...");
 			fftf.SetRealXArray3D(aaa);
 #if TEST_RUN		
 			//fftf.PrintRealArray("\nBefore 2nd FFT:");
@@ -292,7 +272,7 @@ int main()
 #endif
 
 			/// multiply FFTs of 2 arrays, taking the conjugate of the second one
-			printf("\nMultiplying FFT of the first by the conjugate of the FFT of the second ...");
+			printf("\nMultiplying FFT of the first 3D array by the conjugate of the FFT of the second ...");
 			float ftemp;
 			fftwf_complex* pout = fftf.GetComplex();
 			int m = 0;
@@ -335,6 +315,7 @@ int main()
 #endif
 
 			// find the maximums
+			printf("\nFinding maximums in the correlation array ...");
 			index_t kmax = 0, jmax = 0, imax = 0;
 			for (index_t na = 0; na < natom[nat]; na++)
 			{
@@ -356,7 +337,7 @@ int main()
 				double ymaxA = ymin + vvvatompos[nat][na][1] * ystep;
 				double zmaxA = zmin + vvvatompos[nat][na][0] * zstep;
 
-				printf("\nAtom type %zd, atom number %zd:", nat, na);
+				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
 				//printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
 				//printf("\nMaximum correlation = %g.", amax);
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
