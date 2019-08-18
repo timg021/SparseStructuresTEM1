@@ -63,8 +63,9 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom size parameter from input parameter file.");
 		double atomsize = atof(cparam); // atom diameter in physical units
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom trace Z-length for masking out in Angstroms
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom trace Z-length parameter from input parameter file.");
-		double atomsizeZ = atof(cparam); // atom diameter in physical units
+		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading atom trace Z-length parameters from input parameter file.");
+		double atomsizeZ0 = atof(cparam); // atom "trace" length in the defocus direction in Angstoms  to mask when searching for atoms of the same type
+		double atomsizeZ1 = atof(cparam1); // atom "trace" length in the defocus direction in Angstoms  to mask when searching for atoms of the next type
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // output file in Vesta XYZ format for detected atom locations
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name for detected atom locations from input parameter file.");
 		string filenameOutXYZ = cparam;
@@ -89,7 +90,8 @@ int main()
 		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
 		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
-		index_t karad1 = index_t(atomsizeZ / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction in the number of physical z-step units
+		index_t karad0 = index_t(atomsizeZ0 / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
+		index_t karad1 = index_t(atomsizeZ1 / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
@@ -344,7 +346,7 @@ int main()
 				printf("\nCorrelation coefficient = %g.", amax);
 
 				// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
-				if (na < natom[nat] - 1) aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad, jarad, iarad, 0.0f);
+				if (na < natom[nat] - 1) aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad0, jarad, iarad, 0.0f);
 
 			}
 		} // end of cycle over different atom types

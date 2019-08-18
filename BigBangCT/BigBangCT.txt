@@ -8,7 +8,7 @@
 4.4.Number_of_atoms_of_type_4_and_filename_base_of_defocus_series_of_one_atom_of_this_type: 7 C:\Users\TimGu\Downloads\TempData\H.grd
 5.Wavelength_in_Angstroms: 0.025
 6.Average_atom_size_(for_masking_out)_in_Angstroms: 1.0
-7.Average_atom_trace_Z_length_(for_masking_out)_in_Angstroms: 10.0
+7.Average_atom_trace_Z_length,_for_masking_out_of_the_same(1)_and_different(2)_type_atoms,_in_Angstroms: 5.0 10.0
 8.Output_file_name_for_atom_locations_in_Vesta_XYZ_format: C:\Users\TimGu\Downloads\TempData\BigBangOut.xyz
 9.1_for_enabling_or_0_for_disabling_and_optional_output_filename_base_for_3D_correlation_array_in_GRD_format: 1 C:\Users\TimGu\Downloads\TempData\zzz.grd
 //*****
