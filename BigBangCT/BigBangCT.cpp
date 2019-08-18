@@ -30,16 +30,61 @@ int main()
 	try
 	{
 		printf("\nStarting BigBangCT program ...");
-#if TEST_RUN
-		double zmin = 0.0, zmax = 4, zstep = 1.0;
-#else
-		double zmin = 0.0, zmax = 10.0, zstep = 0.0390625;
-#endif
+		//************************************ read input parameters from file
+		// read input parameter file
+		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
+		FILE* ff0 = fopen("BigBangCT.txt", "rt");
+		if (!ff0) throw std::exception("Error: cannot open parameter file BigBangCT.txt.");
+		fgets(cline, 1024, ff0); // 1st line - comment
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2nd line: Defocus_distance_MIN,MAX,STEP_in_Angstroms
+		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading defocus parameters from input parameter file.");
+		double zmin = atof(cparam); // minimum defocus in Angstroms 
+		double zmax = atof(cparam1); // maximum defocus in Angstroms 
+		double zstep = atof(cparam2); // defocus step in Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for defocus series of the whole molecule
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base for the whole sample from input parameter file.");
+		string filenamebaseIn1 = cparam;
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of different atom types
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of atom types from input parameter file.");
+		index_t natomtypes = (index_t)atoi(cparam); 
+		vector<index_t> natom(natomtypes);
+		vector<string> filenamebaseIn2(natomtypes); // file name bases for defocus series of different single atoms
+		for (index_t nat = 0; nat < natomtypes; nat++)
+		{
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of atoms of this type and file base name for defocus series of a single atom of this type
+			if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading atom type %d parameters from input parameter file.", int(nat));
+			natom[nat] = index_t(atoi(cparam)); // number of atoms of this type
+			filenamebaseIn2[nat] = cparam1; // file name base for defocus series of single atom of this type
+		}
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in Angstroms
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
+		double wl = atof(cparam); // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom size for masking out in Angstroms
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom size parameter from input parameter file.");
+		double atomsize = atof(cparam); // atom diameter in physical units
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom trace Z-length for masking out in Angstroms
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom trace Z-length parameter from input parameter file.");
+		double atomsizeZ = atof(cparam); // atom diameter in physical units
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // output file in Vesta XYZ format for detected atom locations
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name for detected atom locations from input parameter file.");
+		string filenameOutXYZ = cparam;
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional output file name base for 3D correlation array output
+		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading parameters for 3D correlation array output from input parameter file.");
+		bool bCorrArrayOut = bool(atoi(cparam) != 0); // if this parameter is true, the 3D correlation output is created
+		string filenamebaseOut; 
+		if (bCorrArrayOut) filenamebaseOut = cparam1;
+
+		fclose(ff0); // close input parameter file
+
+		//************************************ end reading input parameters from file
+
 		index_t ndefocus = index_t((zmax - zmin) / zstep); // number of defocus planes, it determines the number of input files to read
 		index_t nz = ndefocus;
 		printf("\nNumber of defocus planes = %zd.", nz);
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not fully supported in the code below
+	
+	/*
 		index_t natomtypes = 4; // number of different atom types in the sample
 		vector<index_t> natom(natomtypes); natom = { 4, 1, 4, 7 }; // how many atoms of each type to locate
 		//vector<index_t> natom(natomtypes); natom = {4, 1, 4}; // how many atoms of each type to locate
@@ -57,6 +102,8 @@ int main()
 		double wl = 0.025; // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
 		double atomsize = 1.0; // atom diameter in physical units
 		double atomsizeZ = 10.0; // length of an atom image "trace" in the defocus direction - this is used to mask-off the traces of detected atoms
+*/
+
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
@@ -94,7 +141,7 @@ int main()
 			aaa[1][1][1] = 20.0f; // delta-function
 			aaa[2][1][1] = 30.0f; // delta-function
 #else
-			printf("\n\nNow searching for atom type no. %zd (%s) ...", nat, strAtomNames[nat].c_str());
+			printf("\n\nNow searching for atom type no. %zd (%s) ...", nat + 1, strAtomNames[nat].c_str());
 			printf("\nReading 1st set of input files %s ...", filenamebaseIn1.c_str());
 			IXAHWave2D* ph2new = CreateWavehead2D();
 			XArray2D<float> inten;
@@ -270,8 +317,7 @@ int main()
 			fftf.GetRealXArray3D(aaa);
 
 #if !TEST_RUN	
-			//@@@@@@@@@@@@@@@@@ TEST
-			if (0 && nat == natomtypes - 1) // output the 3D correlation distribution array
+			if (bCorrArrayOut && nat == natomtypes - 1) // output the 3D correlation distribution array
 			{
 				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);

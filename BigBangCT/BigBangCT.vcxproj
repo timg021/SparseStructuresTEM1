@@ -183,6 +183,9 @@
     <ClInclude Include="fftw3.h" />
     <ClInclude Include="fftwf3drc.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="BigBangCT.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
