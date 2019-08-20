@@ -119,7 +119,7 @@ namespace xar
 		//! Calculates 2D Kirchhoff integral
 		void Kirchhoff(double dblDistance, bool bCheckValidity = true);
 		//! Calculates 2D Fresnel integral
-		void Fresnel(double dblDistance, bool bCheckValidity = true);
+		void Fresnel(double dblDistance, bool bCheckValidity = true, double q2max = -1.0);
 		//! Calculates 2D Fresnel integral for long propagation distances
 		void FresnelFar(double dblDistance, bool bCheckValidity = true);
 
@@ -438,6 +438,7 @@ template <class T> void xar::XArray2DFFT<T>::Kirchhoff(double dblDistance, bool 
 	\brief		Calculates 2D Fresnel integral
 	\param		dblDistance	Propagation distance (in the same units as used in the Wavehead2D)
 	\param		bCheckValidity	Determines the validity of the used implementation for given parameters
+	\param		q2max Defines the optional bandwidth limit
 	\exception	std::invalid_argument is thrown if any of the two dimensions of the wrapped object
 				is not an integer power of 2; or if the object does not have an associated Wavehead2D.
 	\exception	std::exception and derived exceptions can be thrown indirectly by the functions
@@ -465,7 +466,7 @@ InterfaceFFT2D.Fresnel(1.e+6); // calculate free space propagation (by 1 m, if u
 //	WARNING(old XY order!!!): internally, this function relates dim1 to X, and dim2 to Y, however, 
 //	X and Y	are swapped at the entry point of this function !!!! 4.6.2019 - I AM CHANGING IT NOW
 //
-template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bCheckValidity)
+template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bCheckValidity, double q2max)
 {
 	if (dblDistance==0) return;
 
@@ -527,7 +528,7 @@ template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bC
 //********* Multiplying F[u] by the Fresnel_propagator
 
 	index_t k, kj;	
-	double eta2;
+	double eta2, q2;
 	double dcsi2 = 1.0 / xap2;
 	double deta2 = 1.0 / yap2;
 	//double dtemp = dblDistance / wl - floor(dblDistance / wl);
@@ -536,44 +537,126 @@ template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bC
 	dcomplex fac2 = -dcomplex(0.0, 1.0) * PI * wl * dblDistance;
 	dcomplex ctemp;
 
-	for (long i = -long(nyd2); i < 0; i++)
+	if (q2max > 0)
 	{
-		kj = nxy2 + nx2 * i + nx2;
-		eta2 = deta2 * i * i;
-		for (long j = -long(nxd2); j < 0; j++)
+		for (long i = -long(nyd2); i < 0; i++)
 		{
-			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
-			u[k] = T(std::real(ctemp));
-			u[k+1] = T(std::imag(ctemp));
+			kj = nxy2 + nx2 * i + nx2;
+			eta2 = deta2 * i * i;
+			for (long j = -long(nxd2); j < 0; j++)
+			{
+				k = kj + 2 * j;
+				q2 = dcsi2 * j * j + eta2;
+				if (q2 < q2max)
+				{
+					ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * q2);
+					u[k] = T(std::real(ctemp));
+					u[k + 1] = T(std::imag(ctemp));
+				}
+				else
+				{
+					u[k] = T(0);
+					u[k + 1] = T(0);
+				}
+			}
+			kj = nxy2 + nx2 * i;
+			for (long j = 0; j < long(nxd2); j++)
+			{
+				k = kj + 2 * j;
+				q2 = dcsi2 * j * j + eta2;
+				if (q2 < q2max)
+				{
+					ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * q2);
+					u[k] = T(std::real(ctemp));
+					u[k + 1] = T(std::imag(ctemp));
+				}
+				else
+				{
+					u[k] = T(0);
+					u[k + 1] = T(0);
+				}
+			}
 		}
-		kj = nxy2 + nx2 * i;
-	    for (long j = 0; j < long(nxd2); j++)
+		for (long i = 0; i < long(nyd2); i++)
 		{
-			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
-			u[k] = T(std::real(ctemp));
-			u[k+1] = T(std::imag(ctemp));
+			kj = nx2 * i + nx2;
+			eta2 = deta2 * i * i;
+			for (long j = -long(nxd2); j < 0; j++)
+			{
+				k = kj + 2 * j;
+				q2 = dcsi2 * j * j + eta2;
+				if (q2 < q2max)
+				{
+					ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * q2);
+					u[k] = T(std::real(ctemp));
+					u[k + 1] = T(std::imag(ctemp));
+				}
+				else
+				{
+					u[k] = T(0);
+					u[k + 1] = T(0);
+				}
+			}
+			kj = nx2 * i;
+			for (long j = 0; j < long(nxd2); j++)
+			{
+				k = kj + 2 * j;
+				q2 = dcsi2 * j * j + eta2;
+				if (q2 < q2max)
+				{
+					ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * q2);
+					u[k] = T(std::real(ctemp));
+					u[k + 1] = T(std::imag(ctemp));
+				}
+				else
+				{
+					u[k] = T(0);
+					u[k + 1] = T(0);
+				}
+			}
 		}
 	}
-	for (long i = 0; i < long(nyd2); i++)
+	else
 	{
-		kj = nx2 * i + nx2;
-		eta2 = deta2 * i * i;
-		for (long j = -long(nxd2); j < 0; j++)
+		for (long i = -long(nyd2); i < 0; i++)
 		{
-			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
-			u[k] = T(std::real(ctemp));
-			u[k+1] = T(std::imag(ctemp));
+			kj = nxy2 + nx2 * i + nx2;
+			eta2 = deta2 * i * i;
+			for (long j = -long(nxd2); j < 0; j++)
+			{
+				k = kj + 2 * j;
+				ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
+				u[k] = T(std::real(ctemp));
+				u[k + 1] = T(std::imag(ctemp));
+			}
+			kj = nxy2 + nx2 * i;
+			for (long j = 0; j < long(nxd2); j++)
+			{
+				k = kj + 2 * j;
+				ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
+				u[k] = T(std::real(ctemp));
+				u[k + 1] = T(std::imag(ctemp));
+			}
 		}
-		kj = nx2 * i;
-		for (long j = 0; j < long(nxd2); j++)
+		for (long i = 0; i < long(nyd2); i++)
 		{
-			k = kj + 2 * j;
-			ctemp = dcomplex(u[k], u[k+1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
-			u[k] = T(std::real(ctemp));
-			u[k+1] = T(std::imag(ctemp));
+			kj = nx2 * i + nx2;
+			eta2 = deta2 * i * i;
+			for (long j = -long(nxd2); j < 0; j++)
+			{
+				k = kj + 2 * j;
+				ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
+				u[k] = T(std::real(ctemp));
+				u[k + 1] = T(std::imag(ctemp));
+			}
+			kj = nx2 * i;
+			for (long j = 0; j < long(nxd2); j++)
+			{
+				k = kj + 2 * j;
+				ctemp = dcomplex(u[k], u[k + 1]) * std::exp(fac1 + fac2 * (dcsi2 * j * j + eta2));
+				u[k] = T(std::real(ctemp));
+				u[k + 1] = T(std::imag(ctemp));
+			}
 		}
 	}
 

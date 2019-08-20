@@ -50,30 +50,30 @@ int main(void)
 		double defocus_max = atof(cparam1); // maximum defocus in Angstroms 
 		double defocus_step = atof(cparam2); // defocus step in Angstroms 
 		autoslictxt[26] = ""; // this parameter is not used any more, defocus values are passed as a separate argument vdefocus
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line: Total_CT_rotation_span_in_degrees
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line:Objective_aperture_in_mrad
+		autoslictxt[7] = cline;
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Total_CT_rotation_span_in_degrees
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 10 of input parameter file.");
 		double angle_max = atof(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Number_of_CT_rotation_angles
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: Number_of_CT_rotation_angles
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 11 of input parameter file.");
 		size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 12 of input parameter file.");
 		unsigned int ncores = (unsigned int)atoi(cparam) + 1; // number of threads to use (expected to be equal to the number of cores) 
-		fgets(cline, 1024, ff0); // 13st line - comment
 		fgets(cline, 1024, ff0); // 14st line - comment
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
+		fgets(cline, 1024, ff0); // 15st line - comment
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
 		autoslictxt[1] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Do_you_want_to_include_partial_coherence
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: Do_you_want_to_include_partial_coherence
 		autoslictxt[2] = ""; // this parameter is not used any more, output filenames are passed as a separate argument vstrfileout
 		autoslictxt[3] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: ____Illumination_angle_min,_max_in_mrad
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: ____Illumination_angle_min,_max_in_mrad
 		autoslictxt[4] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: ____Spherical_aberration_Cs3,_Cs5_in_mm
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 19th line: ____Spherical_aberration_Cs3,_Cs5_in_mm
 		autoslictxt[5] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 19th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 20th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
 		autoslictxt[6] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 20th line: ____Objective_aperture_in_mrad
-		autoslictxt[7] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: Do_you_want_to_start_from_previous_result
 		autoslictxt[8] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22nd line: ____Name_of_file_to_start_from

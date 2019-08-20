@@ -777,6 +777,11 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 		  
 		//@@@@@ start TEG code 
 		// simulated free-space propagation (defocus) from the exit plane
+		
+		// limiting exit range of q according to parameter aobj
+		k2maxo = aobj / wavlen;
+		k2maxo = k2maxo * k2maxo;
+
 		if (nmode == 0 && propdist != 0)
 		{
 			scale = pi * propdist;
@@ -794,7 +799,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 
 			wave.fft();
 			propagate(wave, propxr, propxi,
-				propyr, propyi, kx2, ky2, k2max, nx, ny);
+				propyr, propyi, kx2, ky2, k2maxo, nx, ny);
 			wave.ifft();
 		}
 		//@@@@@@ end TEG code

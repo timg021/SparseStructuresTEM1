@@ -289,6 +289,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 			throw std::exception("Error reading line 7 of input parameter array.");
 		if (sscanf(params[7].data(), "%s %g", chaa, &aobj) != 2)
 			throw std::exception("Error reading line 8 of input parameter array.");
+
 		if (sscanf(params[8].data(), "%s %d", chaa, &lstart) != 2)
 			throw std::exception("Error reading line 9 of input parameter array.");
 		if (sscanf(params[9].data(), "%s %s", chaa, cinarg) != 2)
@@ -336,6 +337,11 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 			throw std::exception("Error reading line 29 of input parameter array.");
 		//fclose(ff0);
 		//cout << "Input parameter file has been read successfully!\n";
+
+		//@@@@@@@@@@@@TENMP!!!!
+		aobj = 30.0;
+		aobj = (float)fabs(aobj * 0.001F);
+		//@@@@@@@@@@@@@ END
 
 		//acmin = acmax = 0;
 		if (lpartl == 1) {
@@ -718,6 +724,9 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		camp.SetHeadPtr(ph2new);
 		xar::XArray2DFFT<float> xafft(camp);
 
+		float k2maxo = aobj / wavlen;
+		k2maxo = k2maxo * k2maxo;
+
 		for (size_t j = 0; j < defocus.size(); j++)
 		{
 			printf("\n  Defocus = %g", defocus[j]);
@@ -725,7 +734,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 				for (iy = 0; iy < ny; iy++)
 					camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
 
-			if (defocus[j] != 0) xafft.Fresnel(defocus[j], false); // propagate to the current defocus distance
+			if (defocus[j] != 0) xafft.Fresnel(defocus[j], false, double(k2maxo)); // propagate to the current defocus distance
 
 			//GRD/GRC file output
 			switch (noutput)
