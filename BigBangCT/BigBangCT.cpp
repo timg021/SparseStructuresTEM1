@@ -32,7 +32,7 @@ int main()
 		printf("\nStarting BigBangCT program ...");
 		//************************************ read input parameters from file
 		// read input parameter file
-		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
+		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024], cparam3[1024], cparam4[1024];
 		FILE* ff0 = fopen("BigBangCT.txt", "rt");
 		if (!ff0) throw std::exception("Error: cannot open parameter file BigBangCT.txt.");
 		fgets(cline, 1024, ff0); // 1st line - comment
@@ -49,12 +49,17 @@ int main()
 		index_t natomtypes = (index_t)atoi(cparam); 
 		vector<index_t> natom(natomtypes);
 		vector<string> filenamebaseIn2(natomtypes); // file name bases for defocus series of different single atoms
+		vector< vector<double> > rpos2(natomtypes); // vector of XYZ positions of template atoms
 		for (index_t nat = 0; nat < natomtypes; nat++)
 		{
+			rpos2[nat].resize(3);
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of atoms of this type and file base name for defocus series of a single atom of this type
-			if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading atom type %d parameters from input parameter file.", int(nat));
+			if (sscanf(cline, "%s %s %s %s %s %s", ctitle, cparam, cparam1, cparam2, cparam3, cparam4) != 6) throw std::exception("Error reading atom type %d parameters from input parameter file.", int(nat));
 			natom[nat] = index_t(atoi(cparam)); // number of atoms of this type
-			filenamebaseIn2[nat] = cparam1; // file name base for defocus series of single atom of this type
+			rpos2[nat][0] = atof(cparam1); // X-coordinate of template atom no. 'nat'
+			rpos2[nat][1] = atof(cparam2); // Y-coordinate of template atom no. 'nat'
+			rpos2[nat][2] = atof(cparam3); // Z-coordinate of template atom no. 'nat'
+			filenamebaseIn2[nat] = cparam4; // file name base for defocus series of single atom of this type
 		}
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
@@ -158,7 +163,7 @@ int main()
 					}
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							aaa[kk][jj][ii] = inten[jj][ii];// -1.0f; // can take log() instead;
 				}
 			}
 #endif
@@ -221,7 +226,7 @@ int main()
 					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;;
+							aaa[kk][jj][ii] = inten[jj][ii];// -1.0f; // can take log() instead;;
 				}
 			}
 #endif
@@ -241,6 +246,9 @@ int main()
 			index_t ipos2 = index_t(xpos + 0.5), jpos2 = index_t(ypos + 0.5), kpos2 = index_t(zpos + 0.5);
 			double xpos2 = xmin + xstep * ipos2, ypos2 = ymin + ystep * jpos2, zpos2 = zmin + zstep * kpos2;
 			printf("\nCentre of mass position of single atom array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
+			xpos2 = rpos2[nat][0]; ypos2 = rpos2[nat][1]; zpos2 = rpos2[nat][2];
+			ipos2 = index_t((xpos2 - xmin) / xstep + 0.5); jpos2 = index_t((ypos2 - ymin) / ystep + 0.5); kpos2 = index_t((zpos2 - zmin) / zstep + 0.5);
+			printf("\nPosition of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
 			// set to zero the values of all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
 			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, 2 * karad, jarad, iarad, 0.0f);
@@ -340,8 +348,10 @@ int main()
 				double zmaxA = zmin + vvvatompos[nat][na][0] * zstep;
 
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
-				//printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
-				//printf("\nMaximum correlation = %g.", amax);
+#ifdef _DEBUG
+				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
+				printf("\nMaximum correlation = %g.", amax);
+#endif
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
 				printf("\nCorrelation coefficient = %g.", amax);
 

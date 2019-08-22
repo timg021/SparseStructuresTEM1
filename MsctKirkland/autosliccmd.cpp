@@ -289,7 +289,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 			throw std::exception("Error reading line 7 of input parameter array.");
 		if (sscanf(params[7].data(), "%s %g", chaa, &aobj) != 2)
 			throw std::exception("Error reading line 8 of input parameter array.");
-
+		aobj = (float)fabs(aobj * 0.001F);
 		if (sscanf(params[8].data(), "%s %d", chaa, &lstart) != 2)
 			throw std::exception("Error reading line 9 of input parameter array.");
 		if (sscanf(params[9].data(), "%s %s", chaa, cinarg) != 2)
@@ -338,11 +338,6 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		//fclose(ff0);
 		//cout << "Input parameter file has been read successfully!\n";
 
-		//@@@@@@@@@@@@TENMP!!!!
-		aobj = 30.0;
-		aobj = (float)fabs(aobj * 0.001F);
-		//@@@@@@@@@@@@@ END
-
 		//acmin = acmax = 0;
 		if (lpartl == 1) {
 			//cout << "Illumination angle min, max in mrad:" << endl;
@@ -361,7 +356,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 			//cout << "Objective aperture (in mrad) =" << endl;
 			//cin >> aobj;
 			//@@@@@ end TEG code
-			aobj = (float)fabs(aobj * 0.001F);
+			//aobj = (float)fabs(aobj * 0.001F);
 #ifdef MANY_ABERR 
 			/*   get higher order aberrations if necessary */
 			cout << "type higher order aber. name (as C32a, etc.) followed\n"
