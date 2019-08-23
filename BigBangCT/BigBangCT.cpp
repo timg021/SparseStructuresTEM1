@@ -68,17 +68,19 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom size parameter from input parameter file.");
 		double atomsize = atof(cparam); // atom diameter in physical units
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom trace Z-length for masking out in Angstroms
-		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading atom trace Z-length parameters from input parameter file.");
-		double atomsizeZ0 = atof(cparam); // atom "trace" length in the defocus direction in Angstoms  to mask when searching for atoms of the same type
-		double atomsizeZ1 = atof(cparam1); // atom "trace" length in the defocus direction in Angstoms  to mask when searching for atoms of the next type
+		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading atom trace Z-length parameters from input parameter file.");
+		double atemplength = atof(cparam); // atom "trace" length in the defocus direction in Angstoms to mask "in" the template atom
+		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the same type
+		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the next type
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // output file in Vesta XYZ format for detected atom locations
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name for detected atom locations from input parameter file.");
 		string filenameOutXYZ = cparam;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional output file name base for 3D correlation array output
-		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading parameters for 3D correlation array output from input parameter file.");
-		bool bCorrArrayOut = bool(atoi(cparam) != 0); // if this parameter is true, the 3D correlation output is created
-		string filenamebaseOut; 
-		if (bCorrArrayOut) filenamebaseOut = cparam1;
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional auxillary data output mode 
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading parameter for selecting output mode from input parameter file.");
+		int iCorrArrayOut = atoi(cparam); // if this parameter is 1, the 1st masked array is output, 2 -> 2nd masked array output, 3 -> 3D correlation output is created.
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional output file name base
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base for saving auxilliary data.");
+		string filenamebaseOut = cparam;
 
 		fclose(ff0); // close input parameter file
 
@@ -95,8 +97,9 @@ int main()
 		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
 		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
-		index_t karad0 = index_t(atomsizeZ0 / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
-		index_t karad1 = index_t(atomsizeZ1 / zstep / 2.0 + 0.5); // length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
+		index_t karad0 = index_t(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
+		index_t karad1 = index_t(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
+		index_t karadt = index_t(atemplength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
@@ -174,10 +177,10 @@ int main()
 				for (index_t na = 0; na < natom[natprev]; na++)
 					aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
 
-			//@@@@@@@@@@@@@@@@@@@@ TEST
-			if (0 && nat == natomtypes - 1) // output the masked 1st input array
+			// optional auxilliary data output
+			if (iCorrArrayOut == 1 && nat == natomtypes - 1) // output the masked 1st input array
 			{
-				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
+				printf("\nWriting masked 1st input array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
@@ -251,12 +254,12 @@ int main()
 			printf("\nPosition of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
 			// set to zero the values of all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
-			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, 2 * karad, jarad, iarad, 0.0f);
+			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karadt, jarad, iarad, 0.0f);
 
-			//@@@@@@@@@@@@@@@@@@@@ TEST
-			if (0 && nat == natomtypes - 1) // output the masked 2nd input array
+			// optional auxilliary data output
+			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked 2nd input array
 			{
-				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
+				printf("\nWriting masked 2nd input array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
@@ -307,9 +310,10 @@ int main()
 			fftf.GetRealXArray3D(aaa);
 
 #if !TEST_RUN	
-			if (bCorrArrayOut && nat == natomtypes - 1) // output the 3D correlation distribution array
+			// optional auxilliary data output
+			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D correlation distribution array
 			{
-				printf("\nWriting the output files %s ...", filenamebaseOut.c_str());
+				printf("\nWriting 3D correlation array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
@@ -356,8 +360,8 @@ int main()
 				printf("\nCorrelation coefficient = %g.", amax);
 
 				// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
-				if (na < natom[nat] - 1) aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad0, jarad, iarad, 0.0f);
-
+				if (na < natom[nat] - 1) 
+					aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad0, jarad, iarad, 0.0f);
 			}
 		} // end of cycle over different atom types
 

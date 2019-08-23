@@ -8,9 +8,10 @@
 4.4.Number_of_atoms_of_type_4,_template_atom_XYZ_position_and_filename_base: 7 5.0 5.0 5.0 C:\Users\TimGu\Downloads\TempData\H.grd
 5.Wavelength_in_Angstroms: 0.025
 6.Average_atom_size_(for_masking_out)_in_Angstroms: 1.0
-7.Average_atom_trace_Z_length,_for_masking_out_of_the_same(1)_and_different(2)_type_atoms,_in_Angstroms: 5.0 10.0
+7.Atom_trace_Z_length_for_masking_in__the_template_atom,_and_masking_out__the_same_and_different_type_atoms,_in_Angstroms: 10.0 2.0 128.0
 8.Output_file_name_for_atom_locations_in_Vesta_XYZ_format: C:\Users\TimGu\Downloads\TempData\000BigBangOut.xyz
-9.1_for_enabling_or_0_for_disabling_and_optional_output_filename_base_for_3D_correlation_array_in_GRD_format: 1 C:\Users\TimGu\Downloads\TempData\zzz.grd
+9.0_for_disabling_or_1,2_or_3_for_saving_1st,_2nd_masked_input_array_or_3D_correlation_array_respectively: 1
+10.Output_filename_base_for_data_selected_by_parameter_9_in_GRD_format: C:\Users\TimGu\Downloads\TempData\zzz.grd
 //*****
 //*****!!!Don't forget to save this file after editing the parameters
 
