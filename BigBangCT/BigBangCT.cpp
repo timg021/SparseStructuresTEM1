@@ -163,7 +163,7 @@ int main()
 					}
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-							aaa[kk][jj][ii] = inten[jj][ii];// -1.0f; // can take log() instead;
+							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
 				}
 			}
 #endif
@@ -226,7 +226,7 @@ int main()
 					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-							aaa[kk][jj][ii] = inten[jj][ii];// -1.0f; // can take log() instead;;
+							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;;
 				}
 			}
 #endif
