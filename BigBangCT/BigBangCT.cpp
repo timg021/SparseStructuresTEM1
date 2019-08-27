@@ -302,6 +302,10 @@ int main()
 						ftemp = pout[m][0] * ccc[k][j][i].real() + pout[m][1] * ccc[k][j][i].imag();
 						pout[m][1] = -pout[m][1] * ccc[k][j][i].real() + pout[m][0] * ccc[k][j][i].imag();
 						pout[m][0] = ftemp;
+						//@@@@@ normalization by the modulus (leaving the phase only)
+						//ftemp = sqrt(pout[m][0] * pout[m][0] + pout[m][1] * pout[m][1]);
+						//pout[m][1] /= ftemp;
+						//pout[m][0] /= ftemp;
 						m++;
 					}
 #if TEST_RUN		
