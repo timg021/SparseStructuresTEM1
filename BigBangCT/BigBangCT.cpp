@@ -72,6 +72,10 @@ int main()
 		double atemplength = atof(cparam); // atom "trace" length in the defocus direction in Angstoms to mask "in" the template atom
 		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the same type
 		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the next type
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // high-frequency bandpath radius
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading low frequency limit from input parameter file.");
+		int iHPathRad = index_t(atoi(cparam)); // high-frequency bandpath radius: all (abs.)frequencies lower than this one will be zet to zero
+		index_t iHPathRad2 = index_t(iHPathRad * iHPathRad);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // output file in Vesta XYZ format for detected atom locations
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name for detected atom locations from input parameter file.");
 		string filenameOutXYZ = cparam;
@@ -299,13 +303,20 @@ int main()
 				for (index_t j = 0; j < ny; j++)
 					for (index_t i = 0; i < nx2; i++)
 					{
-						ftemp = pout[m][0] * ccc[k][j][i].real() + pout[m][1] * ccc[k][j][i].imag();
-						pout[m][1] = -pout[m][1] * ccc[k][j][i].real() + pout[m][0] * ccc[k][j][i].imag();
-						pout[m][0] = ftemp;
-						//@@@@@ normalization by the modulus (leaving the phase only)
-						//ftemp = sqrt(pout[m][0] * pout[m][0] + pout[m][1] * pout[m][1]);
-						//pout[m][1] /= ftemp;
-						//pout[m][0] /= ftemp;
+						if (k * k + j * j + i * i < iHPathRad2)
+						{
+							pout[m][1] = pout[m][0] = 0.0f; // high-frequency bandpath filter of the correlation array
+						}
+						else
+						{
+							ftemp = pout[m][0] * ccc[k][j][i].real() + pout[m][1] * ccc[k][j][i].imag();
+							pout[m][1] = -pout[m][1] * ccc[k][j][i].real() + pout[m][0] * ccc[k][j][i].imag();
+							pout[m][0] = ftemp;
+							//@@@@@ normalization by the modulus (leaving the phase only)
+							//ftemp = sqrt(pout[m][0] * pout[m][0] + pout[m][1] * pout[m][1]);
+							//pout[m][1] /= ftemp;
+							//pout[m][0] /= ftemp;
+						}
 						m++;
 					}
 #if TEST_RUN		
