@@ -201,11 +201,10 @@ autoslic::~autoslic()
 // ctblength defines the CT sample box side length in Angstroms
 // nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 // nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
-// propdist free-space propagation distance (defocus) for the exit-plane amplitude
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, unsigned long *iseed,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode, float propdist )
+        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode )
 {
     int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams(0),
         nacx,nacy, iqx, iqy, iwobble, ndf, idf, ib, na, islice, nzout, nzbeams,
@@ -499,11 +498,20 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
                             sbuffer= "Sorting atoms by depth...";
                             messageAS( sbuffer );
                             sortByZ( x2, y2, z2, occ2, Znum2, natom );
-                            zmin = z2[0];       /* reset zmin/max after wobble */
-                            zmax = z2[natom-1];
-                            sbuffer= "Thickness range with thermal displacements is "
-                                   + toString(zmin) + " to " + toString(zmax)+" (in z)";
-                            messageAS( sbuffer );
+							//@@@@@ start TEG code
+							//we rely on the defined CT sample qube to be large enough to still contain all atoms in the case of thermal wobble
+                            //zmin = z2[0];       /* reset zmin/max after wobble */
+                            //zmax = z2[natom-1];
+                            //sbuffer= "Thickness range with thermal displacements is "
+                            //       + toString(zmin) + " to " + toString(zmax)+" (in z)";
+                            //messageAS( sbuffer );
+							if (z2[0] < 0 || z2[natom - 1] > ctblength)
+							{
+								sbuffer = "!!!Error: zmin < 0 or zmax > ctblength after the thermal wobble!!!";
+								messageAS(sbuffer, 2);
+								exit(0);
+							}
+							//@@@@@ end TEG code
                         } else for( i=0; i<natom; i++) {
                             x2[i] = x[i];
                             y2[i] = y[i];
@@ -669,27 +677,49 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
             }
         }
 
+		//@@@@ start TEG code
+		// allocate arrays to store copies of atom coordinates, so that they are not spoiled by the wobble procedure
+		x2 = (float*)malloc1D(natom, sizeof(float), "x2");
+		y2 = (float*)malloc1D(natom, sizeof(float), "y2");
+		z2 = (float*)malloc1D(natom, sizeof(float), "z2");
+		occ2 = (float*)malloc1D(natom, sizeof(float), "occ2");
+		Znum2 = (int*)malloc1D(natom, sizeof(int), "Znum2");
+		//@@@ end TEG code
+		//!!!! note that below all x are replaced by x2, etc.
+
+
         /*  add random thermal displacements scaled by temperature if requested 
             remember that initial wobble is at 300K for each direction */
         if( lwobble == 1 ){
             scale = (float) sqrt(temperature/300.0) ;
             for( i=0; i<natom; i++) {
-                x[i] += (float) (wobble[i] * rangauss( iseed ) * scale);
-                y[i] += (float) (wobble[i] * rangauss( iseed ) * scale);
-                z[i] += (float) (wobble[i] * rangauss( iseed ) * scale);
+				x2[i] = x[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				y2[i] = y[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				z2[i] = z[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				occ2[i] = occ[i];
+				Znum2[i] = Znum[i];
             }
         }
 
         sbuffer= "Sorting atoms by depth...";
         messageAS( sbuffer );
-        sortByZ( x, y, z, occ, Znum, natom );
+        sortByZ( x2, y2, z2, occ2, Znum2, natom );
 
         if( lwobble == 1 ){
-            zmin = z[0];        /* reset zmin/max after wobble */
-            zmax = z[natom-1];
-            sbuffer="Thickness range with thermal displacements"
-                " is "+toString(zmin)+" to "+toString(zmax)+" (in z)";
-            messageAS( sbuffer );
+			//@@@@@ start TEG code
+			//we rely on the defined CT sample qube to be large enough to still contain all atoms in the case of thermal wobble
+			//zmin = z2[0];       /* reset zmin/max after wobble */
+			//zmax = z2[natom-1];
+			//sbuffer= "Thickness range with thermal displacements is "
+			//       + toString(zmin) + " to " + toString(zmax)+" (in z)";
+			//messageAS( sbuffer );
+			if (z2[0] < 0 || z2[natom - 1] > ctblength)
+			{
+				sbuffer = "!!!Error: zmin < 0 or zmax > ctblength after the thermal wobble!!!";
+				messageAS(sbuffer, 2);
+				exit(0);
+			}
+			//@@@@@ end TEG code
         }
 
         scale = 1.0F / ( ((float)nx) * ((float)ny) );
@@ -711,12 +741,12 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
             /* find range of atoms for current slice */
             na = 0;
             for(i=istart; i<natom; i++) 
-            if( z[i] < zslice ) na++; else break;
+            if( z2[i] < zslice ) na++; else break;
 
             /* calculate transmission function, skip if layer empty */
             if( na > 0 ) {
-                trlayer( &x[istart], &y[istart], &occ[istart],
-                    &Znum[istart], na, ax, by, v0, trans,
+                trlayer( &x2[istart], &y2[istart], &occ2[istart],
+                    &Znum2[istart], na, ax, by, v0, trans,
                     nx, ny, kx2, ky2, &phirms, &nbeams, k2max );
     
                 /*??? printf("average atompot comparison = %g\n", 
@@ -774,36 +804,6 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 
         } /* end while(istart<natom..) */
 		  
-		  
-		//@@@@@ start TEG code 
-		// simulated free-space propagation (defocus) from the exit plane
-		
-		// limiting exit range of q according to parameter aobj
-		k2maxo = aobj / wavlen;
-		k2maxo = k2maxo * k2maxo;
-
-		if (nmode == 0 && propdist != 0)
-		{
-			scale = pi * propdist;
-
-			for (ix = 0; ix < nx; ix++) {
-				t = scale * (kx2[ix] * wavlen - kx[ix] * tctx);
-				propxr[ix] = (float)cos(t);
-				propxi[ix] = (float)-sin(t);
-			}
-			for (iy = 0; iy < ny; iy++) {
-				t = scale * (ky2[iy] * wavlen - ky[iy] * tcty);
-				propyr[iy] = (float)cos(t);
-				propyi[iy] = (float)-sin(t);
-			}
-
-			wave.fft();
-			propagate(wave, propxr, propxi,
-				propyr, propyi, kx2, ky2, k2maxo, nx, ny);
-			wave.ifft();
-		}
-		//@@@@@@ end TEG code
-
         pix.resize(nx,ny);
         pix = wave;
 

@@ -392,6 +392,8 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		}
 
 		//@@@@@ start TEG code
+		if (lwobble == 1 && noutput != 0)
+			throw std::exception("Only intensity output is allowed in the presence of thermal vibrations.");
 		if (lstart == 1) {
 			//cout << "Name of file to start from:" << endl;
 			//cin >> filestart;
@@ -466,8 +468,10 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 				//cin >>  iseed;
 				iseed = iseed1;
 			}
+#ifdef _DEBUG
 			else
 				cout << "Random number seed initialized to " << iseed << endl;
+#endif
 		}
 		else temperature = 0.0F;
 
@@ -662,101 +666,117 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 
 		// ------- iterate the multislice algorithm proper -----------
 		//@@@@@ start TEG code
-		aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed,
-			Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode, 0.0f);
-		//@@@@@ end TEG code
-
-		if (lpartl == 1) {         //    with partial coherence
-			nillum = aslice.nillum;
-			cout << "Total number of illumination angle = "
-				<< nillum << endl;
-			ndf = (int)((2.5F * sigmaf) / dfdelt);  // recal same value in class
-			cout << "Total number of defocus values = " << 2 * ndf + 1 << endl;
-		}
-
-		else if (lbeams == 1) {
-			fp1.open(filebeam.c_str());
-			if (fp1.bad()) {
-				cout << "can't open file " << filebeam << endl;
-				exit(0);
-			}
-			fp1 << " (h,k) = ";
-			for (ib = 0; ib < nbout; ib++)
-				fp1 << " (" << hbeam[ib] << "," << kbeam[ib] << ")";
-			fp1 << endl;
-			nzbeams = beams.ny();
-			fp1 << "nslice, (real,imag) (real,imag) ...\n" << endl;
-			for (islice = 0; islice < nzbeams; islice++) {
-				fp1 << setw(5) << islice;
-				for (ib = 0; ib < nbout; ib++) //  setprecision(4)
-					fp1 << "  " << setw(10) << beams.re(ib, islice)		//????? "%10.6f %10.6f",
-					<< "  " << setw(10) << beams.im(ib, islice);
-				fp1 << endl;
-			}
-			fp1.close();
-
-		} // end else 
-
-	/*  ------------------------------------------------------
-		output results and find min and max to echo
-		remember that complex pix are stored in the file in FORTRAN
-			order for compatibility */
-
-		pix.findRange(rmin, rmax, aimin, aimax);
-
-		param[pRMAX] = rmax;
-		param[pIMAX] = aimax;
-		param[pRMIN] = rmin;
-		param[pIMIN] = aimin;
-
-		param[pDX] = dx = (float)(ax / ((float)nx));
-		param[pDY] = dy = (float)(by / ((float)ny));
-
-		//@@@@@ start TEG code
-		IXAHWave2D* ph2new = CreateWavehead2D();
-		ph2new->SetData(wavlen, ymin, ymax, xmin, xmax);
-		xar::XArray2D<xar::fcomplex> camp(ny, nx);
-		camp.SetHeadPtr(ph2new);
-		xar::XArray2DFFT<float> xafft(camp);
-
-		float k2maxo = aobj / wavlen;
-		k2maxo = k2maxo * k2maxo;
-
-		for (size_t j = 0; j < defocus.size(); j++)
+		if (lwobble != 1) nwobble = 1;
+		// TEG introduced a cycle over thermal vibration configurations, with each thermal configuration step potentially including multiple defocus distances
+		for (index_t iwobble = 0; iwobble < nwobble; iwobble++)
 		{
-			printf("\n  Defocus = %g", defocus[j]);
-			for (ix = 0; ix < nx; ix++)
-				for (iy = 0; iy < ny; iy++)
-					camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
+			iseed = (unsigned long)time(NULL) + (unsigned long)iwobble;
+			if (nwobble > 0)
+				printf("\nThermal configuration no. %zd, iseed = %d", iwobble, iseed);
 
-			if (defocus[j] != 0) xafft.Fresnel(defocus[j], false, double(k2maxo)); // propagate to the current defocus distance
+			aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed,
+				Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
+			//@@@@@ end TEG code
 
-			//GRD/GRC file output
-			switch (noutput)
-			{
-			case 0: // intensity out
-			{
-				xar::XArray2D<float> inten;
-				xar::Abs2(camp, inten);
-				xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
-				break;
+			if (lpartl == 1) {         //    with partial coherence
+				nillum = aslice.nillum;
+				cout << "Total number of illumination angle = "
+					<< nillum << endl;
+				ndf = (int)((2.5F * sigmaf) / dfdelt);  // recal same value in class
+				cout << "Total number of defocus values = " << 2 * ndf + 1 << endl;
 			}
-			case 1: // phase out
+
+			else if (lbeams == 1) {
+				fp1.open(filebeam.c_str());
+				if (fp1.bad()) {
+					cout << "can't open file " << filebeam << endl;
+					exit(0);
+				}
+				fp1 << " (h,k) = ";
+				for (ib = 0; ib < nbout; ib++)
+					fp1 << " (" << hbeam[ib] << "," << kbeam[ib] << ")";
+				fp1 << endl;
+				nzbeams = beams.ny();
+				fp1 << "nslice, (real,imag) (real,imag) ...\n" << endl;
+				for (islice = 0; islice < nzbeams; islice++) {
+					fp1 << setw(5) << islice;
+					for (ib = 0; ib < nbout; ib++) //  setprecision(4)
+						fp1 << "  " << setw(10) << beams.re(ib, islice)		//????? "%10.6f %10.6f",
+						<< "  " << setw(10) << beams.im(ib, islice);
+					fp1 << endl;
+				}
+				fp1.close();
+
+			} // end else 
+
+		/*  ------------------------------------------------------
+			output results and find min and max to echo
+			remember that complex pix are stored in the file in FORTRAN
+				order for compatibility */
+
+			pix.findRange(rmin, rmax, aimin, aimax);
+
+			param[pRMAX] = rmax;
+			param[pIMAX] = aimax;
+			param[pRMIN] = rmin;
+			param[pIMIN] = aimin;
+
+			param[pDX] = dx = (float)(ax / ((float)nx));
+			param[pDY] = dy = (float)(by / ((float)ny));
+
+			//@@@@@ start TEG code
+			IXAHWave2D* ph2new = CreateWavehead2D();
+			ph2new->SetData(wavlen, ymin, ymax, xmin, xmax);
+			xar::XArray2D<xar::fcomplex> camp(ny, nx);
+			camp.SetHeadPtr(ph2new);
+			xar::XArray2DFFT<float> xafft(camp);
+
+			float k2maxo = aobj / wavlen;
+			k2maxo = k2maxo * k2maxo;
+
+			for (size_t j = 0; j < defocus.size(); j++)
 			{
-				xar::XArray2D<float> phase;
-				xar::CArg(camp, phase);
-				xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
-				break;
-			}
-			case 2: // complex amplitude out
-			{
-				xar::XArData::WriteFileGRC(camp, fileout[j].data(), xar::eGRCBIN);
-				break;
-			}
-			default:
-				throw std::exception("Error: unknown value of the output mode parameter.");
-			}
-		}
+				printf("\n  Defocus = %g", defocus[j]);
+				for (ix = 0; ix < nx; ix++)
+					for (iy = 0; iy < ny; iy++)
+						camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
+
+				if (defocus[j] != 0) xafft.Fresnel(defocus[j], false, double(k2maxo)); // propagate to the current defocus distance
+
+				//GRD/GRC file output
+				switch (noutput)
+				{
+				case 0: // intensity out
+				{
+					xar::XArray2D<float> inten;
+					xar::Abs2(camp, inten);
+					if (iwobble > 0)
+					{
+						xar::XArray2D<float> inten1;
+						xar::XArData::ReadFileGRD(inten1, fileout[j].data(), wavlen);
+						inten += inten1;
+						inten /= 2.0f;
+					}
+					xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
+					break;
+				}
+				case 1: // phase out
+				{
+					xar::XArray2D<float> phase;
+					xar::CArg(camp, phase);
+					xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
+					break;
+				}
+				case 2: // complex amplitude out
+				{
+					xar::XArData::WriteFileGRC(camp, fileout[j].data(), xar::eGRCBIN);
+					break;
+				}
+				default:
+					throw std::exception("Error: unknown value of the output mode parameter.");
+				}
+			} // end of cycle over defocus distance
+		} // end of cycle over iwobble (thermal configurations)
 
 		/*   for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );
 

@@ -162,11 +162,10 @@ public:
 	// ctblength defines the CT sample box side length in Angstroms
 	// nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 	// nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
-	// propdist free-space propagation distance (defocus) for the exit-plane amplitude
 	void calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, unsigned long *iseed,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbeams, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode, float propdist);
+        cfpix &beams, int hb[], int kb[], int nbeams, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode);
 
 private:
 
