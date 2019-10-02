@@ -133,6 +133,10 @@ ANY OTHER PROGRAM).
 #include "cfpix.hpp"       // complex image handler with FFT
 #include "autoslic.hpp"    // header for this class
 
+//@@@@@ start TEG code
+#include "XA_nrrand.h"		// header to call Gauss random distribution
+//@@@@@ end TEG code
+
 #include <sstream>	// string streams
 
 
@@ -202,7 +206,7 @@ autoslic::~autoslic()
 // nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 // nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
-        float param[], int multiMode, int natom, unsigned long *iseed,
+        float param[], int multiMode, int natom, long *iseed2,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
         cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode )
 {
@@ -489,9 +493,12 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
                         if( lwobble == 1 ){
                             scale = (float) sqrt(temperature/300.0) ;
                             for( i=0; i<natom; i++) {
-                                x2[i] = x[i] + (float)(wobble[i]*rangauss(iseed)*scale);
-                                y2[i] = y[i] + (float)(wobble[i]*rangauss(iseed)*scale);
-                                z2[i] = z[i] + (float)(wobble[i]*rangauss(iseed)*scale);
+                                //x2[i] = x[i] + (float)(wobble[i]*rangauss(iseed)*scale);
+                                //y2[i] = y[i] + (float)(wobble[i]*rangauss(iseed)*scale);
+                                //z2[i] = z[i] + (float)(wobble[i]*rangauss(iseed)*scale);
+								x2[i] = x[i] + (float)(wobble[i] * gasdev(iseed2) * scale);
+								y2[i] = y[i] + (float)(wobble[i] * gasdev(iseed2) * scale);
+								z2[i] = z[i] + (float)(wobble[i] * gasdev(iseed2) * scale);
                                 occ2[i] = occ[i];
                                 Znum2[i] = Znum[i];
                             }
@@ -693,9 +700,12 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         if( lwobble == 1 ){
             scale = (float) sqrt(temperature/300.0) ;
             for( i=0; i<natom; i++) {
-				x2[i] = x[i] + (float)(wobble[i] * rangauss(iseed) * scale);
-				y2[i] = y[i] + (float)(wobble[i] * rangauss(iseed) * scale);
-				z2[i] = z[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				//x2[i] = x[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				//y2[i] = y[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				//z2[i] = z[i] + (float)(wobble[i] * rangauss(iseed) * scale);
+				x2[i] = x[i] + (float)(wobble[i] * gasdev(iseed2) * scale);
+				y2[i] = y[i] + (float)(wobble[i] * gasdev(iseed2) * scale);
+				z2[i] = z[i] + (float)(wobble[i] * gasdev(iseed2) * scale);
 				occ2[i] = occ[i];
 				Znum2[i] = Znum[i];
             }

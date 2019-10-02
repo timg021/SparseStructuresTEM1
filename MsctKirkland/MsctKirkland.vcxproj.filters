@@ -128,6 +128,9 @@
     <ClInclude Include="..\Multislice\OouraFft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Multislice\XA_nrrand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="MsctKirkland.txt">

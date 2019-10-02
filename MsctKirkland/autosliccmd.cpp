@@ -189,6 +189,9 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		long  ltime;
 
 		unsigned long iseed, iseed1;
+		//@@@@@ start TEG code
+		long iseed2;
+		//@@@@@ end TEG code
 
 		float v0, mm0, wavlen, rx, ry, ax, by, cz, pi,
 			rmin, rmax, aimin, aimax, ctiltx, ctilty,
@@ -668,13 +671,16 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		//@@@@@ start TEG code
 		if (lwobble != 1) nwobble = 1;
 		// TEG introduced a cycle over thermal vibration configurations, with each thermal configuration step potentially including multiple defocus distances
+
+		//iseed = (unsigned long)time(NULL) + (unsigned long)iwobble;
+		iseed2 = - (long)abs(time(NULL)); // gasdev requires a negative integer seed for initialization, which should not be changed between successive calls
+
 		for (index_t iwobble = 0; iwobble < nwobble; iwobble++)
 		{
-			iseed = (unsigned long)time(NULL) + (unsigned long)iwobble;
 			if (nwobble > 0)
-				printf("\nThermal configuration no. %zd, iseed = %d", iwobble, iseed);
+				printf("\nThermal configuration no. %zd, iseed2 = %d", iwobble, iseed2);
 
-			aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed,
+			aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed2,
 				Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
 			//@@@@@ end TEG code
 
@@ -755,7 +761,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 						xar::XArray2D<float> inten1;
 						xar::XArData::ReadFileGRD(inten1, fileout[j].data(), wavlen);
 						inten += inten1;
-						inten /= 2.0f;
+						if (iwobble == (nwobble - 1)) inten /= (float)nwobble;
 					}
 					xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
 					break;
