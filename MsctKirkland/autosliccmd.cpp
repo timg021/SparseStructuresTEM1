@@ -747,7 +747,10 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 					for (iy = 0; iy < ny; iy++)
 						camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
 
-				if (defocus[j] != 0) xafft.Fresnel(defocus[j], false, double(k2maxo)); // propagate to the current defocus distance
+				if (defocus[j] == 0 && k2maxo != 0) 
+					xafft.Fresnel(double(wavlen), false, double(k2maxo)); // in the case of finite objective aperture, fake propagation is needed in order to enforce the spatial Fourier frequency cutoff
+				else 
+					xafft.Fresnel(defocus[j], false, double(k2maxo)); // propagate to the current defocus distance
 
 				//GRD/GRC file output
 				switch (noutput)

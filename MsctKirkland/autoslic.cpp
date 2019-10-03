@@ -710,13 +710,20 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 				Znum2[i] = Znum[i];
             }
         }
+		else for (i = 0; i < natom; i++) {
+			x2[i] = x[i];
+			y2[i] = y[i];
+			z2[i] = z[i];
+			occ2[i] = occ[i];
+			Znum2[i] = Znum[i];
+		}
 
         sbuffer= "Sorting atoms by depth...";
         messageAS( sbuffer );
         sortByZ( x2, y2, z2, occ2, Znum2, natom );
 
-        if( lwobble == 1 ){
-			//@@@@@ start TEG code
+		//@@@@@ start TEG code
+		//if( lwobble == 1 ){
 			//we rely on the defined CT sample qube to be large enough to still contain all atoms in the case of thermal wobble
 			//zmin = z2[0];       /* reset zmin/max after wobble */
 			//zmax = z2[natom-1];
@@ -729,8 +736,8 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 				messageAS(sbuffer, 2);
 				exit(0);
 			}
-			//@@@@@ end TEG code
-        }
+        //}
+		//@@@@@ end TEG code
 
         scale = 1.0F / ( ((float)nx) * ((float)ny) );
 
