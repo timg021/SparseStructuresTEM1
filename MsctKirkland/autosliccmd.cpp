@@ -421,16 +421,16 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 
 		/*  remember that the slice thickness must be > atom size
 			to use projected atomic potential */
-			//@@@@@ start TEG code
-			//cout << "Slice thickness (in Angstroms):" << endl;
-			//cin >> deltaz;
-			//deltaz = 1.3575;
-			//@@@@@ end TEG code
-		if (deltaz < 1.0) {
-			cout << "WARNING: this slice thickness is probably too thin"
-				<< " for autoslice to work properly." << endl;
-		}
+		//@@@@@ start TEG code
+		//cout << "Slice thickness (in Angstroms):" << endl;
+		//cin >> deltaz;
+		//deltaz = 1.3575;
 
+		//if (deltaz < 1.0) {
+		//	cout << "\nWARNING: this slice thickness is probably too thin"
+		//		<< " for autoslice to work properly." << endl;
+		//}
+		//@@@@@ end TEG code
 		if (lpartl == 0) {
 			//@@@@@ start TEG code
 			//lbeams = askYN("Do you want to record the (real,imag) value\n"
@@ -677,7 +677,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 
 		for (index_t iwobble = 0; iwobble < nwobble; iwobble++)
 		{
-			if (nwobble > 0)
+			if (lwobble == 1)
 				printf("\nThermal configuration no. %zd, iseed2 = %d", iwobble, iseed2);
 
 			aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed2,

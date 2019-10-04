@@ -91,7 +91,8 @@ int main()
 		//************************************ end reading input parameters from file
 
 		// calculate some useful parameters
-		index_t ndefocus = index_t((zmax - zmin) / zstep); // number of defocus planes, it determines the number of input files to read
+		index_t ndefocus = index_t((zmax - zmin) / zstep + 0.5); // number of defocus planes, it determines the number of input files to read
+		if (ndefocus < 1) throw std::exception("Error: the number of defocus planes is less than 1.");
 		index_t nz = ndefocus;
 		printf("\nNumber of defocus planes = %zd.", nz);
 		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
