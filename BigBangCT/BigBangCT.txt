@@ -1,18 +1,17 @@
 //*****Input parameter file for BigBAngCT.exe program*****
-1.Defocus_distance_MIN,MAX,STEP_in_Angstroms: 0.0 10.0 0.0390625
-2.Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format: C:\Users\TimGu\Downloads\TempData\asp.grd
+1.Defocus_distance_MIN,MAX,STEP_in_Angstroms: 0.0 11.0 1.0
+2.Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\n1pasp30mradDW.grd
 3.Number_of_different_atom_types_in_the_sample: 4
-4.1.Number_of_atoms_of_type_1,_template_atom_XYZ_position_and_filename_base: 4 5.0 5.0 5.0 C:\Users\TimGu\Downloads\TempData\O.grd
-4.2.Number_of_atoms_of_type_2,_template_atom_XYZ_position_and_filename_base: 1 5.0 5.0 5.0 C:\Users\TimGu\Downloads\TempData\N.grd
-4.3.Number_of_atoms_of_type_3,_template_atom_XYZ_position_and_filename_base: 4 5.0 5.0 5.0 C:\Users\TimGu\Downloads\TempData\C.grd
-4.4.Number_of_atoms_of_type_4,_template_atom_XYZ_position_and_filename_base: 7 5.0 5.0 5.0 C:\Users\TimGu\Downloads\TempData\H.grd
+4.1.Number_of_atoms_of_type_1,_template_atom_XYZ_position_and_filename_base: 4 5.0 5.0 5.0 C:\Users\tgureyev\Downloads\Temp\O30mrad.grd
+4.1.Number_of_atoms_of_type_1,_template_atom_XYZ_position_and_filename_base: 1 5.0 5.0 5.0 C:\Users\tgureyev\Downloads\Temp\N30mrad.grd
+4.1.Number_of_atoms_of_type_1,_template_atom_XYZ_position_and_filename_base: 4 5.0 5.0 5.0 C:\Users\tgureyev\Downloads\Temp\C30mrad.grd
+4.1.Number_of_atoms_of_type_1,_template_atom_XYZ_position_and_filename_base: 7 5.0 5.0 5.0 C:\Users\tgureyev\Downloads\Temp\H30mrad.grd
 5.Wavelength_in_Angstroms: 0.025
 6.Average_atom_size_(for_masking_out)_in_Angstroms: 1.0
-7.Atom_trace_Z_length_for_masking_in__the_template_atom,_and_masking_out__the_same_and_different_type_atoms,_in_Angstroms: 10.0 2.0 128.0
-8.High_frequency_bandpath_radius_i.e._lowest_non_zero_index_of_Fourier_coefficients: 3
-9.Output_file_name_for_atom_locations_in_Vesta_XYZ_format: C:\Users\TimGu\Downloads\TempData\000BigBangOut.xyz
-10.0_for_disabling_or_1,2_or_3_for_saving_1st,_2nd_masked_input_array_or_3D_correlation_array_respectively: 1
-11.Output_filename_base_for_data_selected_by_parameter_9_in_GRD_format: C:\Users\TimGu\Downloads\TempData\zzz.grd
+7.Atom_trace_Z_length_for_masking_in__the_template_atom,_and_masking_out__the_same_and_different_type_atoms,_in_Angstroms: 10.0 10.0 10.0
+8.High_frequency_bandpath_radius_i.e._lowest_non_zero_index_of_Fourier_coefficients: 2
+9.Output_file_name_for_atom_locations_in_Vesta_XYZ_format: C:\Users\tgureyev\Downloads\Temp\000BigBangOut.xyz
+10.0_for_disabling_or_1,2_or_3_for_saving_1st,_2nd_masked_input_array_or_3D_correlation_array_respectively: 0
+11.Output_filename_base_for_data_selected_by_parameter_9_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\zzz.grd
 //*****
 //*****!!!Don't forget to save this file after editing the parameters
-

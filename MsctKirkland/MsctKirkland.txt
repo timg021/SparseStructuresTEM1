@@ -1,16 +1,16 @@
 //*****Input parameter file for MsctKirkland.exe program*****
-1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: ASP_NEW_Kirck_H1.xyz
-3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\Temp\H.grd
+1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: ASP_NEW_Kirck_O1.xyz
+3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\Temp\O.grd
 28.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0
 26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0
 11.Incident__electron_beam_energy_in_keV: 200.0
 12.Wavefunction_size_in_pixels,_Nx,Ny: 256 256
 14.Slice_thickness_in_Angstroms: 0.1375
-27.Defocus_distance_MIN,MAX,STEP_in_Angstroms: -10.0 0.0 0.0390625
+27.Defocus_distance_MIN,MAX,STEP_in_Angstroms: -10.0 1.0 1.0
 8.Objective_aperture_in_mrad: 0.0
-18.Include_thermal_vibrations(1)_or_not(0): 1
+18.Include_thermal_vibrations(1)_or_not(0): 0
 19.____Temperature_in_degrees_K: 300.0
-20.____Number_of_configurations_to_average_over: 1
+20.____Number_of_configurations_to_average_over: 64
 21.____Initial_seed_for_random_number_generator: 1
 25.Total_CT_rotation_span_in_degrees: 1
 29.Number_of_CT_rotation_angles: 1
