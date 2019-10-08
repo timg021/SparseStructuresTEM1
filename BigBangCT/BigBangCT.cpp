@@ -387,7 +387,21 @@ int main()
 			}
 		} // end of cycle over different atom types
 
-		// write the locations of the detected atoms into an XYZ file
+
+		// bubble-sort the found locations of atoms of each type separately, in accordance with the increasing z-coordinate 
+		// (this is done just for increased convenience of checking the output data manually later on)
+		vector<index_t> vtemp(3);
+		for (index_t nat = 0; nat < natomtypes; nat++)
+		{
+			index_t n = vvvatompos[nat].size();
+			for (index_t i = 0; i < n - 1; i++)
+				// Last i elements are already in place    
+				for (index_t j = 0; j < n - i - 1; j++)
+					if (vvvatompos[nat][j][0] > vvvatompos[nat][j + 1][0])
+						std::swap<vector<index_t> >(vvvatompos[nat][j], vvvatompos[nat][j + 1]);
+		}
+
+		// write the locations of the detected atoms into an XYZ file compatible with Vesta XYZ format
 		FILE* ff = fopen(filenameOutXYZ.c_str(), "wt");
 		printf("\n\nWriting output file %s in Vesta XYZ format ...\n", filenameOutXYZ.c_str());
 		fprintf(ff, "%zd\n", natomtotal); // number of detected atoms
