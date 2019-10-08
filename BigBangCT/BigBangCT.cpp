@@ -376,7 +376,6 @@ int main()
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
 #ifdef _DEBUG
 				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
-				printf("\nMaximum correlation = %g.", amax);
 #endif
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
 				printf("\nCorrelation coefficient = %g.", amax);
