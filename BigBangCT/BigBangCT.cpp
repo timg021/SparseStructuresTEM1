@@ -172,8 +172,9 @@ int main()
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
 						{
-							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							aaa[kk][jj][ii] = inten[jj][ii];
+							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
@@ -238,8 +239,9 @@ int main()
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
 						{
-							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							aaa[kk][jj][ii] = inten[jj][ii];
+							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
@@ -297,6 +299,7 @@ int main()
 
 			/// multiply FFTs of 2 arrays, taking the conjugate of the second one
 			printf("\nMultiplying FFT of the first 3D array by the conjugate of the FFT of the second ...");
+			printf("\nFourier space high-pass filter radius = %g", sqrt(iHPathRad2));
 			float ftemp;
 			fftwf_complex* pout = fftf.GetComplex();
 			int m = 0;
@@ -374,9 +377,9 @@ int main()
 				double zmaxA = zmin + vvvatompos[nat][na][0] * zstep;
 
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
-#ifdef _DEBUG
+//#ifdef _DEBUG
 				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
-#endif
+//#endif
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
 				printf("\nCorrelation coefficient = %g.", amax);
 
