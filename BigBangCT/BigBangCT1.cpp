@@ -1,19 +1,16 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-//#define CORRELATION_BASED_METHOD 1
+#define SUBTRACTION_BASED_METHOD 1
 
-#ifdef CORRELATION_BASED_METHOD
+#ifdef SUBTRACTION_BASED_METHOD
 
-#include <complex.h>
 #include <chrono>
-#include <fftw3.h>
 #include "IXAHWave.h"
 #include "XArray2D.h"
 #include "XArray3D.h"
 #include "XA_data.h"
 #include "XA_move3.h"
-#include "fftwf3drc.h"
 
 //!!! NOTE that fftw3 and XArray3D have the same notation for the order of the array dimensions. Both use C-style array structure, i.e. the last index changes the fastest, 
 //i.e. in XArray3D(dim1, dim2, dim3) the fastest changing dimension is dim3, and in fftw_r2c_3d(n0, n1, n2) the fastest dimension is n2.
@@ -132,7 +129,7 @@ int main()
 
 		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
 		{
-			// first array to transform
+			// load 3D defocus series array
 			XArray3D<float> aaa(nz, ny, nx, 0.0f);
 			XArray3DMove<float> aaamove(aaa); // the associated XArray class for applying masks to aaa later
 #if TEST_RUN
@@ -207,30 +204,14 @@ int main()
 				}
 			}
 
-			//allocate space for FFT transform and create FFTW plans
-			XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
-			Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
 
-			// FFT of 1st array
-			printf("\nFFT of the sample defocus series ...");
-			fftf.SetRealXArray3D(aaa);
-#if TEST_RUN		
-			//fftf.PrintRealArray("\nBefore 1st FFT:");
-#endif
-			fftf.ForwardFFT();
-#if TEST_RUN		
-			//fftf.PrintComplexArray("\nAfter 1st FFT:");
-#endif
-
-			// store away the result of the 1st FFT
-			fftf.GetComplexXArray3D(ccc);
-
-			// second array to transform
+			// load 3D template array
+			XArray3D<float> bbb(nz, ny, nx, 0.0f);
+			XArray3DMove<float> bbbmove(bbb); // the associated XArray class for applying masks to aaa later
 #if TEST_RUN
-			aaa.Fill(0.5); // this is for testing the masking of the central feature
-			aaa[1][1][1] = 1.0; // delta-function
+			bbb.Fill(0.5); // this is for testing the masking of the central feature
+			bbb[1][1][1] = 1.0; // delta-function
 #else
-			aaa.Fill(0.0);
 			printf("\nReading single atom defocus series files %s ...", filenamebaseIn2[nat].c_str());
 			FileNames(nangles, ndefocus, filenamebaseIn2[nat], infiles);
 			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
@@ -243,9 +224,9 @@ int main()
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
 						{
-							aaa[kk][jj][ii] = inten[jj][ii];
-							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							bbb[kk][jj][ii] = inten[jj][ii];
+							//bbb[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							//bbb[kk][jj][ii] = ::fabs(bbb[kk][jj][ii]);
 						}
 				}
 			}
@@ -256,7 +237,7 @@ int main()
 				for (index_t jj = 0; jj < ny; jj++)
 					for (index_t ii = 0; ii < nx; ii++)
 					{
-						dtemp = abs(aaa[kk][jj][ii]);
+						dtemp = abs(bbb[kk][jj][ii]);
 						integ += dtemp;
 						xpos += dtemp * ii;
 						ypos += dtemp * jj;
@@ -270,43 +251,30 @@ int main()
 			ipos2 = index_t((xpos2 - xmin) / xstep + 0.5); jpos2 = index_t((ypos2 - ymin) / ystep + 0.5); kpos2 = index_t((zpos2 - zmin) / zstep + 0.5);
 			printf("\nPosition of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
-			// set to zero the values of all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
-			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karadt, jarad, iarad, 0.0f);
+			// trim all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
+			//bbbmove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karadt, jarad, iarad, 0.0f);
+			bbbmove.Trim(kpos2 - karadt, bbb.GetDim1() - 1 - kpos2 - karadt, jpos2 - jarad, bbb.GetDim2() - 1 - jpos2 - jarad, ipos2 - iarad, bbb.GetDim3() - 1 - ipos2 - iarad);
 
 			// optional auxilliary data output
 			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked 2nd input array
 			{
 				printf("\nWriting masked 2nd input array in output files %s ...", filenamebaseOut.c_str());
-				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
+				FileNames(nangles, karadt * 2 + 1, filenamebaseOut, infiles);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
-					for (index_t kk = 0; kk < ndefocus; kk++)
+					for (index_t kk = 0; kk < karadt * 2 + 1; kk++)
 					{
-						for (index_t jj = 0; jj < ny; jj++)
-							for (index_t ii = 0; ii < nx; ii++)
-								inten[jj][ii] = aaa[kk][jj][ii];
+						for (index_t jj = 0; jj < jarad * 2 + 1; jj++)
+							for (index_t ii = 0; ii < iarad * 2 + 1; ii++)
+								inten[jj][ii] = bbb[kk][jj][ii];
 						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 					}
 				}
 			}
 
-			// FFT of the 2nd array
-			printf("\nFFT of the single atom defocus series ...");
-			fftf.SetRealXArray3D(aaa);
-#if TEST_RUN		
-			//fftf.PrintRealArray("\nBefore 2nd FFT:");
-#endif
-			fftf.ForwardFFT();
-#if TEST_RUN		
-			//fftf.PrintComplexArray("\nAfter 2nd FFT:");
-#endif
 
-			/// multiply FFTs of 2 arrays, taking the conjugate of the second one
-			printf("\nMultiplying FFT of the first 3D array by the conjugate of the FFT of the second ...");
-			printf("\nFourier space high-pass filter radius = %g", sqrt(iHPathRad2));
-			float ftemp;
-			fftwf_complex* pout = fftf.GetComplex();
-			int m = 0;
+			/// subtract 2 arrays, shifting the second array around
+			printf("\nSubtracting the template array from the defocus series 3D array ...");
 			for (index_t k = 0; k < nz; k++)
 				for (index_t j = 0; j < ny; j++)
 					for (index_t i = 0; i < nx2; i++)
@@ -474,4 +442,5 @@ void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<st
 	}
 }
 
-#endif // ifdef CORRELATION_BASED_METHOD
+
+#endif //ifdef SUBTRACTION_BASED_METHOD

@@ -36,6 +36,9 @@
     <ClCompile Include="fftwf3drc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BigBangCT1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Multislice\IXAHead.h">

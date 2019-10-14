@@ -161,6 +161,7 @@
     <ClCompile Include="..\Multislice\XA_file.cpp" />
     <ClCompile Include="..\Multislice\XA_ini.cpp" />
     <ClCompile Include="BigBangCT.cpp" />
+    <ClCompile Include="BigBangCT1.cpp" />
     <ClCompile Include="fftwf3drc.cpp" />
   </ItemGroup>
   <ItemGroup>
