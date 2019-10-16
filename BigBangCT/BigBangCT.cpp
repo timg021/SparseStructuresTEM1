@@ -1,6 +1,10 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+//#define CORRELATION_BASED_METHOD 1
+
+#ifdef CORRELATION_BASED_METHOD
+
 #include <complex.h>
 #include <chrono>
 #include <fftw3.h>
@@ -469,3 +473,5 @@ void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<st
 		}
 	}
 }
+
+#endif // ifdef CORRELATION_BASED_METHOD
