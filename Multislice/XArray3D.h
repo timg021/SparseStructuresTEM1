@@ -245,6 +245,8 @@ namespace xar
 		void GetSubarray(index_t iBeginDim1, index_t iEndDim1, index_t iBeginDim2, index_t iEndDim2, index_t iBeginDim3, index_t iEndDim3, XArray3D<T>& rDestSubXArray) const; 
 		//! Inserts a sub-XArray3D
 		void SetSubarray(const XArray3D<T>& rSrcSubXArray, index_t iBeginDim1, index_t iBeginDim2, index_t iBeginDim3); 
+		//! Finds the value and position of the minimum in a 3D array
+		T Min3D(index_t& kmin, index_t& jmin, index_t& imin);
 		//! Finds the value and position of the maximum in a 3D array
 		T Max3D(index_t& kmax, index_t& jmax, index_t& imax);
 
@@ -442,6 +444,24 @@ namespace xar
 		// heads are ignored
 	}
 
+	//! Finds the value and position of the minimum in a 3D array
+	template <class T> T XArray3D<T>::Min3D(index_t& kmin, index_t& jmin, index_t& imin)
+	{
+		kmin = jmin = imin = 0;
+		T amin = (*this)[kmin][jmin][imin];
+		for (index_t kk = 0; kk < m_iDim1; kk++)
+			for (index_t jj = 0; jj < m_iDim2; jj++)
+				for (index_t ii = 0; ii < m_iDim3; ii++)
+					if ((*this)[kk][jj][ii] < amin)
+					{
+
+						amin = (*this)[kk][jj][ii];
+						kmin = kk; jmin = jj; imin = ii;
+					}
+
+		return amin;
+	}
+
 	//! Finds the value and position of the maximum in a 3D array
 	template <class T> T XArray3D<T>::Max3D(index_t& kmax, index_t& jmax, index_t& imax)
 	{
@@ -459,7 +479,6 @@ namespace xar
 
 		return amax;
 	}
-
 
 
 	//***** XArray3D member operators

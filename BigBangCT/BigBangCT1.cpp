@@ -70,9 +70,9 @@ int main()
 		double atomsize = atof(cparam); // atom diameter in physical units
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom trace Z-length for masking out in Angstroms
 		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading atom trace Z-length parameters from input parameter file.");
-		double atemplength = atof(cparam); // atom "trace" length in the defocus direction in Angstoms to mask "in" the template atom
-		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the same type
-		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the next type
+		double atomlength = atof(cparam); // atom "trace" length in the defocus direction in Angstroms to mask "in" the template atom
+		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstroms to mask "out" when searching for atoms of the same type
+		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstroms to mask "out" when searching for atoms of the next type
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // high-frequency bandpath radius
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading low frequency limit from input parameter file.");
 		int iHPathRad = index_t(atoi(cparam)); // high-frequency bandpath radius: all (abs.)frequencies lower than this one will be zet to zero
@@ -94,18 +94,18 @@ int main()
 		// calculate some useful parameters
 		index_t ndefocus = index_t((zmax - zmin) / zstep + 0.5); // number of defocus planes, it determines the number of input files to read
 		if (ndefocus < 1) throw std::exception("Error: the number of defocus planes is less than 1.");
-		index_t nz = ndefocus;
-		printf("\nNumber of defocus planes = %zd.", nz);
-		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
+		int nz = (int)ndefocus;
+		printf("\nNumber of defocus planes = %d.", nz);
+		int ny = 4, nx = 4; // nx and ny may be overwritten below by data read from input files
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not supported in the code below
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
-		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
-		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
-		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
-		index_t karad0 = index_t(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
-		index_t karad1 = index_t(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
-		index_t karadt = index_t(atemplength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
+		int karad = int(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
+		int jarad = int(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
+		int iarad = int(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
+		int karad0 = int(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
+		int karad1 = int(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
+		int karadt = int(atomlength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
@@ -146,20 +146,19 @@ int main()
 			FileNames(nangles, ndefocus, filenamebaseIn1, infiles);
 			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 			{
-				for (index_t kk = 0; kk < ndefocus; kk++)
+				for (int kk = 0; kk < nz; kk++)
 				{
 					XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
 					if (nn == 0 && kk == 0)
 					{
-						nx = inten.GetDim2();
-						ny = inten.GetDim1();
+						nx = (int)inten.GetDim2();
+						ny = (int)inten.GetDim1();
 						xmin = GetXlo(inten);
 						ymin = GetYlo(inten);
 						xstep = GetXStep(inten);
 						ystep = GetYStep(inten);
-						jarad = index_t(atomsize / ystep / 2.0 + 0.5);
-						iarad = index_t(atomsize / xstep / 2.0 + 0.5);
-						nx2 = nx / 2 + 1;
+						jarad = int(atomsize / ystep / 2.0 + 0.5);
+						iarad = int(atomsize / xstep / 2.0 + 0.5);
 						aaa.Resize(nz, ny, nx, 0.0f);
 						IXAHWave3D* ph3new = CreateWavehead3D();
 						ph3new->SetData(wl, zmin, zmax, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
@@ -170,8 +169,8 @@ int main()
 						if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
 						if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
 					}
-					for (index_t jj = 0; jj < ny; jj++)
-						for (index_t ii = 0; ii < nx; ii++)
+					for (int jj = 0; jj < ny; jj++)
+						for (int ii = 0; ii < nx; ii++)
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
 							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
@@ -180,7 +179,7 @@ int main()
 				}
 			}
 #endif
-			printf("\nSize of input images: (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
+			printf("\nSize of input images: (nx,ny,nz) = (%d, %d, %d); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
 			// mask with zeros the vicinity of locations of previously found atoms of other types
 			for (index_t natprev = 0; natprev < nat; natprev++)
@@ -194,10 +193,10 @@ int main()
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
-					for (index_t kk = 0; kk < ndefocus; kk++)
+					for (int kk = 0; kk < nz; kk++)
 					{
-						for (index_t jj = 0; jj < ny; jj++)
-							for (index_t ii = 0; ii < nx; ii++)
+						for (int jj = 0; jj < ny; jj++)
+							for (int ii = 0; ii < nx; ii++)
 								inten[jj][ii] = aaa[kk][jj][ii];
 						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 					}
@@ -216,13 +215,13 @@ int main()
 			FileNames(nangles, ndefocus, filenamebaseIn2[nat], infiles);
 			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 			{
-				for (index_t kk = 0; kk < ndefocus; kk++)
+				for (int kk = 0; kk < nz; kk++)
 				{
 					XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
 					if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
 					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
-					for (index_t jj = 0; jj < ny; jj++)
-						for (index_t ii = 0; ii < nx; ii++)
+					for (int jj = 0; jj < ny; jj++)
+						for (int ii = 0; ii < nx; ii++)
 						{
 							bbb[kk][jj][ii] = inten[jj][ii];
 							//bbb[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
@@ -233,9 +232,9 @@ int main()
 #endif
 			// find the centre of gravity of the second 3D array, i.e. the position of the template atom
 			double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
-			for (index_t kk = 0; kk < ndefocus; kk++)
-				for (index_t jj = 0; jj < ny; jj++)
-					for (index_t ii = 0; ii < nx; ii++)
+			for (int kk = 0; kk < ndefocus; kk++)
+				for (int jj = 0; jj < ny; jj++)
+					for (int ii = 0; ii < nx; ii++)
 					{
 						dtemp = abs(bbb[kk][jj][ii]);
 						integ += dtemp;
@@ -252,112 +251,103 @@ int main()
 			printf("\nPosition of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
 			// trim all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
-			//bbbmove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karadt, jarad, iarad, 0.0f);
+			if (kpos2 < karadt || bbb.GetDim1() < 1 + kpos2 + karadt || jpos2 < jarad || bbb.GetDim2() < 1 + jpos2 + jarad || ipos2 < iarad || bbb.GetDim3() < 1 + ipos2 + iarad)
+				throw std::runtime_error("atomic size and position parameters are inconsistent in input template files");
 			bbbmove.Trim(kpos2 - karadt, bbb.GetDim1() - 1 - kpos2 - karadt, jpos2 - jarad, bbb.GetDim2() - 1 - jpos2 - jarad, ipos2 - iarad, bbb.GetDim3() - 1 - ipos2 - iarad);
+			int nxbbb = (int)bbb.GetDim3(), nybbb = (int)bbb.GetDim2(), nzbbb = (int)bbb.GetDim1();
 
 			// optional auxilliary data output
 			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked 2nd input array
 			{
 				printf("\nWriting masked 2nd input array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, karadt * 2 + 1, filenamebaseOut, infiles);
+				inten.Resize(nybbb, nxbbb);
+				IXAHWave2D* ph2new = CreateWavehead2D();
+				ph2new->SetData(wl, ymin + ystep * (jpos2 - jarad), ymin + ystep * (jpos2 - jarad + bbb.GetDim2()), xmin + xstep * (ipos2 - iarad), xmin + xstep * (ipos2 - iarad + bbb.GetDim3()));
+				inten.SetHeadPtr(ph2new);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
-					for (index_t kk = 0; kk < karadt * 2 + 1; kk++)
+					for (int kk = 0; kk < nzbbb; kk++)
 					{
-						for (index_t jj = 0; jj < jarad * 2 + 1; jj++)
-							for (index_t ii = 0; ii < iarad * 2 + 1; ii++)
+						for (int jj = 0; jj < nybbb; jj++)
+							for (int ii = 0; ii < nxbbb; ii++)
 								inten[jj][ii] = bbb[kk][jj][ii];
 						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 					}
-				}
+				} 
 			}
 
 
-			/// subtract 2 arrays, shifting the second array around
+			// subtract 2 arrays, shifting the second array around
 			printf("\nSubtracting the template array from the defocus series 3D array ...");
-			for (index_t k = 0; k < nz; k++)
-				for (index_t j = 0; j < ny; j++)
-					for (index_t i = 0; i < nx2; i++)
+			float aaaMax = (float)aaa.Norm(eNormMax);
+			XArray3D<float> ccc(nz, ny, nx, aaaMax);
+			int  karadt2 = karadt * 2, jarad2 = jarad * 2, iarad2 = iarad * 2;
+			float adif(0);
+			for (int k = 0; k < nz - karadt2; k++)
+				for (int j = 0; j < ny - jarad2; j++)
+					for (int i = 0; i < nx - iarad2; i++)
 					{
-						if (k * k + j * j + i * i < iHPathRad2)
-						{
-							pout[m][1] = pout[m][0] = 0.0f; // high-frequency bandpath filter of the correlation array
-						}
-						else
-						{
-							ftemp = pout[m][0] * ccc[k][j][i].real() + pout[m][1] * ccc[k][j][i].imag();
-							pout[m][1] = -pout[m][1] * ccc[k][j][i].real() + pout[m][0] * ccc[k][j][i].imag();
-							pout[m][0] = ftemp;
-							//@@@@@ normalization by the modulus (leaving the phase only)
-							//ftemp = sqrt(pout[m][0] * pout[m][0] + pout[m][1] * pout[m][1]);
-							//pout[m][1] /= ftemp;
-							//pout[m][0] /= ftemp;
-						}
-						m++;
+						adif = 0.0f;
+						for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
+							for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
+								for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
+									adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
+						ccc[k + karad][j + jarad][i + iarad] = adif;
 					}
-#if TEST_RUN		
-			//fftf.PrintComplexArray("\nAfter multiplication:");
-#endif
-
-			// inverse FFT of the product
-			printf("\nInverse FFT of the product ...");
-			fftf.InverseFFT();
-
-			// get the result
-			fftf.GetRealXArray3D(aaa);
 
 #if !TEST_RUN	
 			// optional auxilliary data output
-			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D correlation distribution array
+			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D difference distribution array
 			{
-				printf("\nWriting 3D correlation array in output files %s ...", filenamebaseOut.c_str());
+				printf("\nWriting 3D absolute difference array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
-					for (index_t kk = 0; kk < ndefocus; kk++)
+					for (int kk = 0; kk < nz; kk++)
 					{
-						for (index_t jj = 0; jj < ny; jj++)
-							for (index_t ii = 0; ii < nx; ii++)
-								inten[jj][ii] = aaa[kk][jj][ii];
+						for (int jj = 0; jj < ny; jj++)
+							for (int ii = 0; ii < nx; ii++)
+								inten[jj][ii] = ccc[kk][jj][ii];
 						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
 					}
 				}
 			}
 #endif
 
-			// find the maximums
-			printf("\nFinding maximums in the correlation array ...");
-			index_t kmax = 0, jmax = 0, imax = 0;
+			// find the minimums
+			printf("\nFinding minimums in the absolute difference array ...");
+			index_t kmin, jmin, imin;
 			for (index_t na = 0; na < natom[nat]; na++)
 			{
 				natomtotal++;
 #if TEST_RUN		
-				printf("\nCorrelation array (iteration %zd):", nn);
+				printf("\nAbsolute difference array (iteration %zd):", nn);
 				for (index_t k = 0; k < nz; k++)
 					for (index_t j = 0; j < ny; j++)
 						for (index_t i = 0; i < nx; i++)
-							printf("\naaa[%zd,%zd,%zd] = %g", k, j, i, aaa[k][j][i]);
+							printf("\nccc[%zd,%zd,%zd] = %g", k, j, i, ccc[k][j][i]);
 #endif
-				float amax = aaa.Max3D(kmax, jmax, imax);
+				float amin = aaa.Min3D(kmin, jmin, imin);
 
-				vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmax), double(nz)); // absolute z position of the located atom
-				vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmax), double(ny)); // absolute y position of the located atom
-				vvvatompos[nat][na][2] = nmodm(int(ipos2 + imax), double(nx)); // absolute x position of the located atom
+				vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmin), double(nz)); // absolute z position of the located atom
+				vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmin), double(ny)); // absolute y position of the located atom
+				vvvatompos[nat][na][2] = nmodm(int(ipos2 + imin), double(nx)); // absolute x position of the located atom
 
-				double xmaxA = xmin + vvvatompos[nat][na][2] * xstep;
-				double ymaxA = ymin + vvvatompos[nat][na][1] * ystep;
-				double zmaxA = zmin + vvvatompos[nat][na][0] * zstep;
+				double xminA = xmin + vvvatompos[nat][na][2] * xstep;
+				double yminA = ymin + vvvatompos[nat][na][1] * ystep;
+				double zminA = zmin + vvvatompos[nat][na][0] * zstep;
 
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
 //#ifdef _DEBUG
-				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
+				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imin, jmin, kmin);
 //#endif
-				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
-				printf("\nCorrelation coefficient = %g.", amax);
+				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xminA, yminA, zminA);
+				printf("\nAbsolute difference = %g.", amin);
 
-				// fill the atomsize vicinity of the found maximum by zeros, in order to make possible the search for the next largest maximum
+				// fill the atomsize vicinity of the found minimum by aaaMax values, in order to make possible the search for the next smallest minimum
 				if (na < natom[nat] - 1) 
-					aaamove.FillCylinderPeriodic(kmax, jmax, imax, karad0, jarad, iarad, 0.0f);
+					aaamove.FillCylinderPeriodic(kmin, jmin, imin, karad0, jarad, iarad, aaaMax);
 			}
 		} // end of cycle over different atom types
 
