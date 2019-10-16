@@ -280,8 +280,9 @@ int main()
 
 			// subtract 2 arrays, shifting the second array around
 			printf("\nSubtracting the template array from the defocus series 3D array ...");
-			float aaaMax = (float)aaa.Norm(eNormMax);
+			float aaaMax = (float)aaa.Norm(eNormMax) * nzbbb * nybbb * nxbbb;
 			XArray3D<float> ccc(nz, ny, nx, aaaMax);
+			XArray3DMove<float> cccmove(ccc); // the associated XArray class for applying masks to aaa later
 			int  karadt2 = karadt * 2, jarad2 = jarad * 2, iarad2 = iarad * 2;
 			float adif(0);
 			for (int k = 0; k < nz - karadt2; k++)
@@ -328,7 +329,7 @@ int main()
 						for (index_t i = 0; i < nx; i++)
 							printf("\nccc[%zd,%zd,%zd] = %g", k, j, i, ccc[k][j][i]);
 #endif
-				float amin = aaa.Min3D(kmin, jmin, imin);
+				float amin = ccc.Min3D(kmin, jmin, imin);
 
 				vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmin), double(nz)); // absolute z position of the located atom
 				vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmin), double(ny)); // absolute y position of the located atom
@@ -347,7 +348,7 @@ int main()
 
 				// fill the atomsize vicinity of the found minimum by aaaMax values, in order to make possible the search for the next smallest minimum
 				if (na < natom[nat] - 1) 
-					aaamove.FillCylinderPeriodic(kmin, jmin, imin, karad0, jarad, iarad, aaaMax);
+					cccmove.FillCylinderPeriodic(kmin, jmin, imin, karadt, jarad, iarad, aaaMax);
 			}
 		} // end of cycle over different atom types
 
