@@ -1,7 +1,7 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-//#define SUBTRACTION_BASED_METHOD 1
+#define SUBTRACTION_BASED_METHOD 1
 
 #ifdef SUBTRACTION_BASED_METHOD
 
@@ -181,7 +181,8 @@ int main()
 #endif
 			printf("\nSize of input images: (nx,ny,nz) = (%d, %d, %d); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
-			// mask with zeros the vicinity of locations of previously found atoms of other types
+			// mask with large values the vicinity of locations of previously found atoms of other types
+			float aaaMax0 = (float)aaa.Norm(eNormMax);
 			for (index_t natprev = 0; natprev < nat; natprev++)
 				for (index_t na = 0; na < natom[natprev]; na++)
 					aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
@@ -191,14 +192,14 @@ int main()
 			{
 				printf("\nWriting masked 1st input array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
-				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+				for (int nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
 					for (int kk = 0; kk < nz; kk++)
 					{
 						for (int jj = 0; jj < ny; jj++)
 							for (int ii = 0; ii < nx; ii++)
 								inten[jj][ii] = aaa[kk][jj][ii];
-						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
+						XArData::WriteFileGRD(inten, infiles[nn * nz + kk].c_str(), xar::eGRDBIN);
 					}
 				}
 			}
@@ -255,6 +256,7 @@ int main()
 				throw std::runtime_error("atomic size and position parameters are inconsistent in input template files");
 			bbbmove.Trim(kpos2 - karadt, bbb.GetDim1() - 1 - kpos2 - karadt, jpos2 - jarad, bbb.GetDim2() - 1 - jpos2 - jarad, ipos2 - iarad, bbb.GetDim3() - 1 - ipos2 - iarad);
 			int nxbbb = (int)bbb.GetDim3(), nybbb = (int)bbb.GetDim2(), nzbbb = (int)bbb.GetDim1();
+			printf("\nDimensions of the 3D template array in pixels are: nx = %d, ny = %d, nz = %d.", nxbbb, nybbb, nzbbb);
 
 			// optional auxilliary data output
 			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked 2nd input array
@@ -265,14 +267,14 @@ int main()
 				IXAHWave2D* ph2new = CreateWavehead2D();
 				ph2new->SetData(wl, ymin + ystep * (jpos2 - jarad), ymin + ystep * (jpos2 - jarad + bbb.GetDim2()), xmin + xstep * (ipos2 - iarad), xmin + xstep * (ipos2 - iarad + bbb.GetDim3()));
 				inten.SetHeadPtr(ph2new);
-				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+				for (int nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
 					for (int kk = 0; kk < nzbbb; kk++)
 					{
 						for (int jj = 0; jj < nybbb; jj++)
 							for (int ii = 0; ii < nxbbb; ii++)
 								inten[jj][ii] = bbb[kk][jj][ii];
-						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
+						XArData::WriteFileGRD(inten, infiles[nn * nzbbb + kk].c_str(), xar::eGRDBIN);
 					}
 				} 
 			}
@@ -281,20 +283,22 @@ int main()
 			// subtract 2 arrays, shifting the second array around
 			printf("\nSubtracting the template array from the defocus series 3D array ...");
 			float aaaMax = (float)aaa.Norm(eNormMax) * nzbbb * nybbb * nxbbb;
-			XArray3D<float> ccc(nz, ny, nx, aaaMax);
-			XArray3DMove<float> cccmove(ccc); // the associated XArray class for applying masks to aaa later
 			int  karadt2 = karadt * 2, jarad2 = jarad * 2, iarad2 = iarad * 2;
+			int nzccc = nz - karadt2, nyccc = ny - jarad2, nxccc = nx - iarad2;
+			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
+			XArray3D<float> ccc(nzccc, nyccc, nxccc, aaaMax);
+			XArray3DMove<float> cccmove(ccc); // the associated XArray class for applying masks to aaa later
 			float adif(0);
-			for (int k = 0; k < nz - karadt2; k++)
-				for (int j = 0; j < ny - jarad2; j++)
-					for (int i = 0; i < nx - iarad2; i++)
+			for (int k = 0; k < nzccc; k++)
+				for (int j = 0; j < nyccc; j++)
+					for (int i = 0; i < nxccc; i++)
 					{
 						adif = 0.0f;
 						for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
 							for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
 								for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
 									adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
-						ccc[k + karad][j + jarad][i + iarad] = adif;
+						ccc[k][j][i] = adif;
 					}
 
 #if !TEST_RUN	
@@ -302,15 +306,19 @@ int main()
 			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D difference distribution array
 			{
 				printf("\nWriting 3D absolute difference array in output files %s ...", filenamebaseOut.c_str());
-				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
-				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+				FileNames(nangles, nzccc, filenamebaseOut, infiles);
+				inten.Resize(nyccc, nxccc);
+				IXAHWave2D* ph2new = CreateWavehead2D();
+				ph2new->SetData(wl, ymin + ystep * jarad, ymin + ystep * (jarad + nyccc), xmin + xstep * iarad, xmin + xstep * (iarad + nxccc));
+				inten.SetHeadPtr(ph2new);
+				for (int nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
-					for (int kk = 0; kk < nz; kk++)
+					for (int kk = 0; kk < nzccc; kk++)
 					{
-						for (int jj = 0; jj < ny; jj++)
-							for (int ii = 0; ii < nx; ii++)
+						for (int jj = 0; jj < nyccc; jj++)
+							for (int ii = 0; ii < nxccc; ii++)
 								inten[jj][ii] = ccc[kk][jj][ii];
-						XArData::WriteFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), xar::eGRDBIN);
+						XArData::WriteFileGRD(inten, infiles[nn * nzccc + kk].c_str(), xar::eGRDBIN);
 					}
 				}
 			}
@@ -331,9 +339,12 @@ int main()
 #endif
 				float amin = ccc.Min3D(kmin, jmin, imin);
 
-				vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmin), double(nz)); // absolute z position of the located atom
-				vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmin), double(ny)); // absolute y position of the located atom
-				vvvatompos[nat][na][2] = nmodm(int(ipos2 + imin), double(nx)); // absolute x position of the located atom
+				//vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmin + karadt), double(nz)); // absolute z position of the located atom
+				//vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmin + jarad), double(ny)); // absolute y position of the located atom
+				//vvvatompos[nat][na][2] = nmodm(int(ipos2 + imin + iarad), double(nx)); // absolute x position of the located atom
+				vvvatompos[nat][na][0] = kmin + (index_t)karadt; // absolute z position of the located atom
+				vvvatompos[nat][na][1] = jmin + (index_t)jarad; // absolute y position of the located atom
+				vvvatompos[nat][na][2] = imin + (index_t)iarad; // absolute x position of the located atom
 
 				double xminA = xmin + vvvatompos[nat][na][2] * xstep;
 				double yminA = ymin + vvvatompos[nat][na][1] * ystep;
@@ -341,7 +352,7 @@ int main()
 
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
 //#ifdef _DEBUG
-				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imin, jmin, kmin);
+				printf("\nShift (i,j,k) of the 2nd array relative to the 1st one producing the minimum absolute difference = (%zd, %zd, %zd).", vvvatompos[nat][na][2], vvvatompos[nat][na][1], vvvatompos[nat][na][0]);
 //#endif
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xminA, yminA, zminA);
 				printf("\nAbsolute difference = %g.", amin);

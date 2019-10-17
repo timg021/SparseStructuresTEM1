@@ -1,7 +1,7 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#define CORRELATION_BASED_METHOD 1
+//#define CORRELATION_BASED_METHOD 1
 
 #ifdef CORRELATION_BASED_METHOD
 
