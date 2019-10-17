@@ -1,7 +1,7 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-//#define CORRELATION_BASED_METHOD 1
+#define CORRELATION_BASED_METHOD 1
 
 #ifdef CORRELATION_BASED_METHOD
 
@@ -177,8 +177,8 @@ int main()
 						for (index_t ii = 0; ii < nx; ii++)
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
-							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
@@ -244,8 +244,8 @@ int main()
 						for (index_t ii = 0; ii < nx; ii++)
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
-							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
