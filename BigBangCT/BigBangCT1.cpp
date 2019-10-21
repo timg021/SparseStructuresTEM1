@@ -16,8 +16,6 @@
 //i.e. in XArray3D(dim1, dim2, dim3) the fastest changing dimension is dim3, and in fftw_r2c_3d(n0, n1, n2) the fastest dimension is n2.
 //Note also that these dimensions are associated with the following physical coordinates by default: dim1(n0) <-> nz, dim2(n1) <-> ny, dim3(n2) <-> nx.
 
-#define TEST_RUN 0
-
 using namespace xar;
 
 void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output);
@@ -103,9 +101,9 @@ int main()
 		int karad = int(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
 		int jarad = int(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
 		int iarad = int(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
-		int karad0 = int(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
-		int karad1 = int(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
 		int karadt = int(atomlength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
+		int karad0 = int(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask "out" when searching for atoms of the same type, in the number of physical z-step units
+		int karad1 = int(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask "out" when searching for atoms of the next type, in the number of physical z-step units
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
@@ -125,72 +123,74 @@ int main()
 			strAtomNames[nat] = filenamebaseIn2[nat].substr(ii0, ii1 - ii0);
 		}
 		
+		
 		//**************************************************** start searching for atom positions
+
+		int nzbbb, nybbb, nxbbb, nzccc, nyccc, nxccc; // dimensions of the trimmed 3D template arrays and of the 3D absolute difference array
+		XArray3D<float> aaa, bbb, ccc; // 3D defocus series array, 3D single atom defocus series array and the 3D absolute different array
+		XArray3DMove<float> aaamove(aaa), bbbmove(bbb), cccmove(ccc); // associated XArray classes for applying masks to 3D arrays
+		XArray2D<float> inten; // 2D array for reading/writing series of z-sections of the 3D arrays from/to disk
 
 		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
 		{
 			// load 3D defocus series array
-			XArray3D<float> aaa(nz, ny, nx, 0.0f);
-			XArray3DMove<float> aaamove(aaa); // the associated XArray class for applying masks to aaa later
-#if TEST_RUN
-			aaa[1][2][3] = 10.0f; // delta-function
-			aaa[1][1][1] = 20.0f; // delta-function
-			aaa[2][1][1] = 30.0f; // delta-function
-#else
 			printf("\n\nNow searching for atoms type no. %zd (%s) ...", nat + 1, strAtomNames[nat].c_str());
-			printf("\nReading sample defocus series files %s ...", filenamebaseIn1.c_str());
-			IXAHWave2D* ph2new = CreateWavehead2D();
-			XArray2D<float> inten;
-			inten.SetHeadPtr(ph2new);
 			vector<string> infiles;
-			FileNames(nangles, ndefocus, filenamebaseIn1, infiles);
-			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+			if (nat == 0) // read the defocus series only once
 			{
-				for (int kk = 0; kk < nz; kk++)
+				printf("\nReading sample defocus series files %s ...", filenamebaseIn1.c_str());
+				FileNames(nangles, ndefocus, filenamebaseIn1, infiles);
+				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
-					XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-					if (nn == 0 && kk == 0)
+					for (int kk = 0; kk < nz; kk++)
 					{
-						nx = (int)inten.GetDim2();
-						ny = (int)inten.GetDim1();
-						xmin = GetXlo(inten);
-						ymin = GetYlo(inten);
-						xstep = GetXStep(inten);
-						ystep = GetYStep(inten);
-						jarad = int(atomsize / ystep / 2.0 + 0.5);
-						iarad = int(atomsize / xstep / 2.0 + 0.5);
-						aaa.Resize(nz, ny, nx, 0.0f);
-						IXAHWave3D* ph3new = CreateWavehead3D();
-						ph3new->SetData(wl, zmin, zmax, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
-						aaa.SetHeadPtr(ph3new);
-					}
-					else
-					{
-						if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
-						if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
-					}
-					for (int jj = 0; jj < ny; jj++)
-						for (int ii = 0; ii < nx; ii++)
+						XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
+						if (nn == 0 && kk == 0)
 						{
-							aaa[kk][jj][ii] = inten[jj][ii];
-							//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							nx = (int)inten.GetDim2();
+							ny = (int)inten.GetDim1();
+							xmin = GetXlo(inten);
+							ymin = GetYlo(inten);
+							xstep = GetXStep(inten);
+							ystep = GetYStep(inten);
+							jarad = int(atomsize / ystep / 2.0 + 0.5);
+							iarad = int(atomsize / xstep / 2.0 + 0.5);
+							aaa.Resize(nz, ny, nx, 0.0f);
+							IXAHWave3D* ph3new = CreateWavehead3D();
+							ph3new->SetData(wl, zmin, zmax, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
+							aaa.SetHeadPtr(ph3new);
 						}
+						else
+						{
+							if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
+							if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
+						}
+						for (int jj = 0; jj < ny; jj++)
+							for (int ii = 0; ii < nx; ii++)
+							{
+								aaa[kk][jj][ii] = inten[jj][ii];
+								//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+								//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							}
+					}
 				}
+				printf("\nSize of input images: (nx,ny,nz) = (%d, %d, %d); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 			}
-#endif
-			printf("\nSize of input images: (nx,ny,nz) = (%d, %d, %d); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
-
-			// mask with large values the vicinity of locations of previously found atoms of other types
-			float aaaMax0 = (float)aaa.Norm(eNormMax);
-			for (index_t natprev = 0; natprev < nat; natprev++)
-				for (index_t na = 0; na < natom[natprev]; na++)
-					aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
+			else
+			{
+				// mask with zeros the vicinity of locations of previously found atoms of other types
+				for (index_t na = 0; na < natom[nat - 1]; na++)
+					aaamove.FillCylinderPeriodic(vvvatompos[nat - 1][na][0], vvvatompos[nat - 1][na][1], vvvatompos[nat - 1][na][2], karad1, jarad, iarad, 0.0f);
+			}
 
 			// optional auxilliary data output
 			if (iCorrArrayOut == 1 && nat == natomtypes - 1) // output the masked 1st input array
 			{
 				printf("\nWriting masked 1st input array in output files %s ...", filenamebaseOut.c_str());
+				XArray2D<float> inten(ny, nx);
+				IXAHWave2D* ph2new = CreateWavehead2D();
+				inten.SetHeadPtr(ph2new);
+				ph2new->SetData(wl, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
 				for (int nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 				{
@@ -206,14 +206,9 @@ int main()
 
 
 			// load 3D template array
-			XArray3D<float> bbb(nz, ny, nx, 0.0f);
-			XArray3DMove<float> bbbmove(bbb); // the associated XArray class for applying masks to aaa later
-#if TEST_RUN
-			bbb.Fill(0.5); // this is for testing the masking of the central feature
-			bbb[1][1][1] = 1.0; // delta-function
-#else
 			printf("\nReading single atom defocus series files %s ...", filenamebaseIn2[nat].c_str());
 			FileNames(nangles, ndefocus, filenamebaseIn2[nat], infiles);
+			bbb.Resize(nz, ny, nx, 0.0f);
 			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 			{
 				for (int kk = 0; kk < nz; kk++)
@@ -230,10 +225,9 @@ int main()
 						}
 				}
 			}
-#endif
 			// find the centre of gravity of the second 3D array, i.e. the position of the template atom
 			double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
-			for (int kk = 0; kk < ndefocus; kk++)
+			for (int kk = 0; kk < nz; kk++)
 				for (int jj = 0; jj < ny; jj++)
 					for (int ii = 0; ii < nx; ii++)
 					{
@@ -245,17 +239,17 @@ int main()
 					}
 			xpos /= integ; ypos /= integ; zpos /= integ;
 			index_t ipos2 = index_t(xpos + 0.5), jpos2 = index_t(ypos + 0.5), kpos2 = index_t(zpos + 0.5);
-			double xpos2 = xmin + xstep * ipos2, ypos2 = ymin + ystep * jpos2, zpos2 = zmin + zstep * kpos2;
+			double xpos2 = xmin + xpos * xstep, ypos2 = ymin + ypos * ystep, zpos2 = zmin + zpos * zstep;
 			printf("\nCentre of mass position of single atom array in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 			xpos2 = rpos2[nat][0]; ypos2 = rpos2[nat][1]; zpos2 = rpos2[nat][2];
 			ipos2 = index_t((xpos2 - xmin) / xstep + 0.5); jpos2 = index_t((ypos2 - ymin) / ystep + 0.5); kpos2 = index_t((zpos2 - zmin) / zstep + 0.5);
-			printf("\nPosition of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
+			printf("\n Position of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
 
 			// trim all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
 			if (kpos2 < karadt || bbb.GetDim1() < 1 + kpos2 + karadt || jpos2 < jarad || bbb.GetDim2() < 1 + jpos2 + jarad || ipos2 < iarad || bbb.GetDim3() < 1 + ipos2 + iarad)
 				throw std::runtime_error("atomic size and position parameters are inconsistent in input template files");
 			bbbmove.Trim(kpos2 - karadt, bbb.GetDim1() - 1 - kpos2 - karadt, jpos2 - jarad, bbb.GetDim2() - 1 - jpos2 - jarad, ipos2 - iarad, bbb.GetDim3() - 1 - ipos2 - iarad);
-			int nxbbb = (int)bbb.GetDim3(), nybbb = (int)bbb.GetDim2(), nzbbb = (int)bbb.GetDim1();
+			nxbbb = (int)bbb.GetDim3(), nybbb = (int)bbb.GetDim2(), nzbbb = (int)bbb.GetDim1();
 			printf("\nDimensions of the 3D template array in pixels are: nx = %d, ny = %d, nz = %d.", nxbbb, nybbb, nzbbb);
 
 			// optional auxilliary data output
@@ -280,28 +274,33 @@ int main()
 			}
 
 
-			// subtract 2 arrays, shifting the second array around
+			// subtract 2 3D arrays, shifting the second array around
 			printf("\nSubtracting the template array from the defocus series 3D array ...");
-			float aaaMax = (float)aaa.Norm(eNormMax) * nzbbb * nybbb * nxbbb;
-			int  karadt2 = karadt * 2, jarad2 = jarad * 2, iarad2 = iarad * 2;
-			int nzccc = nz - karadt2, nyccc = ny - jarad2, nxccc = nx - iarad2;
+
+			if (nat == 0)
+			{
+				nzccc = nz - karadt * 2, nyccc = ny - jarad * 2, nxccc = nx - iarad * 2;
+				ccc.Resize(nzccc, nyccc, nxccc, 0.0f);
+			}
 			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
-			XArray3D<float> ccc(nzccc, nyccc, nxccc, aaaMax);
-			XArray3DMove<float> cccmove(ccc); // the associated XArray class for applying masks to aaa later
-			float adif(0);
+			float dif, adif, asum, bsum;
 			for (int k = 0; k < nzccc; k++)
 				for (int j = 0; j < nyccc; j++)
 					for (int i = 0; i < nxccc; i++)
 					{
-						adif = 0.0f;
+						adif = dif = asum = bsum = 0.0f;
 						for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
 							for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
 								for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
-									adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
-						ccc[k][j][i] = adif;
+								{
+									dif = abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
+									adif += dif;
+									asum += aaa[kk1][jj1][ii1] * aaa[kk1][jj1][ii1];
+									bsum += bbb[k1][j1][i1] * bbb[k1][j1][i1];
+								}
+						ccc[k][j][i] = adif / sqrt(asum * bsum);
 					}
 
-#if !TEST_RUN	
 			// optional auxilliary data output
 			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D difference distribution array
 			{
@@ -322,21 +321,14 @@ int main()
 					}
 				}
 			}
-#endif
 
 			// find the minimums
-			printf("\nFinding minimums in the absolute difference array ...");
+			printf("\nFinding minimums in the absolute difference 3D array ...");
 			index_t kmin, jmin, imin;
+			float cccMax = (float)ccc.Norm(eNormMax);
 			for (index_t na = 0; na < natom[nat]; na++)
 			{
 				natomtotal++;
-#if TEST_RUN		
-				printf("\nAbsolute difference array (iteration %zd):", nn);
-				for (index_t k = 0; k < nz; k++)
-					for (index_t j = 0; j < ny; j++)
-						for (index_t i = 0; i < nx; i++)
-							printf("\nccc[%zd,%zd,%zd] = %g", k, j, i, ccc[k][j][i]);
-#endif
 				float amin = ccc.Min3D(kmin, jmin, imin);
 
 				//vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmin + karadt), double(nz)); // absolute z position of the located atom
@@ -351,16 +343,15 @@ int main()
 				double zminA = zmin + vvvatompos[nat][na][0] * zstep;
 
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
-//#ifdef _DEBUG
 				printf("\nShift (i,j,k) of the 2nd array relative to the 1st one producing the minimum absolute difference = (%zd, %zd, %zd).", vvvatompos[nat][na][2], vvvatompos[nat][na][1], vvvatompos[nat][na][0]);
-//#endif
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xminA, yminA, zminA);
 				printf("\nAbsolute difference = %g.", amin);
 
-				// fill the atomsize vicinity of the found minimum by aaaMax values, in order to make possible the search for the next smallest minimum
+				// fill the atomsize vicinity of the found minimum by cccMax values, in order to make possible the search for the next smallest minimum
 				if (na < natom[nat] - 1) 
-					cccmove.FillCylinderPeriodic(kmin, jmin, imin, karadt, jarad, iarad, aaaMax);
-			}
+					cccmove.FillCylinderPeriodic(kmin, jmin, imin, karad0, jarad, iarad, cccMax);
+			} // end if cycle searching for atoms of the current type 'nat'
+
 		} // end of cycle over different atom types
 
 
