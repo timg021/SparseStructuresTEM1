@@ -299,7 +299,8 @@ int main()
 				ccc.Resize(nzccc, nyccc, nxccc, 0.0f);
 			}
 			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
-			float adif, asum;
+			float adif, asum, anow, bnow;
+			float *paaa, * pbbb;
 			for (int k = 0; k < nzccc; k++)
 				for (int j = 0; j < nyccc; j++)
 					for (int i = 0; i < nxccc; i++)
@@ -307,16 +308,23 @@ int main()
 						adif = asum = 0.0f;
 						for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
 							for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
+							{
+								paaa = &(aaa[kk1][jj1][i]); pbbb = &bbb[k1][j1][0];
 								for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
 								{
-									adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
-									asum += aaa[kk1][jj1][ii1] + bbb[k1][j1][i1];
+									//adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
+									//asum += aaa[kk1][jj1][ii1] + bbb[k1][j1][i1];
+									anow = *paaa++;
+									bnow = *pbbb++;
+									adif += abs(anow - bnow);
+									asum += anow + bnow;
 								}
+							}
 						ccc[k][j][i] = adif / asum;
 					}
 
 			// optional auxilliary data output
-			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D difference distribution array
+			if (iCorrArrayOut == 3 && nat == 0) // output the 3D difference distribution array
 			{
 				printf("\nWriting 3D absolute difference array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, nzccc, filenamebaseOut, infiles);
