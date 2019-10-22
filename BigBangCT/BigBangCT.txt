@@ -14,5 +14,6 @@
 10.Output_file_name_for_atom_locations_in_Vesta_XYZ_format: C:\Users\tgureyev\Downloads\Temp\000BigBangOut.xyz
 11.0_for_disabling_or_1,2_or_3_for_saving_1st,_2nd_masked_input_array_or_3D_correlation_array_respectively: 3
 12.Output_filename_base_for_data_selected_by_parameter_9_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\zzz.grd
+13.Number_of_parallel_threads: 16
 //*****
 //*****!!!Don't forget to save this file after editing the parameters

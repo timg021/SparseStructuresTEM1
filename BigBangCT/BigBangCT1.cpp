@@ -100,6 +100,12 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base for saving auxilliary data.");
 		string filenamebaseOut = cparam;
 		printf("\nAuxilliary output file name baze = %s", filenamebaseOut.c_str());
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of parallel threads
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
+		int nThreads = atoi(cparam);
+		printf("\nNumber of parallel threads = %d", nThreads);
+		if (nThreads < 1)
+			throw std::exception("The number of parallel threads in input parameter file should be >= 1.");
 
 		fclose(ff0); // close input parameter file
 
@@ -301,7 +307,7 @@ int main()
 			}
 			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
 
-			omp_set_num_threads(10);
+			omp_set_num_threads(nThreads);
 			#pragma omp parallel default(none) shared(aaa, bbb, ccc, nzccc, nyccc, nxccc, nzbbb, nybbb, nxbbb)
 			{
 				float adif, asum, anow, bnow;
