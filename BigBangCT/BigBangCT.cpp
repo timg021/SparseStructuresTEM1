@@ -45,12 +45,19 @@ int main()
 		double zmin = atof(cparam); // minimum defocus in Angstroms 
 		double zmax = atof(cparam1); // maximum defocus in Angstroms 
 		double zstep = atof(cparam2); // defocus step in Angstroms
+		printf("\nDefocus planes parameters: min = %g, max = %g, step = %g", zmin, zmax, zstep);
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // background intensity value
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading background intensity parameter from input parameter file.");
+		float finten0 = (float)atof(cparam); // minimum defocus in Angstroms 
+		printf("\nBackground intensity value = %g", finten0);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for defocus series of the whole sample
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base for the whole sample from input parameter file.");
 		string filenamebaseIn1 = cparam;
+		printf("\nDefocus series file name base for the whole sample = %s", filenamebaseIn1.c_str());
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of different atom types
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of atom types from input parameter file.");
-		index_t natomtypes = (index_t)atoi(cparam); 
+		index_t natomtypes = (index_t)atoi(cparam);
+		printf("\nNumber of different atom types = %zd", natomtypes);
 		vector<index_t> natom(natomtypes);
 		vector<string> filenamebaseIn2(natomtypes); // file name bases for defocus series of different single atoms
 		vector< vector<double> > rpos2(natomtypes); // vector of XYZ positions of template atoms
@@ -64,31 +71,39 @@ int main()
 			rpos2[nat][1] = atof(cparam2); // Y-coordinate of template atom no. 'nat'
 			rpos2[nat][2] = atof(cparam3); // Z-coordinate of template atom no. 'nat'
 			filenamebaseIn2[nat] = cparam4; // file name base for defocus series of single atom of this type
+			printf("\nDefocus series file name base for the single atom no.%zd = %s", nat, filenamebaseIn2[nat].c_str());
 		}
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
 		double wl = atof(cparam); // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
+		printf("\nWavelength = %g (A)", wl);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom size for masking out in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom size parameter from input parameter file.");
 		double atomsize = atof(cparam); // atom diameter in physical units
+		printf("\nAtom diameter = %g (A)", atomsize);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom trace Z-length for masking out in Angstroms
 		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading atom trace Z-length parameters from input parameter file.");
-		double atemplength = atof(cparam); // atom "trace" length in the defocus direction in Angstoms to mask "in" the template atom
-		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the same type
-		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstoms to mask "out" when searching for atoms of the next type
+		double atomlength = atof(cparam); // atom "trace" length in the defocus direction in Angstroms to mask "in" the template atom
+		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstroms to mask "out" when searching for atoms of the same type
+		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstroms to mask "out" when searching for atoms of the next type
+		printf("\nAtom trace lengths in Angstroms: 'in' = %g, 'out_same' = %g, 'out_previous' = %g", atomlength, atomsizeZ0, atomsizeZ1);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // high-frequency bandpath radius
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading low frequency limit from input parameter file.");
 		int iHPathRad = index_t(atoi(cparam)); // high-frequency bandpath radius: all (abs.)frequencies lower than this one will be zet to zero
+		printf("\nHigh frequency lower threshold = %d", iHPathRad);
 		index_t iHPathRad2 = index_t(iHPathRad * iHPathRad);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // output file in Vesta XYZ format for detected atom locations
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name for detected atom locations from input parameter file.");
 		string filenameOutXYZ = cparam;
+		printf("\nOutput XYZ file name = %s", filenameOutXYZ.c_str());
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional auxillary data output mode 
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading parameter for selecting output mode from input parameter file.");
 		int iCorrArrayOut = atoi(cparam); // if this parameter is 1, the 1st masked array is output, 2 -> 2nd masked array output, 3 -> 3D correlation output is created.
+		printf("\nOptional file output mode = %d", iCorrArrayOut);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional output file name base
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base for saving auxilliary data.");
 		string filenamebaseOut = cparam;
+		printf("\nAuxilliary output file name baze = %s", filenamebaseOut.c_str());
 
 		fclose(ff0); // close input parameter file
 

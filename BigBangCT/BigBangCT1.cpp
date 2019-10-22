@@ -28,7 +28,7 @@ int main()
 
 	try
 	{
-		printf("\nStarting BigBangCT program ...");
+		printf("\nStarting BigBangCT1 program ...");
 		//************************************ read input parameters from file
 		// read input parameter file
 		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024], cparam3[1024], cparam4[1024];
@@ -40,12 +40,19 @@ int main()
 		double zmin = atof(cparam); // minimum defocus in Angstroms 
 		double zmax = atof(cparam1); // maximum defocus in Angstroms 
 		double zstep = atof(cparam2); // defocus step in Angstroms
+		printf("\nDefocus planes parameters: min = %g, max = %g, step = %g", zmin, zmax, zstep);
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // background intensity value
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading background intensity parameter from input parameter file.");
+		float finten0 = (float)atof(cparam); // minimum defocus in Angstroms 
+		printf("\nBackground intensity value = %g", finten0);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for defocus series of the whole sample
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base for the whole sample from input parameter file.");
 		string filenamebaseIn1 = cparam;
+		printf("\nDefocus series file name base for the whole sample = %s", filenamebaseIn1.c_str());
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of different atom types
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of atom types from input parameter file.");
 		index_t natomtypes = (index_t)atoi(cparam); 
+		printf("\nNumber of different atom types = %zd", natomtypes);
 		vector<index_t> natom(natomtypes);
 		vector<string> filenamebaseIn2(natomtypes); // file name bases for defocus series of different single atoms
 		vector< vector<double> > rpos2(natomtypes); // vector of XYZ positions of template atoms
@@ -59,31 +66,39 @@ int main()
 			rpos2[nat][1] = atof(cparam2); // Y-coordinate of template atom no. 'nat'
 			rpos2[nat][2] = atof(cparam3); // Z-coordinate of template atom no. 'nat'
 			filenamebaseIn2[nat] = cparam4; // file name base for defocus series of single atom of this type
+			printf("\nDefocus series file name base for the single atom no.%zd = %s", nat, filenamebaseIn2[nat].c_str());
 		}
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
 		double wl = atof(cparam); // wavelength in input file units (usually, Angstroms). Unfortunately, it is not saved in the GRD files
+		printf("\nWavelength = %g (A)", wl);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom size for masking out in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading atom size parameter from input parameter file.");
 		double atomsize = atof(cparam); // atom diameter in physical units
+		printf("\nAtom diameter = %g (A)", atomsize);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // average atom trace Z-length for masking out in Angstroms
 		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading atom trace Z-length parameters from input parameter file.");
 		double atomlength = atof(cparam); // atom "trace" length in the defocus direction in Angstroms to mask "in" the template atom
 		double atomsizeZ0 = atof(cparam1); // atom "trace" length in the defocus direction in Angstroms to mask "out" when searching for atoms of the same type
 		double atomsizeZ1 = atof(cparam2); // atom "trace" length in the defocus direction in Angstroms to mask "out" when searching for atoms of the next type
+		printf("\nAtom trace lengths in Angstroms: 'in' = %g, 'out_same' = %g, 'out_previous' = %g", atomlength, atomsizeZ0, atomsizeZ1);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // high-frequency bandpath radius
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading low frequency limit from input parameter file.");
 		int iHPathRad = index_t(atoi(cparam)); // high-frequency bandpath radius: all (abs.)frequencies lower than this one will be zet to zero
+		printf("\nHigh frequency lower threshold = %d", iHPathRad);
 		index_t iHPathRad2 = index_t(iHPathRad * iHPathRad);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // output file in Vesta XYZ format for detected atom locations
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name for detected atom locations from input parameter file.");
 		string filenameOutXYZ = cparam;
+		printf("\nOutput XYZ file name = %s", filenameOutXYZ.c_str());
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional auxillary data output mode 
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading parameter for selecting output mode from input parameter file.");
 		int iCorrArrayOut = atoi(cparam); // if this parameter is 1, the 1st masked array is output, 2 -> 2nd masked array output, 3 -> 3D correlation output is created.
+		printf("\nOptional file output mode = %d", iCorrArrayOut);
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // optional output file name base
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base for saving auxilliary data.");
 		string filenamebaseOut = cparam;
+		printf("\nAuxilliary output file name baze = %s", filenamebaseOut.c_str());
 
 		fclose(ff0); // close input parameter file
 
@@ -104,6 +119,7 @@ int main()
 		int karadt = int(atomlength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
 		int karad0 = int(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask "out" when searching for atoms of the same type, in the number of physical z-step units
 		int karad1 = int(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask "out" when searching for atoms of the next type, in the number of physical z-step units
+		printf("\nAtom trace lengths in grid steps: 'in' = %d, 'out_same' = %d, 'out_previous' = %d", 2 * karadt + 1, 2* karad0 + 1, 2* karad1 + 1);
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
@@ -169,8 +185,8 @@ int main()
 							for (int ii = 0; ii < nx; ii++)
 							{
 								aaa[kk][jj][ii] = inten[jj][ii];
-								//aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-								//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+								aaa[kk][jj][ii] = inten[jj][ii] - finten0;
+								aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 							}
 					}
 				}
@@ -220,8 +236,8 @@ int main()
 						for (int ii = 0; ii < nx; ii++)
 						{
 							bbb[kk][jj][ii] = inten[jj][ii];
-							//bbb[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
-							//bbb[kk][jj][ii] = ::fabs(bbb[kk][jj][ii]);
+							bbb[kk][jj][ii] = inten[jj][ii] - finten0;
+							bbb[kk][jj][ii] = ::fabs(bbb[kk][jj][ii]);
 						}
 				}
 			}
@@ -283,22 +299,20 @@ int main()
 				ccc.Resize(nzccc, nyccc, nxccc, 0.0f);
 			}
 			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
-			float dif, adif, asum, bsum;
+			float adif, asum;
 			for (int k = 0; k < nzccc; k++)
 				for (int j = 0; j < nyccc; j++)
 					for (int i = 0; i < nxccc; i++)
 					{
-						adif = dif = asum = bsum = 0.0f;
+						adif = asum = 0.0f;
 						for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
 							for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
 								for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
 								{
-									dif = abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
-									adif += dif;
-									asum += aaa[kk1][jj1][ii1] * aaa[kk1][jj1][ii1];
-									bsum += bbb[k1][j1][i1] * bbb[k1][j1][i1];
+									adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
+									asum += aaa[kk1][jj1][ii1] + bbb[k1][j1][i1];
 								}
-						ccc[k][j][i] = adif / sqrt(asum * bsum);
+						ccc[k][j][i] = adif / asum;
 					}
 
 			// optional auxilliary data output
