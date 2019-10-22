@@ -6,6 +6,7 @@
 #ifdef SUBTRACTION_BASED_METHOD
 
 #include <chrono>
+#include <omp.h>
 #include "IXAHWave.h"
 #include "XArray2D.h"
 #include "XArray3D.h"
@@ -290,7 +291,7 @@ int main()
 			}
 
 
-			// subtract 2 3D arrays, shifting the second array around
+			// subtract two 3D arrays, shifting the second array around
 			printf("\nSubtracting the template array from the defocus series 3D array ...");
 
 			if (nat == 0)
@@ -299,29 +300,35 @@ int main()
 				ccc.Resize(nzccc, nyccc, nxccc, 0.0f);
 			}
 			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
-			float adif, asum, anow, bnow;
-			float *paaa, * pbbb;
-			for (int k = 0; k < nzccc; k++)
-				for (int j = 0; j < nyccc; j++)
-					for (int i = 0; i < nxccc; i++)
-					{
-						adif = asum = 0.0f;
-						for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
-							for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
-							{
-								paaa = &(aaa[kk1][jj1][i]); pbbb = &bbb[k1][j1][0];
-								for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
+
+			omp_set_num_threads(10);
+			#pragma omp parallel default(none) shared(aaa, bbb, ccc, nzccc, nyccc, nxccc, nzbbb, nybbb, nxbbb)
+			{
+				float adif, asum, anow, bnow;
+				float* paaa, * pbbb;
+				#pragma omp for schedule(dynamic) nowait
+				for (int k = 0; k < nzccc; k++)
+					for (int j = 0; j < nyccc; j++)
+						for (int i = 0; i < nxccc; i++)
+						{
+							adif = asum = 0.0f;
+							for (int k1 = 0, kk1 = k; k1 < nzbbb; k1++, kk1++)
+								for (int j1 = 0, jj1 = j; j1 < nybbb; j1++, jj1++)
 								{
-									//adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
-									//asum += aaa[kk1][jj1][ii1] + bbb[k1][j1][i1];
-									anow = *paaa++;
-									bnow = *pbbb++;
-									adif += abs(anow - bnow);
-									asum += anow + bnow;
+									paaa = &aaa[kk1][jj1][i]; pbbb = &bbb[k1][j1][0];
+									for (int i1 = 0, ii1 = i; i1 < nxbbb; i1++, ii1++)
+									{
+										//adif += abs(aaa[kk1][jj1][ii1] - bbb[k1][j1][i1]);
+										//asum += aaa[kk1][jj1][ii1] + bbb[k1][j1][i1];
+										anow = *paaa++;
+										bnow = *pbbb++;
+										adif += abs(anow - bnow);
+										asum += anow + bnow;
+									}
 								}
-							}
-						ccc[k][j][i] = adif / asum;
-					}
+								ccc[k][j][i] = adif / asum; 
+						}
+			}
 
 			// optional auxilliary data output
 			if (iCorrArrayOut == 3 && nat == 0) // output the 3D difference distribution array
