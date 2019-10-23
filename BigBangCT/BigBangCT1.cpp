@@ -130,11 +130,11 @@ int main()
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
-		vector< vector< vector<index_t> > > vvvatompos(natomtypes); // positions of all atoms
+		vector< vector< vector<index_t> > > vvvatompos(natomtypes); // positions of all atoms and the "correlation coefficient" for each found atom
 		for (index_t nat = 0; nat < natomtypes; nat++)
 		{
 			vvvatompos[nat].resize(natom[nat]); // vvvatompos[nat] is a nat-size vector of vatompos
-			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // each vector vvvatompos[nat][na] stores (k,j,i) indexes of the position of one atom
+			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(4); // each vector vvvatompos[nat][na] stores (k,j,i) indexes of the position of one atom
 		}
 
 		// make a vector of atom type names (extracted from input 1-atom defocus series file names and used for output only)
@@ -372,6 +372,7 @@ int main()
 				vvvatompos[nat][na][0] = kmin + (index_t)karadt; // absolute z position of the located atom
 				vvvatompos[nat][na][1] = jmin + (index_t)jarad; // absolute y position of the located atom
 				vvvatompos[nat][na][2] = imin + (index_t)iarad; // absolute x position of the located atom
+				vvvatompos[nat][na][3] = index_t((amin * 1.0e+8) + 0.5); // "correlation coefficient" of the located atom
 
 				double xminA = xmin + vvvatompos[nat][na][2] * xstep;
 				double yminA = ymin + vvvatompos[nat][na][1] * ystep;
@@ -410,7 +411,7 @@ int main()
 		fprintf(ff, "%s\n", "Atom positions detected by BigBangCT"); // free-form file info line
 		for (index_t nat = 0; nat < natomtypes; nat++)
 			for (index_t na = 0; na < natom[nat]; na++)
-				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, 1.0);
+				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, vvvatompos[nat][na][3] / 1.0e+8);
 		fclose(ff);
 
 	}
