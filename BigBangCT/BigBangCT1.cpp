@@ -400,7 +400,8 @@ int main()
 			for (index_t i = 0; i < n - 1; i++)
 				// Last i elements are already in place    
 				for (index_t j = 0; j < n - i - 1; j++)
-					if (vvvatompos[nat][j][0] > vvvatompos[nat][j + 1][0])
+					// if (vvvatompos[nat][j][0] > vvvatompos[nat][j + 1][0]) // sorting by z
+					if (vvvatompos[nat][j][3] > vvvatompos[nat][j + 1][3]) // sorting by correlation coefficient
 						std::swap<vector<index_t> >(vvvatompos[nat][j], vvvatompos[nat][j + 1]);
 		}
 
