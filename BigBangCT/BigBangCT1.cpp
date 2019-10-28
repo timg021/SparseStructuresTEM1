@@ -381,7 +381,7 @@ int main()
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
 				printf("\nShift (i,j,k) of the 2nd array relative to the 1st one producing the minimum absolute difference = (%zd, %zd, %zd).", vvvatompos[nat][na][2], vvvatompos[nat][na][1], vvvatompos[nat][na][0]);
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xminA, yminA, zminA);
-				printf("\nAbsolute difference = %g.", amin);
+				printf("\nAbsolute difference = %g, 'correlation' coefficient = %g", amin, 1.0f - amin);
 
 				// fill the atomsize vicinity of the found minimum by cccMax values, in order to make possible the search for the next smallest minimum
 				if (na < natom[nat] - 1) 
@@ -412,7 +412,7 @@ int main()
 		fprintf(ff, "%s\n", "Atom positions detected by BigBangCT"); // free-form file info line
 		for (index_t nat = 0; nat < natomtypes; nat++)
 			for (index_t na = 0; na < natom[nat]; na++)
-				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, vvvatompos[nat][na][3] / 1.0e+8);
+				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, 1.0 - vvvatompos[nat][na][3] / 1.0e+8);
 		fclose(ff);
 
 	}
