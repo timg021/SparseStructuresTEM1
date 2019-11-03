@@ -7,23 +7,22 @@
 
 #include <complex.h>
 #include <chrono>
+#include <omp.h>
 #include <fftw3.h>
 #include "IXAHWave.h"
 #include "XArray2D.h"
 #include "XArray3D.h"
 #include "XA_data.h"
 #include "XA_move3.h"
+#include "XA_file.h"
 #include "fftwf3drc.h"
 
 //!!! NOTE that fftw3 and XArray3D have the same notation for the order of the array dimensions. Both use C-style array structure, i.e. the last index changes the fastest, 
 //i.e. in XArray3D(dim1, dim2, dim3) the fastest changing dimension is dim3, and in fftw_r2c_3d(n0, n1, n2) the fastest dimension is n2.
 //Note also that these dimensions are associated with the following physical coordinates by default: dim1(n0) <-> nz, dim2(n1) <-> ny, dim3(n2) <-> nx.
 
-#define TEST_RUN 0
 
 using namespace xar;
-
-void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output);
 
 
 int main()
@@ -104,6 +103,12 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base for saving auxilliary data.");
 		string filenamebaseOut = cparam;
 		printf("\nAuxilliary output file name baze = %s", filenamebaseOut.c_str());
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of parallel threads
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
+		int nThreads = atoi(cparam);
+		printf("\nNumber of parallel threads = %d", nThreads);
+		if (nThreads < 1)
+			throw std::exception("The number of parallel threads in input parameter file should be >= 1.");
 
 		fclose(ff0); // close input parameter file
 
@@ -114,16 +119,17 @@ int main()
 		if (ndefocus < 1) throw std::exception("Error: the number of defocus planes is less than 1.");
 		index_t nz = ndefocus;
 		printf("\nNumber of defocus planes = %zd.", nz);
-		index_t ny = 4, nx = 4, nx2 = nx / 2 + 1; // nx and ny may be overwritten below by data read from input files
+		index_t ny, nx, nx2; // x and y sizes of the arrays
 		index_t nangles = 1; // !!! nangles values other than 1 are currently not supported in the code below
 		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
 		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
 		index_t karad = index_t(atomsize / zstep / 2.0 + 0.5); // atom radius in the number of physical z-step units
 		index_t jarad = index_t(atomsize / ystep / 2.0 + 0.5); // atom radius in the number of physical y-step units - may be overwritten below by data read from input files
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
+		index_t karadt = int(atomlength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
 		index_t karad0 = index_t(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
 		index_t karad1 = index_t(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
-		index_t karadt = index_t(atemplength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
+			printf("\nAtom trace lengths in grid steps: 'in' = %zd, 'out_same' = %zd, 'out_previous' = %zd", 2 * karadt + 1, 2 * karad0 + 1, 2 * karad1 + 1);
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
@@ -131,7 +137,7 @@ int main()
 		for (index_t nat = 0; nat < natomtypes; nat++)
 		{
 			vvvatompos[nat].resize(natom[nat]); // vvvatompos[nat] is a nat-size vector of vatompos
-			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(3); // each vector vvvatompos[nat][na] stores (k,j,i) indexes of the position of one atom
+			for (index_t na = 0; na < natom[nat]; na++) vvvatompos[nat][na].resize(4); // each vector vvvatompos[nat][na] stores (k,j,i) indexes of the position of one atom
 		}
 
 		// make a vector of atom type names (extracted from input 1-atom defocus series file names and used for output only)
@@ -147,14 +153,9 @@ int main()
 
 		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
 		{
-			// first array to transform
-			XArray3D<float> aaa(nz, ny, nx, 0.0f);
+			// load the test 3D defocus series array
+			XArray3D<float> aaa;
 			XArray3DMove<float> aaamove(aaa); // the associated XArray class for applying masks to aaa later
-#if TEST_RUN
-			aaa[1][2][3] = 10.0f; // delta-function
-			aaa[1][1][1] = 20.0f; // delta-function
-			aaa[2][1][1] = 30.0f; // delta-function
-#else
 			printf("\n\nNow searching for atoms type no. %zd (%s) ...", nat + 1, strAtomNames[nat].c_str());
 			printf("\nReading sample defocus series files %s ...", filenamebaseIn1.c_str());
 			IXAHWave2D* ph2new = CreateWavehead2D();
@@ -192,12 +193,11 @@ int main()
 						for (index_t ii = 0; ii < nx; ii++)
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
-							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							aaa[kk][jj][ii] = inten[jj][ii] - finten0;
 							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
-#endif
 			printf("\nSize of input images: (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
 			// mask with zeros the vicinity of locations of previously found atoms of other types
@@ -222,29 +222,43 @@ int main()
 				}
 			}
 
+			// create 3D array of local norms of the test array
+/*			XArray3D<float> bbb(aaa); // temporary 3D array containing squares of elements of aaa
+			bbb *= bbb;
+			XArray3D<float> abL2(nz, ny, nx, 1.0f); // 3D array of L2 norms of template-size subarrays of aaa; will be later multiplied by L2 norm of the template array
+			abL2.SetHeadPtr(aaa.GetHeadPtr()->Clone());
+			omp_set_num_threads(nThreads);
+			#pragma omp parallel default(none) shared(abL2, bbb, karadt, jarad, iarad)
+			{
+				float bsum;
+				#pragma omp for schedule(dynamic) nowait
+				for (int k = (int)karadt; k < int(nz - karadt); k++)
+					for (index_t j = jarad; j < ny - jarad; j++)
+						for (index_t i = iarad; i < nx - iarad; i++)
+						{
+							bsum = 0.0f;
+							for (index_t k1 = k - karadt; k1 <= k + karadt; k1++)
+								for (index_t j1 = j - jarad; j1 <= j + jarad; j1++)
+									for (index_t i1 = i - iarad; i1 <= i + iarad; i1++)
+										bsum += bbb[k1][j1][i1];
+							abL2[k][j][i] = sqrt(bsum);
+						}
+			}
+*/
 			//allocate space for FFT transform and create FFTW plans
 			XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
 			Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
 
-			// FFT of 1st array
+			// FFT of test array
 			printf("\nFFT of the sample defocus series ...");
 			fftf.SetRealXArray3D(aaa);
-#if TEST_RUN		
-			//fftf.PrintRealArray("\nBefore 1st FFT:");
-#endif
 			fftf.ForwardFFT();
-#if TEST_RUN		
-			//fftf.PrintComplexArray("\nAfter 1st FFT:");
-#endif
 
-			// store away the result of the 1st FFT
+			// store away the result of the FFT of the test array
 			fftf.GetComplexXArray3D(ccc);
 
-			// second array to transform
-#if TEST_RUN
-			aaa.Fill(0.5); // this is for testing the masking of the central feature
-			aaa[1][1][1] = 1.0; // delta-function
-#else
+
+			// load 3D template array (defocus series of a single atom)
 			aaa.Fill(0.0);
 			printf("\nReading single atom defocus series files %s ...", filenamebaseIn2[nat].c_str());
 			FileNames(nangles, ndefocus, filenamebaseIn2[nat], infiles);
@@ -259,13 +273,12 @@ int main()
 						for (index_t ii = 0; ii < nx; ii++)
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
-							aaa[kk][jj][ii] = inten[jj][ii] - 1.0f; // can take log() instead;
+							aaa[kk][jj][ii] = inten[jj][ii] - finten0;
 							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
-#endif
-			// find the centre of gravity of the second 3D array, i.e. the position of the template atom
+			// find the centre of gravity of the 3D template array, i.e. the position of the template atom
 			double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
 			for (index_t kk = 0; kk < ndefocus; kk++)
 				for (index_t jj = 0; jj < ny; jj++)
@@ -289,7 +302,7 @@ int main()
 			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karadt, jarad, iarad, 0.0f);
 
 			// optional auxilliary data output
-			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked 2nd input array
+			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked template array
 			{
 				printf("\nWriting masked 2nd input array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
@@ -305,16 +318,13 @@ int main()
 				}
 			}
 
-			// FFT of the 2nd array
+			// multiply the L2 of subarrays of the test array by the L2 norm of the template array
+			//abL2 *= (float)aaa.Norm(eNormL2);
+
+			// FFT of the template array
 			printf("\nFFT of the single atom defocus series ...");
 			fftf.SetRealXArray3D(aaa);
-#if TEST_RUN		
-			//fftf.PrintRealArray("\nBefore 2nd FFT:");
-#endif
 			fftf.ForwardFFT();
-#if TEST_RUN		
-			//fftf.PrintComplexArray("\nAfter 2nd FFT:");
-#endif
 
 			/// multiply FFTs of 2 arrays, taking the conjugate of the second one
 			printf("\nMultiplying FFT of the first 3D array by the conjugate of the FFT of the second ...");
@@ -342,18 +352,18 @@ int main()
 						}
 						m++;
 					}
-#if TEST_RUN		
-			//fftf.PrintComplexArray("\nAfter multiplication:");
-#endif
 
 			// inverse FFT of the product
 			printf("\nInverse FFT of the product ...");
 			fftf.InverseFFT();
 
-			// get the result
+			// obtain the correlation array of the test array with the sliding template array
 			fftf.GetRealXArray3D(aaa);
 
-#if !TEST_RUN	
+			// calculate the array of (local) correlation coefficients
+			//aaa /= abL2; // !!! note that the aaa array has likely shifted after the correlation, and this needs to be take into account
+			//aaamove.Mask(karadt, karadt, jarad, jarad, iarad, iarad, 0.0f); // note that aaa array has likely shifted after the correlation
+
 			// optional auxilliary data output
 			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D correlation distribution array
 			{
@@ -370,7 +380,6 @@ int main()
 					}
 				}
 			}
-#endif
 
 			// find the maximums
 			printf("\nFinding maximums in the correlation array ...");
@@ -378,27 +387,19 @@ int main()
 			for (index_t na = 0; na < natom[nat]; na++)
 			{
 				natomtotal++;
-#if TEST_RUN		
-				printf("\nCorrelation array (iteration %zd):", nn);
-				for (index_t k = 0; k < nz; k++)
-					for (index_t j = 0; j < ny; j++)
-						for (index_t i = 0; i < nx; i++)
-							printf("\naaa[%zd,%zd,%zd] = %g", k, j, i, aaa[k][j][i]);
-#endif
 				float amax = aaa.Max3D(kmax, jmax, imax);
 
 				vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmax), double(nz)); // absolute z position of the located atom
 				vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmax), double(ny)); // absolute y position of the located atom
 				vvvatompos[nat][na][2] = nmodm(int(ipos2 + imax), double(nx)); // absolute x position of the located atom
+				vvvatompos[nat][na][3] = index_t((amax * 1.0e+8) + 0.5); // "correlation coefficient" of the located atom
 
 				double xmaxA = xmin + vvvatompos[nat][na][2] * xstep;
 				double ymaxA = ymin + vvvatompos[nat][na][1] * ystep;
 				double zmaxA = zmin + vvvatompos[nat][na][0] * zstep;
 
 				printf("\nAtom type %zd, atom number %zd:", nat + 1, na + 1);
-//#ifdef _DEBUG
 				printf("\nOptimal shift (i,j,k) of the 2nd array to the 1st one in pixels = (%zd, %zd, %zd).", imax, jmax, kmax);
-//#endif
 				printf("\nAbsolute position (x,y,z) of the detected atom in physical units = (%g, %g, %g).", xmaxA, ymaxA, zmaxA);
 				printf("\nCorrelation coefficient = %g.", amax);
 
@@ -429,7 +430,7 @@ int main()
 		fprintf(ff, "%s\n", "Atom positions detected by BigBangCT"); // free-form file info line
 		for (index_t nat = 0; nat < natomtypes; nat++)
 			for (index_t na = 0; na < natom[nat]; na++)
-				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, 1.0);
+				fprintf(ff, "%s %f %f %f %f\n", strAtomNames[nat].c_str(), xmin + vvvatompos[nat][na][2] * xstep, ymin + vvvatompos[nat][na][1] * ystep, zmin + vvvatompos[nat][na][0] * zstep, vvvatompos[nat][na][3] / 1.0e+8);
 		fclose(ff);
 
 	}
@@ -446,47 +447,5 @@ int main()
 
 }
 
-
-void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output)
-// Creates a sequence of file names properly indexed by rotation angles and defocus distances (using the same algorithm as in MultisliceK.cpp)
-{
-	if (ndefocus < 1 || nangles < 1)
-		throw std::runtime_error("bad number of angles and/or defocus distances in FileNames()");
-
-	char buffer[128];
-	string strAngle, outfilename_i, outfilename_j;
-
-	output.resize(ndefocus * nangles); // vector of full output filenames
-
-	// create formatting string to add properly formatted indexes at the end of the output file names
-	index_t i_dot = filenamebase.rfind('.'), nfieldA_length, nfieldB_length;
-	char ndig[8];
-	string myformat("");
-	if (ndefocus > 1)
-	{
-		nfieldA_length = 1 + index_t(log10(double(ndefocus - 1))); //maximum number of digits corresponding to defocuses in the output file name
-		sprintf(ndig, "%zd", nfieldA_length); //convert the calculated maximum number of digits corresponding to defocuses into a string, e.g. 5 into "5"
-		myformat = "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded defocus indexes into file names
-	}
-	if (nangles > 1)
-	{
-		nfieldB_length = 1 + index_t(log10(double(nangles - 1))); //maximum number of digits corresponding to angles in the output file name
-		sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
-		myformat += "_%0" + string(ndig) + "d"; //construct format string for inserting two 0-padded angle indexes into file names - see usage below
-	}
-
-	for (index_t i = 0; i < nangles; i++)
-	{
-		for (index_t j = 0; j < ndefocus; j++)
-		{
-			outfilename_j = filenamebase;
-			if (ndefocus == 1 && nangles > 1) sprintf(buffer, myformat.data(), i);
-			else if (ndefocus > 1 && nangles == 1) sprintf(buffer, myformat.data(), j);
-			else sprintf(buffer, myformat.data(), j, i);
-			outfilename_j.insert(i_dot, buffer);
-			output[i * ndefocus + j] = outfilename_j;
-		}
-	}
-}
 
 #endif // ifdef CORRELATION_BASED_METHOD

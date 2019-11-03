@@ -12,14 +12,17 @@
 #include "XArray3D.h"
 #include "XA_data.h"
 #include "XA_move3.h"
+#include "XA_file.h"
+
+
 
 //!!! NOTE that fftw3 and XArray3D have the same notation for the order of the array dimensions. Both use C-style array structure, i.e. the last index changes the fastest, 
 //i.e. in XArray3D(dim1, dim2, dim3) the fastest changing dimension is dim3, and in fftw_r2c_3d(n0, n1, n2) the fastest dimension is n2.
 //Note also that these dimensions are associated with the following physical coordinates by default: dim1(n0) <-> nz, dim2(n1) <-> ny, dim3(n2) <-> nx.
 
-using namespace xar;
 
-void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output);
+
+using namespace xar;
 
 
 int main()
@@ -276,7 +279,7 @@ int main()
 			printf("\nDimensions of the 3D template array in pixels are: nx = %d, ny = %d, nz = %d.", nxbbb, nybbb, nzbbb);
 
 			// optional auxilliary data output
-			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the masked 2nd input array
+			if (iCorrArrayOut == 2 && nat == natomtypes - 1) // output the trimmed template array
 			{
 				printf("\nWriting masked 2nd input array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, karadt * 2 + 1, filenamebaseOut, infiles);
@@ -427,49 +430,6 @@ int main()
 	printf("\nPress any key to exit..."); getchar();
 	return 0;
 
-}
-
-
-void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output)
-// Creates a sequence of file names properly indexed by rotation angles and defocus distances (using the same algorithm as in MultisliceK.cpp)
-{
-	if (ndefocus < 1 || nangles < 1)
-		throw std::runtime_error("bad number of angles and/or defocus distances in FileNames()");
-
-	char buffer[128];
-	string strAngle, outfilename_i, outfilename_j;
-
-	output.resize(ndefocus * nangles); // vector of full output filenames
-
-	// create formatting string to add properly formatted indexes at the end of the output file names
-	index_t i_dot = filenamebase.rfind('.'), nfieldA_length, nfieldB_length;
-	char ndig[8];
-	string myformat("");
-	if (ndefocus > 1)
-	{
-		nfieldA_length = 1 + index_t(log10(double(ndefocus - 1))); //maximum number of digits corresponding to defocuses in the output file name
-		sprintf(ndig, "%zd", nfieldA_length); //convert the calculated maximum number of digits corresponding to defocuses into a string, e.g. 5 into "5"
-		myformat = "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded defocus indexes into file names
-	}
-	if (nangles > 1)
-	{
-		nfieldB_length = 1 + index_t(log10(double(nangles - 1))); //maximum number of digits corresponding to angles in the output file name
-		sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
-		myformat += "_%0" + string(ndig) + "d"; //construct format string for inserting two 0-padded angle indexes into file names - see usage below
-	}
-
-	for (index_t i = 0; i < nangles; i++)
-	{
-		for (index_t j = 0; j < ndefocus; j++)
-		{
-			outfilename_j = filenamebase;
-			if (ndefocus == 1 && nangles > 1) sprintf(buffer, myformat.data(), i);
-			else if (ndefocus > 1 && nangles == 1) sprintf(buffer, myformat.data(), j);
-			else sprintf(buffer, myformat.data(), j, i);
-			outfilename_j.insert(i_dot, buffer);
-			output[i * ndefocus + j] = outfilename_j;
-		}
-	}
 }
 
 

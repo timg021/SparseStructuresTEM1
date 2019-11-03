@@ -94,6 +94,8 @@ namespace xar
 		void Trim(index_t iZLeft, index_t iZRight, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight);
 		//! Adds new elements with a given value at the edges of the array
 		void Pad(index_t iZLeft, index_t iZRight, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, T tPadVal);
+		//! Replaces values at the defined perifery of the array by the given value
+		void Mask(index_t iZLeft, index_t iZRight, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, T tMaskVal);
 		//! Adds new elements with a given value at the edges of the array up to the nearest integer powers of 2
 		void Pad2N(T tPadVal);
 		//! Replaces elements at the edges of the array using a given value 
@@ -269,7 +271,6 @@ template <class T> void xar::XArray3DMove<T>::Pad2N(T tPadVal)
 }
 
 
-#if(0)
 //---------------------------------------------------------------------------
 //Function XArray3DMove<T>::Mask
 //
@@ -300,26 +301,38 @@ template <class T> void xar::XArray3DMove<T>::Mask(index_t iZLeft, index_t iZRig
 
 	if (iXLeft + iXRight > m_rXArray3D.GetDim3() || iYLeft + iYRight > m_rXArray3D.GetDim2() || iZLeft + iZRight > m_rXArray3D.GetDim1())
 	{
-		Fill(tMaskVal);
+		m_rXArray3D.Fill(tMaskVal);
 	}
 	else
 	{
-	//@@@@@@@@@@@@@@
-		index_t i, j;
-		for (i = 0; i < iYLeft; i++)
+		index_t i, j, k;
+		for (k = 0; k < iZLeft; k++)
 			for (j = 0; j < m_rXArray3D.GetDim2(); j++)
-				m_rXArray3D[i][j] = tMaskVal;
-		for (i = m_rXArray3D.GetDim1() - iYRight; i < m_rXArray3D.GetDim1(); i++)
+				for (i = 0; i < m_rXArray3D.GetDim3(); i++)
+					m_rXArray3D[k][j][i] = tMaskVal;
+		for (k = m_rXArray3D.GetDim1() - iZRight; k < m_rXArray3D.GetDim1(); k++)
 			for (j = 0; j < m_rXArray3D.GetDim2(); j++)
-				m_rXArray3D[i][j] = tMaskVal;
-		for (i = iYLeft; i < m_rXArray3D.GetDim1()-iYRight; i++)
-		{
-			for (j = 0; j < iXLeft; j++) m_rXArray3D[i][j] = tMaskVal;
-			for (j = m_rXArray3D.GetDim2() - iXRight; j < m_rXArray3D.GetDim2(); j++) m_rXArray3D[i][j] = tMaskVal;
-		}
+				for (i = 0; i < m_rXArray3D.GetDim3(); i++)
+					m_rXArray3D[k][j][i] = tMaskVal;
+		for (k = 0; k < m_rXArray3D.GetDim1(); k++)
+			for (j = 0; j < iYLeft; j++)
+				for (i = 0; i < m_rXArray3D.GetDim3(); i++)
+					m_rXArray3D[k][j][i] = tMaskVal;
+		for (k = 0; k < m_rXArray3D.GetDim1(); k++)
+			for (j = m_rXArray3D.GetDim2() - iYRight; j < m_rXArray3D.GetDim2(); j++)
+				for (i = 0; i < m_rXArray3D.GetDim3(); i++)
+					m_rXArray3D[k][j][i] = tMaskVal;
+		for (k = 0; k < m_rXArray3D.GetDim1(); k++)
+			for (j = 0; j < m_rXArray3D.GetDim2(); j++)
+				for (i = 0; i < iXLeft; i++)
+					m_rXArray3D[k][j][i] = tMaskVal;
+		for (k = 0; k < m_rXArray3D.GetDim1(); k++)
+			for (j = 0; j < m_rXArray3D.GetDim2(); j++)
+				for (i = m_rXArray3D.GetDim3() - iXRight; i < m_rXArray3D.GetDim3(); i++)
+					m_rXArray3D[k][j][i] = tMaskVal;
 	}
 }
-#endif
+
 
 #if(0)
 //---------------------------------------------------------------------------

@@ -207,6 +207,7 @@ fprintf("a=%d", a);
 	XA_API index_t IOFileString2List(const string& infiles, list<string>& listInputFiles, int* piNoProblem);
 	index_t FindRefractiveIndices(const string strMaterialLegendFilename, const vector<float> vEnergies, vector<vector<float> >& vOutDelta, vector<vector<float> >& vOutBeta);
 	index_t ReadSpectrumFile(const string strSpectrumFilename, vector<float>& vOutEnergies, vector<float>& vOutCounts);
+	void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output);
 
 } // namespace xar closed
 
