@@ -194,11 +194,14 @@ int main()
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
 							aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
 			printf("\nSize of input images: (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
+
+			// subtract the mean
+			aaa -= (float)aaa.Norm(eNormAver);
 
 			// mask with zeros the vicinity of locations of previously found atoms of other types
 			for (index_t natprev = 0; natprev < nat; natprev++)
@@ -276,10 +279,14 @@ int main()
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
 							aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
+
+			// subtract the mean
+			aaa -= (float)aaa.Norm(eNormAver);
+
 			// find the centre of gravity of the 3D template array, i.e. the position of the template atom
 			double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
 			for (index_t kk = 0; kk < ndefocus; kk++)
@@ -364,8 +371,6 @@ int main()
 			fftf.GetRealXArray3D(aaa);
 
 			// calculate the array of (local) correlation coefficients
-			//aaa /= abL2; // !!! note that the aaa array has likely shifted after the correlation, and this needs to be take into account
-			
 			int kk, jj;
 			for (index_t k = 0; k < nz; k++)
 			{
@@ -377,7 +382,6 @@ int main()
 						aaa[k][j][i] /= abL2[kk][jj][nmodm(int(ipos2 + i), double(nx))];
 				}
 			}
-			
 
 			// optional auxilliary data output
 			if (iCorrArrayOut == 3 && nat == 0 /*natomtypes - 1*/) // output the 3D correlation distribution array
