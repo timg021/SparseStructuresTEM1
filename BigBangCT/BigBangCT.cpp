@@ -1,7 +1,7 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-//#define CORRELATION_BASED_METHOD 1
+#define CORRELATION_BASED_METHOD 1
 
 #ifdef CORRELATION_BASED_METHOD
 
@@ -194,7 +194,7 @@ int main()
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
 							aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
@@ -223,28 +223,30 @@ int main()
 			}
 
 			// create 3D array of local norms of the test array
-/*			XArray3D<float> bbb(aaa); // temporary 3D array containing squares of elements of aaa
-			bbb *= bbb;
-			XArray3D<float> abL2(nz, ny, nx, 1.0f); // 3D array of L2 norms of template-size subarrays of aaa; will be later multiplied by L2 norm of the template array
+			XArray3D<float> abL2(nz, ny, nx, std::numeric_limits<float>::max()); // 3D array of L2 norms of template-size subarrays of aaa; will be later multiplied by L2 norm of the template array
 			abL2.SetHeadPtr(aaa.GetHeadPtr()->Clone());
-			omp_set_num_threads(nThreads);
-			#pragma omp parallel default(none) shared(abL2, bbb, karadt, jarad, iarad)
-			{
-				float bsum;
-				#pragma omp for schedule(dynamic) nowait
-				for (int k = (int)karadt; k < int(nz - karadt); k++)
-					for (index_t j = jarad; j < ny - jarad; j++)
-						for (index_t i = iarad; i < nx - iarad; i++)
-						{
-							bsum = 0.0f;
-							for (index_t k1 = k - karadt; k1 <= k + karadt; k1++)
-								for (index_t j1 = j - jarad; j1 <= j + jarad; j1++)
-									for (index_t i1 = i - iarad; i1 <= i + iarad; i1++)
-										bsum += bbb[k1][j1][i1];
-							abL2[k][j][i] = sqrt(bsum);
-						}
+			{ // create a scope so that the bbb array below would be destroyed immediately after it has been used
+				XArray3D<float> bbb(aaa); // temporary 3D array containing squares of elements of aaa
+				bbb *= bbb;
+				omp_set_num_threads(nThreads);
+				#pragma omp parallel default(none) shared(abL2, bbb, karadt, jarad, iarad)
+				{
+					float bsum;
+					#pragma omp for schedule(dynamic) nowait
+					for (int k = (int)karadt; k < int(nz - karadt); k++)
+						for (index_t j = jarad; j < ny - jarad; j++)
+							for (index_t i = iarad; i < nx - iarad; i++)
+							{
+								bsum = 0.0f;
+								for (index_t k1 = k - karadt; k1 <= k + karadt; k1++)
+									for (index_t j1 = j - jarad; j1 <= j + jarad; j1++)
+										for (index_t i1 = i - iarad; i1 <= i + iarad; i1++)
+											bsum += bbb[k1][j1][i1];
+								abL2[k][j][i] = sqrt(bsum);
+							}
+				}
 			}
-*/
+
 			//allocate space for FFT transform and create FFTW plans
 			XArray3D<xar::fcomplex> ccc(nz, ny, nx2);
 			Fftwf3drc fftf((int)nz, (int)ny, (int)nx);
@@ -274,7 +276,7 @@ int main()
 						{
 							aaa[kk][jj][ii] = inten[jj][ii];
 							aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-							aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
+							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
 						}
 				}
 			}
@@ -297,6 +299,7 @@ int main()
 			xpos2 = rpos2[nat][0]; ypos2 = rpos2[nat][1]; zpos2 = rpos2[nat][2];
 			ipos2 = index_t((xpos2 - xmin) / xstep + 0.5); jpos2 = index_t((ypos2 - ymin) / ystep + 0.5); kpos2 = index_t((zpos2 - zmin) / zstep + 0.5);
 			printf("\nPosition of this single atom in the parameter file in pixels = (%zd, %zd, %zd), and in physical units = (%g, %g, %g).", ipos2, jpos2, kpos2, xpos2, ypos2, zpos2);
+			printf("\nDimensions of the 3D template array in pixels are: nx = %zd, ny = %zd, nz = %zd.", iarad * 2 + 1, jarad * 2 + 1, karadt * 2 + 1);
 
 			// set to zero the values of all pixels outside atomsize vicinity of the centre of mass of the template 1-atom pattern
 			aaamove.FillRectComplementPeriodic(kpos2, jpos2, ipos2, karadt, jarad, iarad, 0.0f);
@@ -319,7 +322,7 @@ int main()
 			}
 
 			// multiply the L2 of subarrays of the test array by the L2 norm of the template array
-			//abL2 *= (float)aaa.Norm(eNormL2);
+			abL2 *= (float)aaa.Norm(eNormL2);
 
 			// FFT of the template array
 			printf("\nFFT of the single atom defocus series ...");
@@ -362,10 +365,22 @@ int main()
 
 			// calculate the array of (local) correlation coefficients
 			//aaa /= abL2; // !!! note that the aaa array has likely shifted after the correlation, and this needs to be take into account
-			//aaamove.Mask(karadt, karadt, jarad, jarad, iarad, iarad, 0.0f); // note that aaa array has likely shifted after the correlation
+			
+			int kk, jj;
+			for (index_t k = 0; k < nz; k++)
+			{
+				kk = nmodm(int(kpos2 + k), double(nz));
+				for (index_t j = 0; j < ny; j++)
+				{
+					jj = nmodm(int(jpos2 + j), double(ny));
+					for (index_t i = 0; i < nx; i++)
+						aaa[k][j][i] /= abL2[kk][jj][nmodm(int(ipos2 + i), double(nx))];
+				}
+			}
+			
 
 			// optional auxilliary data output
-			if (iCorrArrayOut == 3 && nat == natomtypes - 1) // output the 3D correlation distribution array
+			if (iCorrArrayOut == 3 && nat == 0 /*natomtypes - 1*/) // output the 3D correlation distribution array
 			{
 				printf("\nWriting 3D correlation array in output files %s ...", filenamebaseOut.c_str());
 				FileNames(nangles, ndefocus, filenamebaseOut, infiles);
