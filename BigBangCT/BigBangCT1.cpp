@@ -367,11 +367,9 @@ int main()
 			for (index_t na = 0; na < natom[nat]; na++)
 			{
 				natomtotal++;
+
 				float amin = ccc.Min3D(kmin, jmin, imin);
 
-				//vvvatompos[nat][na][0] = nmodm(int(kpos2 + kmin + karadt), double(nz)); // absolute z position of the located atom
-				//vvvatompos[nat][na][1] = nmodm(int(jpos2 + jmin + jarad), double(ny)); // absolute y position of the located atom
-				//vvvatompos[nat][na][2] = nmodm(int(ipos2 + imin + iarad), double(nx)); // absolute x position of the located atom
 				vvvatompos[nat][na][0] = kmin + (index_t)karadt; // absolute z position of the located atom
 				vvvatompos[nat][na][1] = jmin + (index_t)jarad; // absolute y position of the located atom
 				vvvatompos[nat][na][2] = imin + (index_t)iarad; // absolute x position of the located atom
@@ -394,7 +392,7 @@ int main()
 		} // end of cycle over different atom types
 
 
-		// bubble-sort the found locations of atoms of each type separately, in accordance with the increasing z-coordinate 
+		// bubble-sort the found locations of atoms of each type separately, in accordance with the decreasing correlation coefficient (previously, increasing z-coordinate)
 		// (this is done just for increased convenience of checking the output data manually later on)
 		vector<index_t> vtemp(3);
 		for (index_t nat = 0; nat < natomtypes; nat++)
