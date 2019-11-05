@@ -1,7 +1,7 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-//#define SUBTRACTION_BASED_METHOD 1
+#define SUBTRACTION_BASED_METHOD 1
 
 #ifdef SUBTRACTION_BASED_METHOD
 

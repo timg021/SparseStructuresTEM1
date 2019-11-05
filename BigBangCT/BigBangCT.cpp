@@ -1,7 +1,7 @@
 // BigBangCT.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#define CORRELATION_BASED_METHOD 1
+//#define CORRELATION_BASED_METHOD 1
 
 #ifdef CORRELATION_BASED_METHOD
 
@@ -191,16 +191,12 @@ int main()
 					}
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-						{
 							aaa[kk][jj][ii] = inten[jj][ii];
-							//aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
-						}
 				}
 			}
 			printf("\nSize of input images: (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
-			// subtract the background, take modulus, then subtrac the mean
+			// subtract the background, take modulus, then subtract the mean
 			aaa -= finten0;
 			aaa.Abs();
 			aaa -= (float)aaa.Norm(eNormAver);
@@ -278,15 +274,11 @@ int main()
 					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-						{
 							aaa[kk][jj][ii] = inten[jj][ii];
-							//aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-							//aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
-						}
 				}
 			}
 
-			// subtract the background, take modulus, then subtrac the mean
+			// subtract the background, take modulus, then subtract the mean
 			aaa -= finten0;
 			aaa.Abs();
 			aaa -= (float)aaa.Norm(eNormAver);
