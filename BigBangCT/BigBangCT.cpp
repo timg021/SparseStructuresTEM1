@@ -191,14 +191,12 @@ int main()
 					}
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-							aaa[kk][jj][ii] = inten[jj][ii];
+							aaa[kk][jj][ii] = abs(inten[jj][ii] - finten0);
 				}
 			}
 			printf("\nSize of input images: (nx,ny,nz) = (%zd, %zd, %zd); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 
-			// subtract the background, take modulus, then subtract the mean
-			aaa -= finten0;
-			aaa.Abs();
+			// subtract the mean to comply with the definition of the correlation coefficient
 			aaa -= (float)aaa.Norm(eNormAver);
 
 			// mask with zeros the vicinity of locations of previously found atoms of other types
@@ -274,13 +272,11 @@ int main()
 					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
 					for (index_t jj = 0; jj < ny; jj++)
 						for (index_t ii = 0; ii < nx; ii++)
-							aaa[kk][jj][ii] = inten[jj][ii];
+							aaa[kk][jj][ii] = abs(inten[jj][ii] - finten0);
 				}
 			}
 
-			// subtract the background, take modulus, then subtract the mean
-			aaa -= finten0;
-			aaa.Abs();
+			// subtract the mean
 			aaa -= (float)aaa.Norm(eNormAver);
 
 			// find the centre of gravity of the 3D template array, i.e. the position of the template atom

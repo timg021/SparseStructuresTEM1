@@ -159,54 +159,52 @@ int main()
 
 		for (index_t nat = 0; nat < natomtypes; nat++) // the cycle over the atom type
 		{
+			if (natom[nat] == 0) continue; // the case where there are 0 atoms of this type
+
 			// load 3D defocus series array
 			printf("\n\nNow searching for atoms type no. %zd (%s) ...", nat + 1, strAtomNames[nat].c_str());
 			vector<string> infiles;
-			if (nat == 0) // read the defocus series only once
+			printf("\nReading sample defocus series files %s ...", filenamebaseIn1.c_str());
+			FileNames(nangles, ndefocus, filenamebaseIn1, infiles);
+			for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
 			{
-				printf("\nReading sample defocus series files %s ...", filenamebaseIn1.c_str());
-				FileNames(nangles, ndefocus, filenamebaseIn1, infiles);
-				for (index_t nn = 0; nn < nangles; nn++) // nangles = 1 is assumed
+				for (int kk = 0; kk < nz; kk++)
 				{
-					for (int kk = 0; kk < nz; kk++)
+					XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
+					if (nn == 0 && kk == 0)
 					{
-						XArData::ReadFileGRD(inten, infiles[nn * ndefocus + kk].c_str(), wl);
-						if (nn == 0 && kk == 0)
-						{
-							nx = (int)inten.GetDim2();
-							ny = (int)inten.GetDim1();
-							xmin = GetXlo(inten);
-							ymin = GetYlo(inten);
-							xstep = GetXStep(inten);
-							ystep = GetYStep(inten);
-							jarad = int(atomsize / ystep / 2.0 + 0.5);
-							iarad = int(atomsize / xstep / 2.0 + 0.5);
-							aaa.Resize(nz, ny, nx, 0.0f);
-							IXAHWave3D* ph3new = CreateWavehead3D();
-							ph3new->SetData(wl, zmin, zmax, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
-							aaa.SetHeadPtr(ph3new);
-						}
-						else
-						{
-							if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
-							if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
-						}
-						for (int jj = 0; jj < ny; jj++)
-							for (int ii = 0; ii < nx; ii++)
-							{
-								aaa[kk][jj][ii] = inten[jj][ii];
-								aaa[kk][jj][ii] = inten[jj][ii] - finten0;
-								aaa[kk][jj][ii] = ::fabs(aaa[kk][jj][ii]);
-							}
+						nx = (int)inten.GetDim2();
+						ny = (int)inten.GetDim1();
+						xmin = GetXlo(inten);
+						ymin = GetYlo(inten);
+						xstep = GetXStep(inten);
+						ystep = GetYStep(inten);
+						jarad = int(atomsize / ystep / 2.0 + 0.5);
+						iarad = int(atomsize / xstep / 2.0 + 0.5);
+						aaa.Resize(nz, ny, nx, 0.0f);
+						IXAHWave3D* ph3new = CreateWavehead3D();
+						ph3new->SetData(wl, zmin, zmax, ymin, ymin + ystep * ny, xmin, xmin + xstep * nx);
+						aaa.SetHeadPtr(ph3new);
 					}
+					else
+					{
+						if (inten.GetDim1() != ny) throw std::runtime_error("different ny dimension in input file");
+						if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
+					}
+					for (int jj = 0; jj < ny; jj++)
+						for (int ii = 0; ii < nx; ii++)
+							aaa[kk][jj][ii] = abs(inten[jj][ii] - finten0);
 				}
-				printf("\nSize of input images: (nx,ny,nz) = (%d, %d, %d); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
 			}
-			else
+			printf("\nSize of input images: (nx,ny,nz) = (%d, %d, %d); minimums = (%g, %g, %g); steps = (%g, %g, %g).", nx, ny, nz, xmin, ymin, zmin, xstep, ystep, zstep);
+
+			// optionally mask with zeros the vicinity of locations of previously found atoms of other types
+			// we allow the option for not masking the locations of previously found atoms, with the idea that duplicate atoms can be localised and then selected on the basis of the correlation coefficient
+			if (karad1 >= 0)
 			{
-				// mask with zeros the vicinity of locations of previously found atoms of other types
-				for (index_t na = 0; na < natom[nat - 1]; na++)
-					aaamove.FillCylinderPeriodic(vvvatompos[nat - 1][na][0], vvvatompos[nat - 1][na][1], vvvatompos[nat - 1][na][2], karad1, jarad, iarad, 0.0f);
+				for (index_t natprev = 0; natprev < nat; natprev++)
+					for (index_t na = 0; na < natom[natprev]; na++)
+						aaamove.FillCylinderPeriodic(vvvatompos[natprev][na][0], vvvatompos[natprev][na][1], vvvatompos[natprev][na][2], karad1, jarad, iarad, 0.0f);
 			}
 
 			// optional auxilliary data output
@@ -230,7 +228,6 @@ int main()
 				}
 			}
 
-
 			// load 3D template array
 			printf("\nReading single atom defocus series files %s ...", filenamebaseIn2[nat].c_str());
 			FileNames(nangles, ndefocus, filenamebaseIn2[nat], infiles);
@@ -244,13 +241,10 @@ int main()
 					if (inten.GetDim2() != nx) throw std::runtime_error("different nx dimension in input file");
 					for (int jj = 0; jj < ny; jj++)
 						for (int ii = 0; ii < nx; ii++)
-						{
-							bbb[kk][jj][ii] = inten[jj][ii];
-							bbb[kk][jj][ii] = inten[jj][ii] - finten0;
-							bbb[kk][jj][ii] = ::fabs(bbb[kk][jj][ii]);
-						}
+							bbb[kk][jj][ii] = abs(inten[jj][ii] - finten0);
 				}
 			}
+
 			// find the centre of gravity of the second 3D array, i.e. the position of the template atom
 			double integ = 0.0, xpos = 0.0, ypos = 0.0, zpos = 0.0, dtemp;
 			for (int kk = 0; kk < nz; kk++)
@@ -299,7 +293,6 @@ int main()
 				} 
 			}
 
-
 			// subtract two 3D arrays, shifting the second array around
 			printf("\nSubtracting the template array from the defocus series 3D array ...");
 
@@ -307,8 +300,8 @@ int main()
 			{
 				nzccc = nz - karadt * 2, nyccc = ny - jarad * 2, nxccc = nx - iarad * 2;
 				ccc.Resize(nzccc, nyccc, nxccc, 0.0f);
+				printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
 			}
-			printf("\nDimensions of the 3D difference array in pixels are: nx = %d, ny = %d, nz = %d.", nxccc, nyccc, nzccc);
 
 			omp_set_num_threads(nThreads);
 			#pragma omp parallel default(none) shared(aaa, bbb, ccc, nzccc, nyccc, nxccc, nzbbb, nybbb, nxbbb)
@@ -397,7 +390,8 @@ int main()
 		vector<index_t> vtemp(3);
 		for (index_t nat = 0; nat < natomtypes; nat++)
 		{
-			index_t n = vvvatompos[nat].size();
+			index_t n = natom[nat];
+			if (n == 0) continue;
 			for (index_t i = 0; i < n - 1; i++)
 				// Last i elements are already in place    
 				for (index_t j = 0; j < n - i - 1; j++)
