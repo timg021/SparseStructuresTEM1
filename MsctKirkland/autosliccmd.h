@@ -19,5 +19,6 @@ public:
 };
 
 int autosliccmd(std::vector<std::string> params, std::vector<double> defocus, std::vector<std::string> fileout);
+int autosliccmd1(std::vector<std::string> params);
 //@@@@@ end TEG code
 

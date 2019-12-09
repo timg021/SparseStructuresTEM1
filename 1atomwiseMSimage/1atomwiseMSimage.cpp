@@ -16,6 +16,7 @@ extern "C" int pdb_read(pdbdata* ppd, int nfiletype, char* pdbfile);
 extern "C" int xyz_Kirck_write1(int i, pdbdata* ppd, char* outfile, char* cfileinfo, double ctblength, double xminx0, double yminy0, double zminz0);
 
 extern xar::XArray2D<float> intenTot; // accumulated intensity data - created in 1autosliccmd.cpp, wrtten into a file at the end in this module
+extern xar::XArray2D<xar::fcomplex> campTot; // accumulated complex amplitude data - created in 1autosliccmd.cpp, wrtten into a file at the end in this module
 
 using namespace xar;
 
@@ -33,8 +34,8 @@ int main(void)
 	{
 		printf("\nStarting 1atomwiseMSimage program ...");
 		// read input parameter file
-		FILE* ff0 = fopen("MsctKirkland.txt", "rt");
-			if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland.txt.");
+		FILE* ff0 = fopen("MsctKirkland1.txt", "rt");
+			if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland1.txt.");
 			char cline[1024], ctitle[1024], cparam[1024];
 			// The ordering of these parameters is 'historic', it can be changed, but then the corresponding changes need to be applied in autosliccmd.cpp too.
 			fgets(cline, 1024, ff0); // 1st line - comment
@@ -45,6 +46,8 @@ int main(void)
 			string outfilename(cparam); // output filename stub
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4th line: Output_intensity(0),_phase(1)_or_complex_amplitude(2)
 			autoslictxt[27] = cline;
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 4 of input parameter file.");
+			int noutput = atoi(cparam); // 0 = Output_intensity, 2= output_complex_amplitude
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5th line: Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation
 			autoslictxt[25] = cline;
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6th line: Incident__electron_beam_energy_in_keV
@@ -113,17 +116,148 @@ int main(void)
 		char inpdbfile[256]; // input file name
 		char infiletype[256]; // input file type
 		char strctblength[256]; // CT qube side length
+		char straaa[256]; // unused here
 		char outfile[256]; // output file name
 		char cfileinfo[256]; // freeform info line
 
 		// read PDB file translate parameter file
 		FILE* ffpar = fopen("pdb.txt", "rt");
 			if (!ffpar) throw std::exception("Error: cannot open parameter file pdb.txt.");
+			fgets(straaa, 256, ffpar);
 			fgets(inpdbfile, 256, ffpar); strtok(inpdbfile, "\n");
 			fgets(infiletype, 256, ffpar); strtok(infiletype, "\n");
 			fgets(strctblength, 256, ffpar); strtok(strctblength, "\n");
+			fgets(straaa, 256, ffpar); 
+			fgets(straaa, 256, ffpar);
+			fgets(straaa, 256, ffpar);
+			fgets(straaa, 256, ffpar);
 			fgets(outfile, 256, ffpar); strtok(outfile, "\n");
+			fgets(straaa, 256, ffpar);
 			fgets(cfileinfo, 256, ffpar); strtok(cfileinfo, "\n");
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+			// line 1
+			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 1nd line: input file name
+			if (sscanf(cline, "%s %s", ctitle, inpdbfile) != 2)
+			{
+				printf("\n!!!Error reading input file name from input parameter file.");
+				return -1;
+			}
+
+			// line 2
+			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 2nd line: input file type
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading input file type from input parameter file.");
+				return -1;
+			}
+			int nfiletype = 0; // input file type 0 - for PDB input file, 1 - for Vesta XYZ input file, 2 - for Kirkland XYZ file.
+			nfiletype = atoi(cparam);
+			if (nfiletype != 0 && nfiletype != 1 && nfiletype != 2)
+			{
+				printf("\n!!!Unknown input file type in input parameter file.");
+				return -1;
+			}
+
+			// line 3
+			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //3rd line: CT qube side length
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading CT qube side length from input parameter file.");
+				return -1;
+			}
+			double ctblength = 0; // CT box length
+			ctblength = atof(cparam);
+			if (ctblength <= 0)
+			{
+				printf("!!!CT cube side length %g is not positive in pdb.txt!!!", ctblength);
+				return -1;
+			}
+
+			// line 4
+			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //4th line: rotation angle 
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading rotation angle from input parameter file.");
+				return -1;
+			}
+			double angle = 0; // rotation angle 
+			angle = atof(cparam) * 3.141592653589793 / 180.0;
+			double cosangle = cos(angle);
+			double sinangle = sin(angle);
+
+			// line 5
+			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //5th line: make all coordinates positive and centre them, or not 
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading 'make all coordinates positive' switch from input parameter file.");
+				return -1;
+			}
+			int npositive = 0; // 1 - make all output coordinates positive and centre the sample inside the CT sample qube, 0 - do not do this
+			npositive = atoi(cparam);
+			if (npositive != 0 && npositive != 1)
+			{
+				printf("\n!!!Unknown value of the 'make all output coordinates positive' switch in input parameter file.");
+				return -1;
+			}
+
+			// line 6
+			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //6th line: maximum distance to remove duplicates
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading maximum distance to remove duplicates from input parameter file.");
+				return -1;
+			}
+			double dupdist = 0.0;
+			dupdist = atof(cparam);
+			if (dupdist < 0) dupdist = 0.0;
+			double dupdist2 = dupdist * dupdist;
+
+			// line 7
+			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 7th line: output data sort
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading output data sort type from input parameter file.");
+				return -1;
+			}
+			int noutsort = 0; // output file sort 0 - no sort, 1 - sort by ascending order of z coordinate, 2- sort by descending order of the occupancy values
+			noutsort = atoi(cparam);
+			if (noutsort != 0 && noutsort != 1 && noutsort != 2)
+			{
+				printf("\n!!!Unknown output data sort type in the input parameter file.");
+				return -1;
+			}
+
+			// line 8
+			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 8th line: output file name
+			if (sscanf(cline, "%s %s", ctitle, outfile) != 2)
+			{
+				printf("\n!!!Error reading output file name from input parameter file.");
+				return -1;
+			}
+
+			// line 9
+			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 9th line: output file type
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+			{
+				printf("\n!!!Error reading output file type from input parameter file.");
+				return -1;
+			}
+			int noutfiletype = 0; // output file type 0 -  for Kirkland-format XYZ file, 1 - for muSTEM-foram XTL file
+			noutfiletype = atoi(cparam);
+			if (noutfiletype != 0 && noutfiletype != 1 && noutfiletype != 2)
+			{
+				printf("\n!!!Unknown output file type in the input parameter file.");
+				return -1;
+			}
+
+			// line 10
+			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 10th line: free form first line for the output file
+			if (sscanf(cline, "%s %s", ctitle, cfileinfo) != 2)
+			{
+				printf("\n!!!Error reading free-form line for the output file from input parameter file.");
+				return -1;
+			}
+
 		fclose(ffpar);
 
 		int nfiletype = 0;
@@ -195,13 +329,30 @@ int main(void)
 			while (!thread_counter.GetUpdated() || thread_counter.GetCount() >= ncores)
 				std::this_thread::sleep_for(std::chrono::milliseconds(10)); // we allow ncores of threads to be launched
 #else
-			//autosliccmd(autoslictxt); // single-threaded execution mode
+			autosliccmd1(autoslictxt); // single-threaded execution mode
 #endif // TEG_MULTITHREADED
 		}
 
-		// save the accumulated total intensity file
-		intenTot += 1.0f;
-		XArData::WriteFileGRD(intenTot, outfilename.c_str(), xar::eGRDBIN);
+		switch (noutput)
+		{
+		case 0: // intensity out
+		{
+			// save the accumulated total intensity into file
+			intenTot += 1.0f;
+			XArData::WriteFileGRD(intenTot, outfilename.c_str(), xar::eGRDBIN);
+			break;
+		}
+		case 2: // complex amplitude out
+		{
+			// save the accumulated total complex amplitude into file
+			campTot /= double(nangles);
+			XArData::WriteFileGRC(campTot, outfilename.c_str(), xar::eGRCBIN);
+			break;
+		}
+		default:
+			throw std::exception("Error: unknown value of the output mode parameter.");
+		}
+
 
 #ifdef TEG_MULTITHREADED
 		while (thread_counter.GetCount() > 1)

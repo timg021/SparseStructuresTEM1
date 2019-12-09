@@ -54,6 +54,18 @@
     <ClCompile Include="1autosliccmd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Multislice\Ooura_fftsg_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Multislice\Ooura_fftsg_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Multislice\Ooura_fftsg2d_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Multislice\Ooura_fftsg2d_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\MsctKirkland\autoslic.h">
@@ -123,6 +135,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pdb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Multislice\OouraFft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

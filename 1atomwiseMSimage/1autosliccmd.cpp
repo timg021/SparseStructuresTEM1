@@ -143,6 +143,7 @@ ANY OTHER PROGRAM).
 
 #include "XArray2D.h"
 #include "XA_data.h"
+#include "XA_fft2.h"
 
 using namespace std;
 
@@ -168,8 +169,9 @@ const int NZMAX= 103;    // max atomic number Z
 
 IXAHWave2D* ph2newTot = CreateWavehead2D(); // header placeholder for the accumulated intensity data
 xar::XArray2D<float> intenTot; // accumulated intensity data placeholder
+xar::XArray2D<xar::fcomplex> campTot; // accumulated complex amplitude data placeholder
 
-int autosliccmd(vector<string> params)
+int autosliccmd1(vector<string> params)
 {
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
 	printf("\nNumber of active threads (inside w.thread) = %d", thread_counter.GetCount());
@@ -187,7 +189,8 @@ int autosliccmd(vector<string> params)
     int natom, *Znum, done, status, multiMode(0);
     long  ltime;
 
-    unsigned long iseed, iseed1;
+    long iseed1;
+	long iseed;
 
     float v0, mm0, wavlen, rx, ry, ax, by, cz, pi,
         rmin, rmax, aimin, aimax, ctiltx, ctilty,
@@ -455,7 +458,7 @@ int autosliccmd(vector<string> params)
         /* get random number seed from time if available 
             otherwise ask for a seed */
         ltime = (long) time( NULL );
-        iseed = (unsigned) ltime;
+        iseed = ltime;
         if( ltime == -1 ) {
             //cout << "Type initial seed for random number generator:" << endl;
             //cin >>  iseed;
@@ -655,7 +658,7 @@ int autosliccmd(vector<string> params)
     // ------- iterate the multislice algorithm proper -----------
 	//@@@@@ start TEG code
     aslice.calculate( pix, wave0, depthpix, param, multiMode, natom, &iseed,
-                Znum, x,y,z,occ,wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode, propdist);
+                Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
 	//@@@@@ end TEG code
  
     if( lpartl == 1 ) {         //    with partial coherence
@@ -707,8 +710,14 @@ int autosliccmd(vector<string> params)
     //param[pNSLICES] = 0.0F;  /* ??? */
 	//@@@@@ start TEG code
 	//GRD/GRC file output
+
 	IXAHWave2D* ph2new = CreateWavehead2D();
-	ph2new->SetData(wavlen * 1.e-4, ymin * 1.e-4, ymax * 1.e-4, xmin * 1.e-4, xmax * 1.e-4);
+	ph2new->SetData(wavlen, ymin, ymax, xmin, xmax);
+	xar::XArray2D<xar::fcomplex> camp(ny, nx);
+	camp.SetHeadPtr(ph2new);
+	xar::XArray2DFFT<float> xafft(camp);
+	xafft.Fresnel(propdist, false, -1.0); // propagate to the current defocus distance
+
 	switch (noutput)
 	{
 	case 0: // intensity out
@@ -746,7 +755,17 @@ int autosliccmd(vector<string> params)
 		for (ix = 0; ix < nx; ix++)
 			for (iy = 0; iy < ny; iy++)
 				camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
-		xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
+		//xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
+
+		// do accumulation
+		if (campTot.GetDim1() == 0)
+		{
+			campTot.Resize(ny, nx, 0.0f);
+			ph2newTot = (IXAHWave2D*)ph2new->Clone(); // header for the accumulated intensity data
+			campTot.SetHeadPtr(ph2newTot);
+		}
+		campTot += camp; // accumulated intensity data
+
 		break;
 	}
 	default:
