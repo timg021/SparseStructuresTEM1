@@ -1,6 +1,6 @@
 //*****Input parameter file for MsctKirkland.exe program*****
 1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: ASP_NEW_Kirck_DW.xyz
-3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\Temp\aaa.grd
+3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\Temp\aaa.grc
 28.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 2
 26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0
 11.Incident__electron_beam_energy_in_keV: 200.0

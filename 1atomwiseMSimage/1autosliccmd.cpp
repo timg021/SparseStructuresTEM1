@@ -167,14 +167,13 @@ const int NSMAX= 1000;   // max number of slices
 const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
-IXAHWave2D* ph2newTot = CreateWavehead2D(); // header placeholder for the accumulated intensity data
 xar::XArray2D<float> intenTot; // accumulated intensity data placeholder
 xar::XArray2D<xar::fcomplex> campTot; // accumulated complex amplitude data placeholder
 
 int autosliccmd1(vector<string> params)
 {
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
-	printf("\nNumber of active threads (inside w.thread) = %d", thread_counter.GetCount());
+	//printf("\nNumber of active threads (inside w.thread) = %d", thread_counter.GetCount());
 	thread_counter.SetUpdated(true); // lets the main thread know that the thread counter has been updated
 
     string filein, fileout, filestart, filebeam, filecross, cline, description;
@@ -711,29 +710,34 @@ int autosliccmd1(vector<string> params)
 	//@@@@@ start TEG code
 	//GRD/GRC file output
 
-	IXAHWave2D* ph2new = CreateWavehead2D();
-	ph2new->SetData(wavlen, ymin, ymax, xmin, xmax);
-	xar::XArray2D<xar::fcomplex> camp(ny, nx);
-	camp.SetHeadPtr(ph2new);
-	xar::XArray2DFFT<float> xafft(camp);
-	xafft.Fresnel(propdist, false, -1.0); // propagate to the current defocus distance
+    // propagate to the defined defocus distance
+    xar::XArray2D<xar::fcomplex> camp(ny, nx);
+    IXAHWave2D* ph2new = CreateWavehead2D();
+    ph2new->SetData(wavlen, ymin, ymax, xmin, xmax);
+    camp.SetHeadPtr(ph2new);
+    for (ix = 0; ix < nx; ix++)
+        for (iy = 0; iy < ny; iy++)
+            camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
+
+    xar::XArray2DFFT<float> xafft(camp);
+    xafft.Fresnel(propdist, false, -1.0); // propagate to the current defocus distance
 
 	switch (noutput)
 	{
 	case 0: // intensity out
 	{
 		xar::XArray2D<float> inten(ny, nx);
-		inten.SetHeadPtr(ph2new);
-		for (ix = 0; ix < nx; ix++)
-			for (iy = 0; iy < ny; iy++)
-				inten[iy][ix] = pix.re(ix, iy) * pix.re(ix, iy) + pix.im(ix, iy) * pix.im(ix, iy);
+        inten.SetHeadPtr(ph2new->Clone());
+        Abs2(camp, inten);
 		//xar::XArData::WriteFileGRD(inten, fileout.c_str(), xar::eGRDBIN);
 
 		// do accumulation
-		ph2newTot = (IXAHWave2D *)ph2new->Clone(); // header for the accumulated intensity data
-		intenTot.SetHeadPtr(ph2newTot);
 		inten -= 1.0f;
-		if (intenTot.GetDim1() == 0) intenTot.Resize(inten.GetDim1(), inten.GetDim2(), 0.0f);
+        if (intenTot.GetDim1() == 0)
+        {
+            intenTot.Resize(inten.GetDim1(), inten.GetDim2(), 0.0f);
+            intenTot.SetHeadPtr(ph2new->Clone());
+        }
 		intenTot += inten; // accumulated intensity data
 
 		break;
@@ -750,21 +754,16 @@ int autosliccmd1(vector<string> params)
 	}
 	case 2: // complex amplitude out
 	{
-		xar::XArray2D<xar::fcomplex> camp(ny, nx);
-		camp.SetHeadPtr(ph2new);
-		for (ix = 0; ix < nx; ix++)
-			for (iy = 0; iy < ny; iy++)
-				camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
-		//xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
+        //xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
 
 		// do accumulation
+        //camp -= xar::fcomplex(1.0f, 0.0f);
 		if (campTot.GetDim1() == 0)
 		{
-			campTot.Resize(ny, nx, 0.0f);
-			ph2newTot = (IXAHWave2D*)ph2new->Clone(); // header for the accumulated intensity data
-			campTot.SetHeadPtr(ph2newTot);
+			campTot.Resize(ny, nx, xar::fcomplex(0.0f, 0.0f));
+			campTot.SetHeadPtr(ph2new->Clone());
 		}
-		campTot += camp; // accumulated intensity data
+		campTot += camp; // accumulated complex amplitude data
 
 		break;
 	}

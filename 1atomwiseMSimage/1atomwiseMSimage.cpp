@@ -7,14 +7,13 @@
 #include "XA_ini.h"
 #include "XArray2D.h"
 #include "XA_data.h"
-#include "pdb.h"
-
+extern "C"
+{
+	#include "pdb.h"
+}
 #include "autosliccmd.h"
-#undef TEG_MULTITHREADED // this program is intended to run single-threaded only
 
-#include "pdb.h"
-extern "C" int pdb_read(pdbdata* ppd, int nfiletype, char* pdbfile);
-extern "C" int xyz_Kirck_write1(int i, pdbdata* ppd, char* outfile, char* cfileinfo, double ctblength, double xminx0, double yminy0, double zminz0);
+#undef TEG_MULTITHREADED // this program is intended to run single-threaded only
 
 extern xar::XArray2D<float> intenTot; // accumulated intensity data - created in 1autosliccmd.cpp, wrtten into a file at the end in this module
 extern xar::XArray2D<xar::fcomplex> campTot; // accumulated complex amplitude data - created in 1autosliccmd.cpp, wrtten into a file at the end in this module
@@ -121,6 +120,7 @@ int main(void)
 
 		// read KirklandXYZ file to get atomic coordinates
 		pdbdata pd;
+		pdbdata_init(&pd);
 		data_from_KirklandXYZfile(inXYZfile, &pd);
 		double ctblength = 0;
 		ctblength = pd.adata[0].tempFactor;
@@ -144,12 +144,12 @@ int main(void)
 		// start the cycle over projection angles
 		for (size_t i = 0; i < nangles; i++)
 		{
-			printf("\nAngle = %zd", i);
+			printf("\nAtom = %zd", i + 1);
 			
 			//write new XYZ file with a single atom no. i
 			FILE* ff = fopen(outXYZfile.c_str(), "wt");
 			printf("\nWriting output file %s in Kirkland's XYZ format ...\n", outXYZfile.c_str());
-			fprintf(ff, "%s %zd\n", "Single atom no. ", i); 
+			fprintf(ff, "%s %zd\n", "Single atom no.", i + 1); 
 			fprintf(ff, "%f %f %f\n", ctblength, ctblength, ctblength); // ctblength is written as the unit cell dimension
 			fprintf(ff, "%d %f %f %f %f\n", pd.adata[i].serial, pd.adata[i].x, pd.adata[i].y, pd.adata[i].z, pd.adata[i].occupancy);
 			fprintf(ff, "%i\n\n\n", -1);
@@ -188,7 +188,7 @@ int main(void)
 		case 2: // complex amplitude out
 		{
 			// save the accumulated total complex amplitude into file
-			campTot /= float(nangles);
+			campTot -= fcomplex(nangles - 1, 0.0f);
 			XArData::WriteFileGRC(campTot, outfilename.c_str(), xar::eGRCBIN);
 			break;
 		}
