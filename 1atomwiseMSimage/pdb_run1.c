@@ -6,23 +6,26 @@
 
 int pdb_read(pdbdata* ppd, int nfiletype, char* pdbfile)
 {
-	//pdbdata pd;
-	printf("\nReading atomic coordinates file ...\n");
-	pdbdata_init(ppd);
-	if (nfiletype)
+	if (nfiletype == 0)
 	{
-		printf("\nReading input XYZ file in Vesta export format ...\n");
+		printf("Reading input file %s in PDB format ...\n", pdbfile);
+		read_pdb(pdbfile, ppd); // read PDB file
+	}
+	else if (nfiletype == 1)
+	{
+		printf("Reading input file %s in Vesta export XYZ format ...\n", pdbfile);
 		data_from_VestaXYZfile(pdbfile, ppd); // read Vesta export XYZ file
+	}
+	else if (nfiletype == 2)
+	{
+		printf("Reading input file2 %s in Kirkland XYZ format ...\n", pdbfile);
+		if (data_from_KirklandXYZfile(pdbfile, &pd) == -1) return -1; // read Kirkland XYZ file
 	}
 	else
 	{
-		printf("\nReading input PDB file ...\n");
-		read_pdb(pdbfile, ppd); // read PDB file
+		printf("!!!Unknown file type %d!!!", nfiletype);
+		return -1;
 	}
-	//print_pdb_data(&pd);
-
-	printf("Finished!");
-	return 0;
 }
 
 

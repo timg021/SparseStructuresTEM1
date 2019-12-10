@@ -41,6 +41,7 @@ int main(void)
 			fgets(cline, 1024, ff0); // 1st line - comment
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2nd line: Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format
 			autoslictxt[0] = cline;
+
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3rd line: Output_GRD/GRC_filename
 			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 3 of input parameter file.");
 			string outfilename(cparam); // output filename stub
@@ -120,145 +121,7 @@ int main(void)
 		char outfile[256]; // output file name
 		char cfileinfo[256]; // freeform info line
 
-		// read PDB file translate parameter file
-		FILE* ffpar = fopen("pdb.txt", "rt");
-			if (!ffpar) throw std::exception("Error: cannot open parameter file pdb.txt.");
-			fgets(straaa, 256, ffpar);
-			fgets(inpdbfile, 256, ffpar); strtok(inpdbfile, "\n");
-			fgets(infiletype, 256, ffpar); strtok(infiletype, "\n");
-			fgets(strctblength, 256, ffpar); strtok(strctblength, "\n");
-			fgets(straaa, 256, ffpar); 
-			fgets(straaa, 256, ffpar);
-			fgets(straaa, 256, ffpar);
-			fgets(straaa, 256, ffpar);
-			fgets(outfile, 256, ffpar); strtok(outfile, "\n");
-			fgets(straaa, 256, ffpar);
-			fgets(cfileinfo, 256, ffpar); strtok(cfileinfo, "\n");
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-			// line 1
-			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 1nd line: input file name
-			if (sscanf(cline, "%s %s", ctitle, inpdbfile) != 2)
-			{
-				printf("\n!!!Error reading input file name from input parameter file.");
-				return -1;
-			}
-
-			// line 2
-			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 2nd line: input file type
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading input file type from input parameter file.");
-				return -1;
-			}
-			int nfiletype = 0; // input file type 0 - for PDB input file, 1 - for Vesta XYZ input file, 2 - for Kirkland XYZ file.
-			nfiletype = atoi(cparam);
-			if (nfiletype != 0 && nfiletype != 1 && nfiletype != 2)
-			{
-				printf("\n!!!Unknown input file type in input parameter file.");
-				return -1;
-			}
-
-			// line 3
-			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //3rd line: CT qube side length
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading CT qube side length from input parameter file.");
-				return -1;
-			}
-			double ctblength = 0; // CT box length
-			ctblength = atof(cparam);
-			if (ctblength <= 0)
-			{
-				printf("!!!CT cube side length %g is not positive in pdb.txt!!!", ctblength);
-				return -1;
-			}
-
-			// line 4
-			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //4th line: rotation angle 
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading rotation angle from input parameter file.");
-				return -1;
-			}
-			double angle = 0; // rotation angle 
-			angle = atof(cparam) * 3.141592653589793 / 180.0;
-			double cosangle = cos(angle);
-			double sinangle = sin(angle);
-
-			// line 5
-			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //5th line: make all coordinates positive and centre them, or not 
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading 'make all coordinates positive' switch from input parameter file.");
-				return -1;
-			}
-			int npositive = 0; // 1 - make all output coordinates positive and centre the sample inside the CT sample qube, 0 - do not do this
-			npositive = atoi(cparam);
-			if (npositive != 0 && npositive != 1)
-			{
-				printf("\n!!!Unknown value of the 'make all output coordinates positive' switch in input parameter file.");
-				return -1;
-			}
-
-			// line 6
-			fgets(cline, 1024, ffpar); strtok(cline, "\n");  //6th line: maximum distance to remove duplicates
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading maximum distance to remove duplicates from input parameter file.");
-				return -1;
-			}
-			double dupdist = 0.0;
-			dupdist = atof(cparam);
-			if (dupdist < 0) dupdist = 0.0;
-			double dupdist2 = dupdist * dupdist;
-
-			// line 7
-			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 7th line: output data sort
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading output data sort type from input parameter file.");
-				return -1;
-			}
-			int noutsort = 0; // output file sort 0 - no sort, 1 - sort by ascending order of z coordinate, 2- sort by descending order of the occupancy values
-			noutsort = atoi(cparam);
-			if (noutsort != 0 && noutsort != 1 && noutsort != 2)
-			{
-				printf("\n!!!Unknown output data sort type in the input parameter file.");
-				return -1;
-			}
-
-			// line 8
-			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 8th line: output file name
-			if (sscanf(cline, "%s %s", ctitle, outfile) != 2)
-			{
-				printf("\n!!!Error reading output file name from input parameter file.");
-				return -1;
-			}
-
-			// line 9
-			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 9th line: output file type
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-			{
-				printf("\n!!!Error reading output file type from input parameter file.");
-				return -1;
-			}
-			int noutfiletype = 0; // output file type 0 -  for Kirkland-format XYZ file, 1 - for muSTEM-foram XTL file
-			noutfiletype = atoi(cparam);
-			if (noutfiletype != 0 && noutfiletype != 1 && noutfiletype != 2)
-			{
-				printf("\n!!!Unknown output file type in the input parameter file.");
-				return -1;
-			}
-
-			// line 10
-			fgets(cline, 1024, ffpar); strtok(cline, "\n"); // 10th line: free form first line for the output file
-			if (sscanf(cline, "%s %s", ctitle, cfileinfo) != 2)
-			{
-				printf("\n!!!Error reading free-form line for the output file from input parameter file.");
-				return -1;
-			}
-
-		fclose(ffpar);
+		// NOT read PDB file translate parameter file
 
 		int nfiletype = 0;
 		nfiletype = (int)atof(infiletype);
@@ -267,25 +130,7 @@ int main(void)
 
 		// read PDB or VestaXYZ file to get atomic coordinates
 		pdbdata pd;
-		pdb_read(&pd, nfiletype, inpdbfile);
-		double xmin, xmax, ymin, ymax, zmin, zmax;
-		xmin = xmax = pd.adata[0].x;
-		ymin = ymax = pd.adata[0].y;
-		zmin = zmax = pd.adata[0].z;
-		for (size_t i = 1; i < pd.natoms; i++)
-		{
-			if (pd.adata[i].x < xmin) xmin = pd.adata[i].x;
-			else if (pd.adata[i].x > xmax) xmax = pd.adata[i].x;
-			if (pd.adata[i].y < ymin) ymin = pd.adata[i].y;
-			else if (pd.adata[i].y > ymax) ymax = pd.adata[i].y;
-			if (pd.adata[i].z < zmin) zmin = pd.adata[i].z;
-			else if (pd.adata[i].z > zmax) zmax = pd.adata[i].z;
-		}
-		double xminx0 = 0.5 * ctblength - 0.5 * (xmax - xmin) - xmin;
-		double yminy0 = 0.5 * ctblength - 0.5 * (ymax - ymin) - ymin;
-		double zminz0 = 0.5 * ctblength - 0.5 * (zmax - zmin) - zmin;
-		if (xminx0 < -xmin || yminy0 < -ymin || zminz0 < -zmin)
-			throw std::exception("Error: sample's x, y or z extent is larger than the defined CT sample qube side length!!!");
+		pdb_read(&pd, 2, inpdbfile);
 
 		// define output filename
 		nangles = pd.natoms; // !!! define "number of angles" equal to natoms
