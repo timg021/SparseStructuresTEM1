@@ -7,6 +7,7 @@
 #include "XA_ini.h"
 #include "XArray2D.h"
 #include "XA_data.h"
+#include "pdb.h"
 
 #include "autosliccmd.h"
 #undef TEG_MULTITHREADED // this program is intended to run single-threaded only
@@ -37,11 +38,15 @@ int main(void)
 		FILE* ff0 = fopen("MsctKirkland1.txt", "rt");
 			if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland1.txt.");
 			char cline[1024], ctitle[1024], cparam[1024];
+			char inXYZfile[1024]; // input XYZ file name
 			// The ordering of these parameters is 'historic', it can be changed, but then the corresponding changes need to be applied in autosliccmd.cpp too.
 			fgets(cline, 1024, ff0); // 1st line - comment
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2nd line: Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format
-			autoslictxt[0] = cline;
-
+			if (sscanf(cline, "%s %s", ctitle, inXYZfile) != 2)
+				throw std::exception("Error reading input XYZ file name.");
+			string aaa(ctitle), outXYZfile(inXYZfile);
+			outXYZfile.insert(outXYZfile.rfind("."), "1");
+			autoslictxt[0] = (aaa + " " + outXYZfile).c_str();
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3rd line: Output_GRD/GRC_filename
 			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 3 of input parameter file.");
 			string outfilename(cparam); // output filename stub
@@ -114,23 +119,11 @@ int main(void)
 		//unsigned int ncores = std::thread::hardware_concurrency();
 		//printf("\nNumber of CPU cores detected: %d", ncores);
 
-		char inpdbfile[256]; // input file name
-		char infiletype[256]; // input file type
-		char strctblength[256]; // CT qube side length
-		char straaa[256]; // unused here
-		char outfile[256]; // output file name
-		char cfileinfo[256]; // freeform info line
-
-		// NOT read PDB file translate parameter file
-
-		int nfiletype = 0;
-		nfiletype = (int)atof(infiletype);
-		double ctblength = 0;
-		ctblength = atof(strctblength);
-
-		// read PDB or VestaXYZ file to get atomic coordinates
+		// read KirklandXYZ file to get atomic coordinates
 		pdbdata pd;
-		pdb_read(&pd, 2, inpdbfile);
+		data_from_KirklandXYZfile(inXYZfile, &pd);
+		double ctblength = 0;
+		ctblength = pd.adata[0].tempFactor;
 
 		// define output filename
 		nangles = pd.natoms; // !!! define "number of angles" equal to natoms
@@ -154,12 +147,17 @@ int main(void)
 			printf("\nAngle = %zd", i);
 			
 			//write new XYZ file with a single atom no. i
-			xyz_Kirck_write1((int)i, &pd, outfile, cfileinfo, ctblength, xminx0, yminy0, zminz0);
+			FILE* ff = fopen(outXYZfile.c_str(), "wt");
+			printf("\nWriting output file %s in Kirkland's XYZ format ...\n", outXYZfile.c_str());
+			fprintf(ff, "%s %zd\n", "Single atom no. ", i); 
+			fprintf(ff, "%f %f %f\n", ctblength, ctblength, ctblength); // ctblength is written as the unit cell dimension
+			fprintf(ff, "%d %f %f %f %f\n", pd.adata[i].serial, pd.adata[i].x, pd.adata[i].y, pd.adata[i].z, pd.adata[i].occupancy);
+			fprintf(ff, "%i\n\n\n", -1);
+			fclose(ff);
 
 			outfilename_i = outfilename;
 			sprintf(buffer, myformat.data(), i);
 			outfilename_i.insert(i_dot, buffer);
-			//angle = angle_step * double(i);
 			sprintf(bufangle, "%f", 0.0); strAngle = bufangle;
 			//Here we call Kirkland's autoslic at each angle
 			autoslictxt[2] = "3.Name_of_file_to_get_binary_output_of_multislice_result: " + outfilename_i;
@@ -190,7 +188,7 @@ int main(void)
 		case 2: // complex amplitude out
 		{
 			// save the accumulated total complex amplitude into file
-			campTot /= double(nangles);
+			campTot /= float(nangles);
 			XArData::WriteFileGRC(campTot, outfilename.c_str(), xar::eGRCBIN);
 			break;
 		}
