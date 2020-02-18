@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "1atomwiseMSimage", "1atomwi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigBangCT", "BigBangCT\BigBangCT.vcxproj", "{DD723F48-162E-4BAF-AA94-1DF80DEB0455}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PbiSAXS", "PbiSAXS\PbiSAXS.vcxproj", "{97D31F43-4E1C-48AE-AC33-13B2F94887AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -49,6 +51,14 @@ Global
 		{DD723F48-162E-4BAF-AA94-1DF80DEB0455}.Release|x64.Build.0 = Release|x64
 		{DD723F48-162E-4BAF-AA94-1DF80DEB0455}.Release|x86.ActiveCfg = Release|Win32
 		{DD723F48-162E-4BAF-AA94-1DF80DEB0455}.Release|x86.Build.0 = Release|Win32
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Debug|x64.ActiveCfg = Debug|x64
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Debug|x64.Build.0 = Debug|x64
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Debug|x86.ActiveCfg = Debug|Win32
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Debug|x86.Build.0 = Debug|Win32
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Release|x64.ActiveCfg = Release|x64
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Release|x64.Build.0 = Release|x64
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Release|x86.ActiveCfg = Release|Win32
+		{97D31F43-4E1C-48AE-AC33-13B2F94887AF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

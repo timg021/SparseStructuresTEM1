@@ -757,7 +757,6 @@ int autosliccmd1(vector<string> params)
         //xar::XArData::WriteFileGRC(camp, fileout.c_str(), xar::eGRCBIN);
 
 		// do accumulation
-        //camp -= xar::fcomplex(1.0f, 0.0f);
 		if (campTot.GetDim1() == 0)
 		{
 			campTot.Resize(ny, nx, xar::fcomplex(0.0f, 0.0f));

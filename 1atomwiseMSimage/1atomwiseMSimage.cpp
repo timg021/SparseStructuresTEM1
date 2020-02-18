@@ -188,7 +188,8 @@ int main(void)
 		case 2: // complex amplitude out
 		{
 			// save the accumulated total complex amplitude into file
-			campTot -= fcomplex(nangles - 1, 0.0f);
+			// NOTE that the normalization of the complex data is less straightforward compared to the intensity case above,
+			// the corresponding intensity here should be normalized as (|camp|^2 / natoms) - (natoms - 1)
 			XArData::WriteFileGRC(campTot, outfilename.c_str(), xar::eGRCBIN);
 			break;
 		}
