@@ -21,8 +21,8 @@ int main()
 		printf("\nStarting PbiSAXS program ...");
 
 		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string infile = "fish4096.grd"; // input file with an in-line projection image
-		string outfile = "SAXS" + infile; // output file with SAXS image
+		string infile = "LENA.grd"; // input file with an in-line projection image
+		string outfile = "SAXS0" + infile; // output file with SAXS image
 		XArray2D<float> xaimagein; // input in-line projection image array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xapha; // phase
@@ -40,6 +40,7 @@ int main()
 		XA_2DTIE<float> xatie;
 		xatie.DP(xaint, delta2beta, defocus);
 		xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
+		//XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile).c_str(), eGRDBIN);
 
 		// Fresnel-propagate the TIE-Hom retrieved object-plane complex amplitude forward to the image plane
 		xapha = xaint;
@@ -53,12 +54,14 @@ int main()
 		Abs2(xacamp, xaint);
 
 		// Subtract the retrieved-repropagated image from the original image, take the inverse Laplacian and divide by I0
-		xaint -= xaimagein; // this is the SAXS component of the image
-		xatie.DP(xaint, delta2beta/1000.0, defocus); // regularized inverse Laplacian
-		xaint /= xaobjtie; // this is the SAXS component of the object
+		xaimagein -= xaint; // this is the SAXS component of the image
+		//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS1" + infile).c_str(), eGRDBIN);
+		xatie.DP(xaimagein, delta2beta/100.0, defocus); // regularized inverse Laplacian
+		//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS0TIE" + infile).c_str(), eGRDBIN);
+		xaimagein /= xaobjtie; // this is the SAXS component of the object
 
 		// write the result to output file
-		XArData::WriteFileGRD(xaint, (strfilepath + outfile).c_str(), eGRDBIN);
+		XArData::WriteFileGRD(xaimagein, (strfilepath + outfile).c_str(), eGRDBIN);
 	}
 	catch (std::exception & E)
 	{
