@@ -4,11 +4,6 @@
 //
 //		Common facilities for XArray and related classes
 //
-//	COPYRIGHT:
-//
-//			Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
 /*!
 	\file		XA_ini.h
 	\brief		Common facilities for XArray and related classes

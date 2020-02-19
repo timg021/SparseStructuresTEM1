@@ -5,12 +5,6 @@
 //
 //		Base interface to XArray head classes
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		IXAHead.h
 	\brief		Base interface to XArray head classes

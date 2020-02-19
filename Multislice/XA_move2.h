@@ -5,12 +5,6 @@
 //
 //		Two-dimensional geometrical transformations
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XA_move2.h
 	\brief		Two-dimensional geometrical transformations

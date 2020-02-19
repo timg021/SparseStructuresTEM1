@@ -5,12 +5,6 @@
 //
 //		XArray2D specific simple helper functions depending on IXAHWave2D
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XA_head2.h
 	\brief		XArray2D specific simple helper functions depending on IXAHWave2D

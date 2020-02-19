@@ -5,11 +5,6 @@
 //
 //		Two-dimensional complex FFT service class
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
 //
 /*!
 	\file		XA_fft2.h

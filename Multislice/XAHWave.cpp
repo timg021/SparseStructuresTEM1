@@ -6,11 +6,6 @@
 //
 //		Definitions for the xar::WaveheadND classes
 //
-//	COPYRIGHT:
-//
-//			Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
 /*!
 	\file		XAHWave.cpp
 	\brief		Definitions for the xar::WaveheadND classes

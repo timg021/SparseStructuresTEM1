@@ -5,12 +5,6 @@
 //
 //		Two-dimensional XArray class
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XArray2D.h
 	\brief		Two-dimensional XArray class

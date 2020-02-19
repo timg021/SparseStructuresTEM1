@@ -5,12 +5,6 @@
 //
 //		Declarations for WaveheadND classes
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XAHWave.h
 	\brief		Declarations for WaveheadND classes

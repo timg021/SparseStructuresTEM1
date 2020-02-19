@@ -5,12 +5,6 @@
 //
 //		IXAHWaveND interface classes to WaveheadND heads
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		IXAHWave.h
 	\brief		Interface classes to WaveheadND heads

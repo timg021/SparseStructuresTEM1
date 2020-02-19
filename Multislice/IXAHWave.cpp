@@ -5,11 +5,6 @@
 //
 //		WaveheadND class factory implementations
 //
-//	COPYRIGHT:
-//
-//			Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
 /*!
 	\file		IXAHWave.cpp
 	\brief		WaveheadND class factory implementations

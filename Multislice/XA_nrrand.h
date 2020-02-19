@@ -5,12 +5,6 @@
 //
 //		Modified random generators and related routines from Numerical Recipes
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XA_nrrand.h
 	\brief		Modified random generators and related routines from Numerical Recipes

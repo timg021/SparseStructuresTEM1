@@ -5,12 +5,6 @@
 //
 //		Data file I/O facilities
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XA_data.h
 	\brief		Data file I/O facilities

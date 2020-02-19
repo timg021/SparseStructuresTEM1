@@ -5,11 +5,6 @@
 //
 //		Common file facilities for XArray and related classes
 //
-//	COPYRIGHT:
-//
-//			Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
 /*!
 	\file		xa_file.cpp
 	\brief		Common file facilities for XArray and related classes

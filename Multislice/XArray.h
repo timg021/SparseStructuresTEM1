@@ -5,12 +5,6 @@
 //
 //		Common base class template for XArray classes
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XArray.h
 	\brief		Common base class template for XArray classes
@@ -977,9 +971,10 @@ MakeComplex(A, 0.0f, C, false);
 	template <class T> void MakeComplex(const XArray<T>& A, T b, XArray< std::complex<T> >& C, bool bMakePolar)
 	{
 		if (A.GetHeadPtr()) A.GetHeadPtr()->Validate();
-		C.resize(A.XArrayBase<T>::size());
-		if (bMakePolar) for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) C[i] = std::polar<T>(A[i], b);
-		else for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) C[i] = std::complex<T>(A[i], b);
+		index_t isize = A.size();
+		C.resize(isize);
+		if (bMakePolar) for (index_t i = 0; i < isize; i++) C[i] = std::polar<T>(A[i], b);
+		else for (index_t i = 0; i < isize; i++) C[i] = std::complex<T>(A[i], b);
 		C.SetHeadPtr(A.GetHeadPtr() ? A.GetHeadPtr()->Clone() : 0);
 	}
 
@@ -1012,9 +1007,10 @@ MakeComplex(1.0f, B, C, false);
 	template <class T> void MakeComplex(T a, const XArray<T>& B, XArray< std::complex<T> >& C, bool bMakePolar)
 	{
 		if (B.GetHeadPtr()) B.GetHeadPtr()->Validate();
-		C.resize(B.XArrayBase<T>::size());
-		if (bMakePolar) for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) C[i] = std::polar<T>(a, B[i]);
-		else for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) C[i] = std::complex<T>(a, B[i]);
+		index_t isize = B.size();
+		C.resize(isize);
+		if (bMakePolar) for (index_t i = 0; i < isize; i++) C[i] = std::polar<T>(a, B[i]);
+		else for (index_t i = 0; i < isize; i++) C[i] = std::complex<T>(a, B[i]);
 		C.SetHeadPtr(B.GetHeadPtr() ? B.GetHeadPtr()->Clone() : 0);
 	}
 	
@@ -1052,9 +1048,10 @@ MakeComplex(A, B, C, false);
 		if (!A.SameHead(B))
 			throw std::invalid_argument("invalid_argument 'A and B' in MakeComplex(A, B, C) (different heads)"); 	
 
-		C.resize(A.XArrayBase<T>::size());
-		if (bMakePolar) for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) C[i] = std::polar<T>(A[i], B[i]);
-		else for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) C[i] = std::complex<T>(A[i], B[i]);
+		index_t isize = A.size();
+		C.resize(isize);
+		if (bMakePolar) for (index_t i = 0; i < isize; i++) C[i] = std::polar<T>(A[i], B[i]);
+		else for (index_t i = 0; i < isize; i++) C[i] = std::complex<T>(A[i], B[i]);
 		C.SetHeadPtr(A.GetHeadPtr() ? A.GetHeadPtr()->Clone() : 0);
 	}
 	
@@ -1149,8 +1146,9 @@ Abs(C, A);
 	template <class T> void Abs(const XArray< std::complex<T> >& C, XArray<T>& A)
 	{ 
 		if (C.GetHeadPtr()) C.GetHeadPtr()->Validate();
-		A.resize(C.XArrayBase<T>::size());
-		for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) A[i] = T(::sqrt(C[i].real() * C[i].real() + C[i].imag() * C[i].imag()));
+		index_t isize = C.size();
+		A.resize(isize);
+		for (index_t i = 0; i < isize; i++) A[i] = T(::sqrt(C[i].real() * C[i].real() + C[i].imag() * C[i].imag()));
 		A.SetHeadPtr(C.GetHeadPtr() ? C.GetHeadPtr()->Clone() : 0);	
 	}
 	

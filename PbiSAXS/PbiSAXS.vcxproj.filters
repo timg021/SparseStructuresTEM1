@@ -107,5 +107,11 @@
     <ClInclude Include="..\Multislice\XArrayB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Multislice\XA_tie.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Multislice\XA_fftr2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

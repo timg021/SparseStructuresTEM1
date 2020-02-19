@@ -5,12 +5,6 @@
 //
 //		One-dimensional XArray class
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XArray1D.h
 	\brief		One-dimensional XArray class

@@ -5,12 +5,6 @@
 //
 //		Foundation base class for XArray classes
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
-//
 /*!
 	\file		XArrayB.h
 	\brief		Foundation base class for XArray classes
