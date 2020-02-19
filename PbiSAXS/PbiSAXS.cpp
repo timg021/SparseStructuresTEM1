@@ -21,9 +21,10 @@ int main()
 		printf("\nStarting PbiSAXS program ...");
 
 		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string infile = "fish1024.grd"; // input file with an in-line projection image
+		string infile = "fish4096.grd"; // input file with an in-line projection image
 		string outfile = "SAXS" + infile; // output file with SAXS image
 		XArray2D<float> xaimagein; // input in-line projection image array
+		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xapha; // phase
 		XArray2D<float> xaint; // intensity
 
@@ -38,25 +39,26 @@ int main()
 		// do TIE-Hom phase retrieval
 		XA_2DTIE<float> xatie;
 		xatie.DP(xaint, delta2beta, defocus);
+		xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
 
-		// extract the phase and create the retrieved object-plane complex amplitude
+		// Fresnel-propagate the TIE-Hom retrieved object-plane complex amplitude forward to the image plane
 		xapha = xaint;
 		xapha.Log();
 		xapha *= float(0.5 * delta2beta);
 		xaint ^= 0.5; // convert intensity into real amplitude
 		XArray2D<fcomplex> xacamp;
 		MakeComplex(xaint, xapha, xacamp, true);
-
-		// Fresnel-propagate the TIE-Hom retrieved object-plane complex amplitude forward to the image plane
 		XArray2DFFT<float> xafft2(xacamp);
 		xafft2.Fresnel(defocus);
-
-		// Subtract the retrieved-repropagated image from the original image
 		Abs2(xacamp, xaint);
-		xaimagein -= xaint;
+
+		// Subtract the retrieved-repropagated image from the original image, take the inverse Laplacian and divide by I0
+		xaint -= xaimagein; // this is the SAXS component of the image
+		xatie.DP(xaint, delta2beta/1000.0, defocus); // regularized inverse Laplacian
+		xaint /= xaobjtie; // this is the SAXS component of the object
 
 		// write the result to output file
-		XArData::WriteFileGRD(xaimagein, (strfilepath + outfile).c_str(), eGRDBIN);
+		XArData::WriteFileGRD(xaint, (strfilepath + outfile).c_str(), eGRDBIN);
 	}
 	catch (std::exception & E)
 	{
