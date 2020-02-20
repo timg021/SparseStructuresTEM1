@@ -20,8 +20,9 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string infile = "LENA.grd"; // input file with an in-line projection image
+		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
+		string infile = "img4096_1m.grd"; // input file with an in-line projection image
 		string outfile = "SAXS0" + infile; // output file with SAXS image
 		XArray2D<float> xaimagein; // input in-line projection image array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
@@ -30,7 +31,7 @@ int main()
 
 		double wl = 1.e-4; // X-ray wavelength in microns
 		double defocus = 1.e+6; // defocus distance in microns
-		double delta2beta = 350; // delta/beta
+		double delta2beta = 300; // delta/beta
 
 		// read the in-line projection image from input file
 		XArData::ReadFileGRD(xaimagein, (strfilepath + infile).c_str(), wl);
@@ -56,7 +57,7 @@ int main()
 		// Subtract the retrieved-repropagated image from the original image, take the inverse Laplacian and divide by I0
 		xaimagein -= xaint; // this is the SAXS component of the image
 		//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS1" + infile).c_str(), eGRDBIN);
-		xatie.DP(xaimagein, delta2beta/100.0, defocus); // regularized inverse Laplacian
+		xatie.DP(xaimagein, delta2beta, defocus); // regularized inverse Laplacian
 		//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS0TIE" + infile).c_str(), eGRDBIN);
 		xaimagein /= xaobjtie; // this is the SAXS component of the object
 
