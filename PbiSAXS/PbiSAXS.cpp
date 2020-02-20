@@ -20,16 +20,17 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\LysLesPhaseCT200keV_900rot\\";
-		string infile = "phase.grd", infile_i; // input file with an in-line projection image
-		string outfile = "saxs" + infile, outfile_i; // output file with SAXS image
+		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\LysLesPhaseCT200keV_900rot\\";
+		string infile = "img1.grd", infile_i; // input file with an in-line projection image
+		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 		XArray2D<float> xaimagein; // input in-line projection image array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xapha; // phase
-		XArray2D<float> xaint; // intensity
+		XArray2D<float> xaint, xaint1; // intensity
+		XArray2D<fcomplex> xacamp, xacamp1;
 
-		index_t nangles = 900;
+		index_t nangles = 1; // 900;
 		double angle_range = 180.0;
 		double angle_step = angle_range / nangles, angle;
 
@@ -45,9 +46,9 @@ int main()
 			myformat += "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded angle indexes into file names - see usage below
 		}
 
-		double wl = 2.5e-6; // X-ray wavelength in microns
-		double defocus = 0.015; // defocus distance in microns
-		double delta2beta = 0.1; // delta/beta
+		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
+		double defocus = 1.e+7; // 0.015; // defocus distance in microns
+		double delta2beta = 300.0; // 0.1; // delta/beta
 
 		for (index_t i = 0; i < nangles; i++)
 		{
@@ -78,18 +79,29 @@ int main()
 			xapha.Log();
 			xapha *= float(0.5 * delta2beta);
 			xaint ^= 0.5; // convert intensity into real amplitude
-			XArray2D<fcomplex> xacamp;
 			MakeComplex(xaint, xapha, xacamp, true);
 			XArray2DFFT<float> xafft2(xacamp);
 			xafft2.Fresnel(defocus);
-			Abs2(xacamp, xaint);
+
+			// Do Gerchberg-Saxton
+			Abs(xacamp, xaint1);
+			xaint = xaimagein;
+			xaint ^= 0.5;
+			xaint /= xaint1;
+			MakeComplex(xaint, 0.0f, xacamp1, true);
+			xacamp *= xacamp1;
+			xafft2.Fresnel(-defocus);
+			Abs2(xacamp, xaimagein);
+			XArData::WriteFileGRD(xaimagein, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
+			xaimagein -= xaobjtie;
 
 			// Subtract the retrieved-repropagated image from the original image, take the inverse Laplacian and divide by I0
-			xaimagein -= xaint; // this is the SAXS component of the image
+			//Abs2(xacamp, xaint);
+			//xaimagein -= xaint; // this is the SAXS component of the image
 			//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS1" + infile_i).c_str(), eGRDBIN);
-			xatie.DP(xaimagein, delta2beta, defocus); // regularized inverse Laplacian
+			//xatie.DP(xaimagein, delta2beta, defocus); // regularized inverse Laplacian
 			//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS0TIE" + infile_i).c_str(), eGRDBIN);
-			xaimagein /= xaobjtie; // this is the SAXS component of the object
+			//xaimagein /= xaobjtie; // this is the SAXS component of the object
 
 			// write the result to output file
 			XArData::WriteFileGRD(xaimagein, (strfilepath + outfile_i).c_str(), eGRDBIN);
