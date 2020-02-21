@@ -20,13 +20,13 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\LysLesPhaseCT200keV_900rot\\";
+		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
 		string infile = "img1.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 		XArray2D<float> xaimagein; // input in-line projection image array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
-		XArray2D<float> xapha; // phase
+		XArray2D<float> xapha, xaampin; // phase, amplitude
 		XArray2D<float> xaint, xaint1; // intensity
 		XArray2D<fcomplex> xacamp, xacamp1;
 
@@ -47,8 +47,8 @@ int main()
 		}
 
 		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
-		double defocus = 1.e+7; // 0.015; // defocus distance in microns
-		double delta2beta = 300.0; // 0.1; // delta/beta
+		double defocus = 1.e+6; // 0.015; // defocus distance in microns
+		double delta2beta = 1000.0; // 0.1; // delta/beta
 
 		for (index_t i = 0; i < nangles; i++)
 		{
@@ -67,6 +67,8 @@ int main()
 			// read the in-line projection image from input file
 			XArData::ReadFileGRD(xaimagein, (strfilepath + infile_i).c_str(), wl);
 			xaint = xaimagein; // make a temporary copy of the input image
+			xaampin = xaimagein;
+			xaampin ^= 0.5; // convert intensity into real amplitude
 
 			// do TIE-Hom phase retrieval
 			XA_2DTIE<float> xatie;
@@ -77,19 +79,20 @@ int main()
 			// Fresnel-propagate the TIE-Hom retrieved object-plane complex amplitude forward to the image plane
 			xapha = xaint;
 			xapha.Log();
-			xapha *= float(0.5 * delta2beta);
+			xapha *= float(0.5 * delta2beta); // extract phase
 			xaint ^= 0.5; // convert intensity into real amplitude
 			MakeComplex(xaint, xapha, xacamp, true);
 			XArray2DFFT<float> xafft2(xacamp);
 			xafft2.Fresnel(defocus);
 
 			// Do Gerchberg-Saxton
-			Abs(xacamp, xaint1);
-			xaint = xaimagein;
-			xaint ^= 0.5;
-			xaint /= xaint1;
-			MakeComplex(xaint, 0.0f, xacamp1, true);
-			xacamp *= xacamp1;
+			//Abs(xacamp, xaint1);
+			//xaint = xaimagein;
+			//xaint ^= 0.5;
+			//xaint /= xaint1;
+			//MakeComplex(xaint, 0.0f, xacamp1, true);
+			//xacamp *= xacamp1;
+			xatie.ReplaceModulus(xacamp, xaampin);
 			xafft2.Fresnel(-defocus);
 			Abs2(xacamp, xaimagein);
 			XArData::WriteFileGRD(xaimagein, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);

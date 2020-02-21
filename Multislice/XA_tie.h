@@ -99,6 +99,8 @@ namespace xar
 		void TIE1(xar::XArray2D<T>& F, double R, bool UseFFT, long ncycle, double alpha);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using TIE approximation
 		void DP(xar::XArray2D<T>& F, double deltaoverbeta, double R);
+		//! Replaces the modulus of a complex array by values from a new real-amplitude array
+		void ReplaceModulus(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& A);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using TIE approximation and PSF deconvolution
 		void DPDeconv(xar::XArray2D<T>& F, xar::XArray2D<T>& Ker, double deltaoverbeta, double R, double alpha);
 		//! Retrieves phase&amplitude from 2 images at different defocus distances using TIE approximation
@@ -313,6 +315,18 @@ template <class T> void XA_2DTIE<T>::DP( xar::XArray2D<T>& F, double deltaoverbe
 	//	if (!strcmp(E.GetDescription(), "argument domain error")) throw vo_math_exception("negative absorption", "DP");
 	//	else throw vo_math_exception(E.GetDescription(), "DP");
 	//}
+}
+
+template <class T> void XA_2DTIE<T>::ReplaceModulus(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& A)
+{
+	// check input parameters
+	if (!(F.GetDim1() == A.GetDim1() && F.GetDim2() == A.GetDim2()))
+		throw std::invalid_argument("invalid_arguments 'F, A' in XA_2DTIE<T>::ReplaceModulus (arrays have different dimensions)");
+
+	std::complex<T> *arrF = &F.front();
+	T *arrA = &A.front();
+
+	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++) arrF[i] *= (A[i] / abs(arrF[i]));
 }
 
 #if (0)
