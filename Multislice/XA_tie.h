@@ -101,6 +101,8 @@ namespace xar
 		void DP(xar::XArray2D<T>& F, double deltaoverbeta, double R);
 		//! Replaces the modulus of a complex array by values from a new real-amplitude array
 		void ReplaceModulus(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& A);
+		//! Enforce the homogeneous object condition by changing the phase of the complex amplitude
+		void Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using TIE approximation and PSF deconvolution
 		void DPDeconv(xar::XArray2D<T>& F, xar::XArray2D<T>& Ker, double deltaoverbeta, double R, double alpha);
 		//! Retrieves phase&amplitude from 2 images at different defocus distances using TIE approximation
@@ -326,7 +328,20 @@ template <class T> void XA_2DTIE<T>::ReplaceModulus(xar::XArray2D< std::complex<
 	std::complex<T> *arrF = &F.front();
 	T *arrA = &A.front();
 
-	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++) arrF[i] *= (A[i] / abs(arrF[i]));
+	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++) arrF[i] *= (arrA[i] / abs(arrF[i]));
+}
+
+template <class T> void XA_2DTIE<T>::Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta)
+{
+	T d2b = T(delta2beta), amp, pha;
+	std::complex<T>* arrF = &F.front();
+
+	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++)
+	{
+		amp = abs(arrF[i]);
+		pha = d2b * log(amp);
+		arrF[i] = std::polar<T>(amp, pha);
+	}
 }
 
 #if (0)

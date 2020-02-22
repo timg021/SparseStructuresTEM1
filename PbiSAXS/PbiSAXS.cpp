@@ -20,15 +20,17 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
+		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
 		string infile = "img1.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
-		XArray2D<float> xaimagein; // input in-line projection image array
+
+		index_t kkGS = 1; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
+		
+		XArray2D<float> xaampin; // real amplitude of the input image
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
-		XArray2D<float> xapha, xaampin; // phase, amplitude
-		XArray2D<float> xaint, xaint1; // intensity
-		XArray2D<fcomplex> xacamp, xacamp1;
+		XArray2D<float> xaint; // auxillary real array
+		XArray2D<fcomplex> xacamp; // auxillary complex array
 
 		index_t nangles = 1; // 900;
 		double angle_range = 180.0;
@@ -65,10 +67,9 @@ int main()
 			printf("\nOutput file = %s", outfile_i.c_str());
 
 			// read the in-line projection image from input file
-			XArData::ReadFileGRD(xaimagein, (strfilepath + infile_i).c_str(), wl);
-			xaint = xaimagein; // make a temporary copy of the input image
-			xaampin = xaimagein;
-			xaampin ^= 0.5; // convert intensity into real amplitude
+			XArData::ReadFileGRD(xaint, (strfilepath + infile_i).c_str(), wl);
+			xaampin = xaint; 
+			xaampin ^= 0.5; // save the input real amplitude for later use
 
 			// do TIE-Hom phase retrieval
 			XA_2DTIE<float> xatie;
@@ -76,38 +77,24 @@ int main()
 			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
 			//XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile_i).c_str(), eGRDBIN);
 
-			// Fresnel-propagate the TIE-Hom retrieved object-plane complex amplitude forward to the image plane
-			xapha = xaint;
-			xapha.Log();
-			xapha *= float(0.5 * delta2beta); // extract phase
-			xaint ^= 0.5; // convert intensity into real amplitude
-			MakeComplex(xaint, xapha, xacamp, true);
-			XArray2DFFT<float> xafft2(xacamp);
-			xafft2.Fresnel(defocus);
-
 			// Do Gerchberg-Saxton
-			//Abs(xacamp, xaint1);
-			//xaint = xaimagein;
-			//xaint ^= 0.5;
-			//xaint /= xaint1;
-			//MakeComplex(xaint, 0.0f, xacamp1, true);
-			//xacamp *= xacamp1;
-			xatie.ReplaceModulus(xacamp, xaampin);
-			xafft2.Fresnel(-defocus);
-			Abs2(xacamp, xaimagein);
-			XArData::WriteFileGRD(xaimagein, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
-			xaimagein -= xaobjtie;
-
-			// Subtract the retrieved-repropagated image from the original image, take the inverse Laplacian and divide by I0
-			//Abs2(xacamp, xaint);
-			//xaimagein -= xaint; // this is the SAXS component of the image
-			//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS1" + infile_i).c_str(), eGRDBIN);
-			//xatie.DP(xaimagein, delta2beta, defocus); // regularized inverse Laplacian
-			//XArData::WriteFileGRD(xaimagein, (strfilepath + "SAXS0TIE" + infile_i).c_str(), eGRDBIN);
-			//xaimagein /= xaobjtie; // this is the SAXS component of the object
+			xaint ^= 0.5; // convert object-plane intensity into real amplitude
+			MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
+			XArray2DFFT<float> xafft2(xacamp);
+			for (index_t kk = 0; kk < kkGS; kk++)
+			{
+				printf("\nDoing GS, k = %zd ...", kk);
+				xatie.Homogenise(xacamp, delta2beta); // replace phase with the delta2beta*log(amplitude)
+				xafft2.Fresnel(defocus); // propagate forward to the image plane
+				xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
+				xafft2.Fresnel(-defocus); // propagate back to the object plane
+			}
 
 			// write the result to output file
-			XArData::WriteFileGRD(xaimagein, (strfilepath + outfile_i).c_str(), eGRDBIN);
+			Abs2(xacamp, xaint);
+			XArData::WriteFileGRD(xaint, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
+			xaint -= xaobjtie;
+			XArData::WriteFileGRD(xaint, (strfilepath + outfile_i).c_str(), eGRDBIN);
 		}
 	}
 	catch (std::exception & E)
