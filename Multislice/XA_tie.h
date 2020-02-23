@@ -103,6 +103,8 @@ namespace xar
 		void ReplaceModulus(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& A);
 		//! Enforce the homogeneous object condition by changing the phase of the complex amplitude
 		void Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta);
+		//! Enforce unit plane wave within a given vicinity of the boundary
+		void EnforceSupport(xar::XArray2D< std::complex<T> >& F, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, std::complex<T> tMaskVal);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using TIE approximation and PSF deconvolution
 		void DPDeconv(xar::XArray2D<T>& F, xar::XArray2D<T>& Ker, double deltaoverbeta, double R, double alpha);
 		//! Retrieves phase&amplitude from 2 images at different defocus distances using TIE approximation
@@ -343,6 +345,13 @@ template <class T> void XA_2DTIE<T>::Homogenise(xar::XArray2D< std::complex<T> >
 		arrF[i] = std::polar<T>(amp, pha);
 	}
 }
+
+template <class T> void XA_2DTIE<T>::EnforceSupport(xar::XArray2D< std::complex<T> >& F, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, std::complex<T> tMaskVal)
+{
+	XArray2DMove< std::complex<T> > xamove(F);
+	xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
+}
+
 
 #if (0)
 template <class T> void XA_2DTIE<T>::DPME(XArray2D<T>& I1, double d2b0, double d2b1, double R, short niter)

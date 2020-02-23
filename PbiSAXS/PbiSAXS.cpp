@@ -22,15 +22,20 @@ int main()
 
 		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
 		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
-		string infile = "img1.grd", infile_i; // input file with an in-line projection image
+		string infile = "img10cm.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 
-		index_t kkGS = 1; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
-		
 		XArray2D<float> xaampin; // real amplitude of the input image
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
+
+		index_t kkGS = 10; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
+		index_t iYLeft = 256, iYRight = 256, iXLeft = 256, iXRight = 256;
+		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
+		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
+		double defocus = 1.e+5; // 0.015; // defocus distance in microns
+		double delta2beta = 100.0; // 0.1; // delta/beta
 
 		index_t nangles = 1; // 900;
 		double angle_range = 180.0;
@@ -47,10 +52,6 @@ int main()
 			sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
 			myformat += "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded angle indexes into file names - see usage below
 		}
-
-		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
-		double defocus = 1.e+6; // 0.015; // defocus distance in microns
-		double delta2beta = 1000.0; // 0.1; // delta/beta
 
 		for (index_t i = 0; i < nangles; i++)
 		{
@@ -84,14 +85,23 @@ int main()
 			for (index_t kk = 0; kk < kkGS; kk++)
 			{
 				printf("\nDoing GS, k = %zd ...", kk);
-				xatie.Homogenise(xacamp, delta2beta); // replace phase with the delta2beta*log(amplitude)
+				if (kk == 0) 
+					xatie.Homogenise(xacamp, delta2beta); // replace phase with the delta2beta*log(amplitude)
+				else 
+					xatie.EnforceSupport(xacamp, iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
+				//XArData::WriteFileGRC(xacamp, (strfilepath + "campTIE.grc").c_str(), eGRCBIN);
 				xafft2.Fresnel(defocus); // propagate forward to the image plane
+				//XArData::WriteFileGRC(xacamp, (strfilepath + "camp1TIE.grc").c_str(), eGRCBIN);
 				xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
 				xafft2.Fresnel(-defocus); // propagate back to the object plane
+				//XArData::WriteFileGRC(xacamp, (strfilepath + "camp0GS1.grc").c_str(), eGRCBIN);
 			}
 
 			// write the result to output file
-			Abs2(xacamp, xaint);
+			//Abs2(xacamp, xaint);
+			CArg(xacamp, xaint);
+			xaint /= float(0.5 * delta2beta);
+			xaint.Exp();
 			XArData::WriteFileGRD(xaint, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
 			xaint -= xaobjtie;
 			XArData::WriteFileGRD(xaint, (strfilepath + outfile_i).c_str(), eGRDBIN);

@@ -1178,8 +1178,9 @@ Arg(C, A);
 	template <class T> void Arg(const XArray< std::complex<T> >& C, XArray<T>& A)
 	{ 
 		if (C.GetHeadPtr()) C.GetHeadPtr()->Validate();
-		A.resize(C.XArrayBase<T>::size()); 
-		for (index_t i = 0; i < C.XArrayBase<T>::size(); i++) A[i] = T(::atan2(C[i].imag(), C[i].real()));
+		index_t isize = C.size();
+		A.resize(isize); 
+		for (index_t i = 0; i < isize; i++) A[i] = T(::atan2(C[i].imag(), C[i].real()));
 		A.SetHeadPtr(C.GetHeadPtr() ? C.GetHeadPtr()->Clone() : 0);
 	}
 	
