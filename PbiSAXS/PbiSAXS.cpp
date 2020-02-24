@@ -20,9 +20,10 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
+		string strfilepath = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
 		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
-		string infile = "img10cm.grd", infile_i; // input file with an in-line projection image
+		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
+		string infile = "phase.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 
 		XArray2D<float> xaampin; // real amplitude of the input image
@@ -30,14 +31,14 @@ int main()
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
 
-		index_t kkGS = 5; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
+		index_t kkGS = 1; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
 		index_t iYLeft = 256, iYRight = 256, iXLeft = 256, iXRight = 256;
 		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
-		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
-		double defocus = 1.e+5; // 0.015; // defocus distance in microns
-		double delta2beta = 100.0; // 0.1; // delta/beta
+		double wl = 2.5e-6; // X-ray wavelength in microns
+		double defocus = 0.015; // defocus distance in microns
+		double delta2beta = 1; // delta/beta
 
-		index_t nangles = 1; // 900;
+		index_t nangles = 900;
 		double angle_range = 180.0;
 		double angle_step = angle_range / nangles, angle;
 
@@ -69,6 +70,7 @@ int main()
 
 			// read the in-line projection image from input file
 			XArData::ReadFileGRD(xaint, (strfilepath + infile_i).c_str(), wl);
+			xaint += 1.0; //@@@@@@ temporary code for bad input data
 			xaampin = xaint; 
 			xaampin ^= 0.5; // save the input real amplitude for later use
 
@@ -76,7 +78,7 @@ int main()
 			XA_2DTIE<float> xatie;
 			xatie.DP(xaint, delta2beta, defocus);
 			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
-			XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile_i).c_str(), eGRDBIN);
+			//XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile_i).c_str(), eGRDBIN);
 
 			// Do Gerchberg-Saxton
 			xaint ^= 0.5; // convert object-plane intensity into real amplitude
@@ -105,9 +107,10 @@ int main()
 			CArg(xacamp, xaint); // it is very important to extract the result from the phase, rather than from intensity
 			xaint /= float(0.5 * delta2beta);
 			xaint.Exp();
-			XArData::WriteFileGRD(xaint, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
+			//XArData::WriteFileGRD(xaint, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
 			xaint -= xaobjtie; // GS minus TIE_Hom
 			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
+			xaint += tMaskVal.real();
 			XArData::WriteFileGRD(xaint, (strfilepath + outfile_i).c_str(), eGRDBIN);
 		}
 	}
