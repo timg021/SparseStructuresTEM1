@@ -103,6 +103,8 @@ namespace xar
 		void ReplaceModulus(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& A);
 		//! Enforce the homogeneous object condition by changing the phase of the complex amplitude
 		void Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta);
+		//! Enforce the homogeneous object condition by changing the modulus of the complex amplitude
+		void Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta);
 		//! Enforce unit plane wave within a given vicinity of the boundary
 		void EnforceSupport(xar::XArray2D< std::complex<T> >& F, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, std::complex<T> tMaskVal);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using TIE approximation and PSF deconvolution
@@ -344,6 +346,19 @@ template <class T> void XA_2DTIE<T>::Homogenise(xar::XArray2D< std::complex<T> >
 		pha = d2b * log(amp);
 		arrF[i] = std::polar<T>(amp, pha);
 	}
+}
+
+template <class T> void XA_2DTIE<T>::Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta)
+{
+	T b2d = T(1.0 / delta2beta);
+	std::complex<T>* arrF = &F.front();
+
+	xar::XArray2D<T> P(F.GetDim1(), F.GetDim2());
+	CArg(F, P);
+	T* arrP = &P.front();
+
+	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++)
+		arrF[i] = std::polar<T>(exp(b2d * arrP[i]), arrP[i]);
 }
 
 template <class T> void XA_2DTIE<T>::EnforceSupport(xar::XArray2D< std::complex<T> >& F, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, std::complex<T> tMaskVal)

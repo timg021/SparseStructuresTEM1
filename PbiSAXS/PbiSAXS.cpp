@@ -20,8 +20,8 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
+		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
 		string infile = "img10cm.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 
@@ -30,7 +30,7 @@ int main()
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
 
-		index_t kkGS = 10; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
+		index_t kkGS = 5; // number of GS refinement cycles to perform after TIE-Hom(DP) for each input image
 		index_t iYLeft = 256, iYRight = 256, iXLeft = 256, iXRight = 256;
 		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
 		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
@@ -76,7 +76,7 @@ int main()
 			XA_2DTIE<float> xatie;
 			xatie.DP(xaint, delta2beta, defocus);
 			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
-			//XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile_i).c_str(), eGRDBIN);
+			XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile_i).c_str(), eGRDBIN);
 
 			// Do Gerchberg-Saxton
 			xaint ^= 0.5; // convert object-plane intensity into real amplitude
@@ -87,8 +87,11 @@ int main()
 				printf("\nDoing GS, k = %zd ...", kk);
 				if (kk == 0) 
 					xatie.Homogenise(xacamp, delta2beta); // replace phase with the delta2beta*log(amplitude)
-				else 
-					xatie.EnforceSupport(xacamp, iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
+				else
+				{
+					xatie.Homogenise1(xacamp, delta2beta); // replace modulus with the exp(beta2delta*phase)
+					//xatie.EnforceSupport(xacamp, iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
+				}
 				//XArData::WriteFileGRC(xacamp, (strfilepath + "campTIE.grc").c_str(), eGRCBIN);
 				xafft2.Fresnel(defocus); // propagate forward to the image plane
 				//XArData::WriteFileGRC(xacamp, (strfilepath + "camp1TIE.grc").c_str(), eGRCBIN);
@@ -99,11 +102,12 @@ int main()
 
 			// write the result to output file
 			//Abs2(xacamp, xaint);
-			CArg(xacamp, xaint);
+			CArg(xacamp, xaint); // it is very important to extract the result from the phase, rather than from intensity
 			xaint /= float(0.5 * delta2beta);
 			xaint.Exp();
 			XArData::WriteFileGRD(xaint, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
-			xaint -= xaobjtie;
+			xaint -= xaobjtie; // GS minus TIE_Hom
+			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
 			XArData::WriteFileGRD(xaint, (strfilepath + outfile_i).c_str(), eGRDBIN);
 		}
 	}
