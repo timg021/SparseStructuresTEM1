@@ -8,7 +8,6 @@
 #include "XA_file.h"
 #include "XA_fft2.h"
 #include "XA_tie.h"
-#include "XA_born.h"
 
 using namespace xar;
 
@@ -31,9 +30,9 @@ int main()
 		string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; 
 		string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
 		string infile = "img1m.grd", infile_i; // input file with an in-line projection image
-		string outfile = "saxsb_" + infile, outfile_i; // output file with SAXS image
+		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 
-		XArray2D<float> xaimage; // input image intensity array
+		XArray2D<float> xaampin; // input real amplitude array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
@@ -63,7 +62,7 @@ int main()
 		}
 
 		omp_set_num_threads(nThreads);
-		#pragma omp parallel default(none) private(xaimage, xaobjtie, xaint, xacamp, infile_i, outfile_i, buffer)
+		#pragma omp parallel default(none) private(xaampin, xaobjtie, xaint, xacamp, infile_i, outfile_i, buffer)
 		#pragma omp for schedule(dynamic) nowait
 		for (int i = 0; i < nangles; i++)
 		{
@@ -82,7 +81,8 @@ int main()
 			// read the in-line projection image from input file
 			XArData::ReadFileGRD(xaint, (strfilepathin + infile_i).c_str(), wl);
 			//xaint += 1.0; //@@@@@@ temporary code for bad input data
-			xaimage = xaint; // save the input image for later use
+			xaampin = xaint; 
+			xaampin ^= 0.5; // convert input image into real amplitude for future use
 
 			// do TIE-Hom phase retrieval
 			XA_2DTIE<float> xatie;
@@ -90,9 +90,7 @@ int main()
 			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
 			//XArData::WriteFileGRD(xaobjtie, (strfilepathout + "TIE" + infile_i).c_str(), eGRDBIN);
 
-			// Do Gerchberg-Saxton or 1st Born
-#if(0)
-			xaimage ^= 0.5; // convert input image into real amplitude
+			// Do Gerchberg-Saxton
 			xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
 			MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
 			XArray2DFFT<float> xafft2(xacamp);
@@ -100,16 +98,16 @@ int main()
 			{
 				printf("\nDoing GS, k = %zd ...", kk);
 				if (kk == 0) 
-					xatie.Homogenise(xacamp, delta2beta); // replace phase with the delta2beta*log(amplitude)
+					xatie.Homogenise(xacamp, delta2beta); // replace the phase with delta2beta*log(amplitude)
 				else
 				{
-					xatie.Homogenise1(xacamp, delta2beta); // replace modulus with the exp(beta2delta*phase)
+					xatie.Homogenise1(xacamp, delta2beta); // replace the modulus with exp(beta2delta*phase)
 					//xatie.EnforceSupport(xacamp, iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
 				}
 				//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
 				xafft2.Fresnel(defocus); // propagate forward to the image plane
 				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp1TIE.grc").c_str(), eGRCBIN);
-				xatie.ReplaceModulus(xacamp, xaimage); // replace the modulus with that of the input image
+				xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
 				xafft2.Fresnel(-defocus); // propagate back to the object plane
 				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp0GS1.grc").c_str(), eGRCBIN);
 			}
@@ -119,25 +117,9 @@ int main()
 			xaint.Exp();
 			XArData::WriteFileGRD(xaint, (strfilepathout + "GS" + infile_i).c_str(), eGRDBIN);
 			xaint -= xaobjtie; // GS minus TIE_Hom
-#else
-			XA_2DBorn<float> xaBorn;
-			//xaBorn.BornSCIter(xaimage, xaint, defocus, delta2beta, epsilon, 0.0, numIter);
-			xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
-			MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
-			XArray2DFFT<float> xafft2(xacamp);
-			xatie.Homogenise(xacamp, delta2beta); // replace phase with the delta2beta*log(amplitude)
-			xafft2.Fresnel(defocus); // propagate forward to the image plane
-			Abs2(xacamp, xaint); // get TIE-Hom propagated intensity in the image plane
-			xaint -= xaimage; // calculate the difference with the original image
-			xaint *= -1.0f;
-			xaint += 1.0f;
-			xaBorn.BornSC(xaint, defocus, delta2beta, epsilon);
-			xaobjtie += xaint; // Born-corrected TIE-Hom image
-			XArData::WriteFileGRD(xaobjtie, (strfilepathout + "Born" + infile_i).c_str(), eGRDBIN);
-#endif
+			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
 
 			// write the result to output file
-			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
 			//xaint += tMaskVal.real(); //@@@@@@ temporary code for bad input data
 			XArData::WriteFileGRD(xaint, (strfilepathout + outfile_i).c_str(), eGRDBIN);
 		}
