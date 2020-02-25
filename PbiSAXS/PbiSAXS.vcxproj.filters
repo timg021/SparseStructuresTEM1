@@ -45,6 +45,9 @@
     <ClCompile Include="..\Multislice\XAHWave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Multislice\unwrap_2d_ljmu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Multislice\IXAHead.h">

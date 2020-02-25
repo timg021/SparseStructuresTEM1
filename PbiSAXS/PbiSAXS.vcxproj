@@ -152,6 +152,7 @@
     <ClCompile Include="..\Multislice\Ooura_fftsg_dbl.c" />
     <ClCompile Include="..\Multislice\Ooura_fftsg_flt.c" />
     <ClCompile Include="..\Multislice\stdafx.cpp" />
+    <ClCompile Include="..\Multislice\unwrap_2d_ljmu.c" />
     <ClCompile Include="..\Multislice\XAHWave.cpp" />
     <ClCompile Include="..\Multislice\XA_file.cpp" />
     <ClCompile Include="..\Multislice\XA_ini.cpp" />
