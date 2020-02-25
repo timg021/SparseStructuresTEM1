@@ -168,6 +168,7 @@
     <ClInclude Include="..\Multislice\XArray2D.h" />
     <ClInclude Include="..\Multislice\XArray3D.h" />
     <ClInclude Include="..\Multislice\XArrayB.h" />
+    <ClInclude Include="..\Multislice\XA_born.h" />
     <ClInclude Include="..\Multislice\XA_data.h" />
     <ClInclude Include="..\Multislice\XA_fft2.h" />
     <ClInclude Include="..\Multislice\XA_fftr2.h" />
