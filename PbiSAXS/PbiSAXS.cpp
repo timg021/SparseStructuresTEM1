@@ -26,11 +26,12 @@ int main()
 		//string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\LysLesPhaseCT200keV_900rotSAXS\\";
 		//string strfilepathin = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
 		//string strfilepathout = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
-		//string strfilepathin = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; 
-		string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
-		string infile = "img1m.grd", infile_i; // input file with an in-line projection image
-		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
+		string strfilepathin = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		string strfilepathout = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		//string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; 
+		//string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
+		string infile = "img10cm.grd", infile_i; // input file with an in-line projection image
+		string outfile = "saxsnew_" + infile, outfile_i; // output file with SAXS image
 
 		XArray2D<float> xaampin; // input real amplitude array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
@@ -41,9 +42,8 @@ int main()
 		index_t iYLeft = 256, iYRight = 256, iXLeft = 256, iXRight = 256;
 		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
 		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
-		double defocus = 1.e+6; // 0.015; // defocus distance in microns
-		double delta2beta = 100; // 1; // delta/beta
-		double epsilon = 0.0001; // regularization parameter for 1st Born routines
+		double defocus = 1.e+5; // 0.015; // defocus distance in microns
+		double delta2beta = 40; // 1; // delta/beta
 
 		int nangles = 1; // needs to be 'int' for OpenMP
 		double angle_range = 180.0;
@@ -90,7 +90,7 @@ int main()
 			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
 			//XArData::WriteFileGRD(xaobjtie, (strfilepathout + "TIE" + infile_i).c_str(), eGRDBIN);
 
-			// Do Gerchberg-Saxton
+			// Do Gerchberg-Saxton (maybe worth trying HIO later!!)
 			xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
 			MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
 			XArray2DFFT<float> xafft2(xacamp);
@@ -115,7 +115,7 @@ int main()
 			CArg(xacamp, xaint); // it is very important to extract the result from the phase, rather than from intensity
 			xaint /= float(0.5 * delta2beta);
 			xaint.Exp();
-			XArData::WriteFileGRD(xaint, (strfilepathout + "GS" + infile_i).c_str(), eGRDBIN);
+			XArData::WriteFileGRD(xaint, (strfilepathout + "GSnew_" + infile_i).c_str(), eGRDBIN);
 			xaint -= xaobjtie; // GS minus TIE_Hom
 			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
 
