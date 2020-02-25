@@ -1,6 +1,7 @@
 //PbiSAXS.cpp this file contains code for extraction of SASX signal from in-line phase-contrast images
 
 #include <chrono>
+#include <omp.h>
 #include "IXAHWave.h"
 #include "XArray2D.h"
 #include "XA_data.h"
@@ -20,9 +21,13 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		string strfilepath = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
-		//string strfilepath = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		//string strfilepath = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
+		int nThreads = 20;
+		string strfilepathin = "C:\\Users\\tgureyev\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
+		string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\LysLesPhaseCT200keV_900rotSAXS\\";
+		//string strfilepathin = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
+		//string strfilepathout = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
+		//string strfilepathin = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		//string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; // LysLesPhaseCT200keV_900rot\\";
 		string infile = "phase.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxs_" + infile, outfile_i; // output file with SAXS image
 
@@ -38,7 +43,7 @@ int main()
 		double defocus = 0.015; // defocus distance in microns
 		double delta2beta = 1; // delta/beta
 
-		index_t nangles = 900;
+		int nangles = 900; // needs to be 'int' for OpenMP
 		double angle_range = 180.0;
 		double angle_step = angle_range / nangles, angle;
 
@@ -54,7 +59,10 @@ int main()
 			myformat += "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded angle indexes into file names - see usage below
 		}
 
-		for (index_t i = 0; i < nangles; i++)
+		omp_set_num_threads(nThreads);
+		#pragma omp parallel default(none) private(xaampin, xaobjtie, xaint, xacamp, infile_i, outfile_i, buffer)
+		#pragma omp for schedule(dynamic) nowait
+		for (int i = 0; i < nangles; i++)
 		{
 			angle = angle_step * double(i);
 			printf("\nAngle = %f", angle);
@@ -69,7 +77,7 @@ int main()
 			printf("\nOutput file = %s", outfile_i.c_str());
 
 			// read the in-line projection image from input file
-			XArData::ReadFileGRD(xaint, (strfilepath + infile_i).c_str(), wl);
+			XArData::ReadFileGRD(xaint, (strfilepathin + infile_i).c_str(), wl);
 			xaint += 1.0; //@@@@@@ temporary code for bad input data
 			xaampin = xaint; 
 			xaampin ^= 0.5; // save the input real amplitude for later use
@@ -78,7 +86,7 @@ int main()
 			XA_2DTIE<float> xatie;
 			xatie.DP(xaint, delta2beta, defocus);
 			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
-			//XArData::WriteFileGRD(xaobjtie, (strfilepath + "TIE" + infile_i).c_str(), eGRDBIN);
+			//XArData::WriteFileGRD(xaobjtie, (strfilepathout + "TIE" + infile_i).c_str(), eGRDBIN);
 
 			// Do Gerchberg-Saxton
 			xaint ^= 0.5; // convert object-plane intensity into real amplitude
@@ -94,12 +102,12 @@ int main()
 					xatie.Homogenise1(xacamp, delta2beta); // replace modulus with the exp(beta2delta*phase)
 					//xatie.EnforceSupport(xacamp, iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
 				}
-				//XArData::WriteFileGRC(xacamp, (strfilepath + "campTIE.grc").c_str(), eGRCBIN);
+				//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
 				xafft2.Fresnel(defocus); // propagate forward to the image plane
-				//XArData::WriteFileGRC(xacamp, (strfilepath + "camp1TIE.grc").c_str(), eGRCBIN);
+				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp1TIE.grc").c_str(), eGRCBIN);
 				xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
 				xafft2.Fresnel(-defocus); // propagate back to the object plane
-				//XArData::WriteFileGRC(xacamp, (strfilepath + "camp0GS1.grc").c_str(), eGRCBIN);
+				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp0GS1.grc").c_str(), eGRCBIN);
 			}
 
 			// write the result to output file
@@ -107,11 +115,11 @@ int main()
 			CArg(xacamp, xaint); // it is very important to extract the result from the phase, rather than from intensity
 			xaint /= float(0.5 * delta2beta);
 			xaint.Exp();
-			//XArData::WriteFileGRD(xaint, (strfilepath + "GS" + infile_i).c_str(), eGRDBIN);
+			//XArData::WriteFileGRD(xaint, (strfilepathout + "GS" + infile_i).c_str(), eGRDBIN);
 			xaint -= xaobjtie; // GS minus TIE_Hom
 			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
 			xaint += tMaskVal.real();
-			XArData::WriteFileGRD(xaint, (strfilepath + outfile_i).c_str(), eGRDBIN);
+			XArData::WriteFileGRD(xaint, (strfilepathout + outfile_i).c_str(), eGRDBIN);
 		}
 	}
 	catch (std::exception & E)

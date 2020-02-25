@@ -667,7 +667,7 @@ double dblChi2 = myXArray2D.Chi2(otherXArray);
 
 	inline void XArray<fcomplex>::operator^=(fcomplex cxfVal)
 	{
-		for (index_t i=0; i<XArrayBase<T>::size(); i++)  XArrayBase<T>::operator[](i) = std::pow(XArrayBase<T>::operator[](i), cxfVal);
+		for (index_t i=0; i<(*this).size(); i++)  XArrayBase<T>::operator[](i) = std::pow(XArrayBase<T>::operator[](i), cxfVal);
 	}
 
 
