@@ -119,5 +119,8 @@
     <ClInclude Include="..\Multislice\XA_born.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Multislice\unwrap_2d_ljmu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

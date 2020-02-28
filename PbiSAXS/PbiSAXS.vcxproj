@@ -163,6 +163,7 @@
     <ClInclude Include="..\Multislice\IXAHWave.h" />
     <ClInclude Include="..\Multislice\OouraFft.h" />
     <ClInclude Include="..\Multislice\stdafx.h" />
+    <ClInclude Include="..\Multislice\unwrap_2d_ljmu.h" />
     <ClInclude Include="..\Multislice\XAHWave.h" />
     <ClInclude Include="..\Multislice\XArray.h" />
     <ClInclude Include="..\Multislice\XArray1D.h" />

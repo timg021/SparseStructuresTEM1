@@ -8,6 +8,7 @@
 #include "XA_file.h"
 #include "XA_fft2.h"
 #include "XA_tie.h"
+#include "unwrap_2d_ljmu.h"
 
 using namespace xar;
 
@@ -30,7 +31,7 @@ int main()
 		string strfilepathout = "C:\\Users\\gur017\\Downloads\\Temp\\";
 		//string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; 
 		//string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
-		string infile = "img10cm.grd", infile_i; // input file with an in-line projection image
+		string infile = "img1m.grd", infile_i; // input file with an in-line projection image
 		string outfile = "saxsnew_" + infile, outfile_i; // output file with SAXS image
 
 		XArray2D<float> xaampin; // input real amplitude array
@@ -38,12 +39,12 @@ int main()
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
 
-		index_t numIter = 1; // number of GS or 1st_Born iterations to perform after TIE-Hom(DP) for each input image
+		index_t numIter = 10; // number of GS iterations to perform after TIE-Hom(DP) for each input image
 		index_t iYLeft = 256, iYRight = 256, iXLeft = 256, iXRight = 256;
 		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
 		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
-		double defocus = 1.e+5; // 0.015; // defocus distance in microns
-		double delta2beta = 40; // 1; // delta/beta
+		double defocus = 1.e+6; // 0.015; // defocus distance in microns
+		double delta2beta = 100; // 1; // delta/beta
 
 		int nangles = 1; // needs to be 'int' for OpenMP
 		double angle_range = 180.0;
@@ -75,10 +76,9 @@ int main()
 			sprintf(buffer, myformat.data(), i);
 			infile_i.insert(i_dot, buffer);
 			outfile_i.insert(o_dot, buffer);
-			printf("\nInput file = %s", infile_i.c_str());
-			printf("\nOutput file = %s", outfile_i.c_str());
 
 			// read the in-line projection image from input file
+			printf("\nReading input file = %s ...", infile_i.c_str());
 			XArData::ReadFileGRD(xaint, (strfilepathin + infile_i).c_str(), wl);
 			//xaint += 1.0; //@@@@@@ temporary code for bad input data
 			xaampin = xaint; 
@@ -113,6 +113,19 @@ int main()
 			}
 			//Abs2(xacamp, xaint);
 			CArg(xacamp, xaint); // it is very important to extract the result from the phase, rather than from intensity
+			// Unwrap the phase
+			XArray2D<double> xaintd(xaint.GetDim1(), xaint.GetDim2()), xaintd1(xaint.GetDim1(), xaint.GetDim2());;
+			for (index_t i = 0; i < xaint.GetDim1(); i++)
+				for (index_t j = 0; j < xaint.GetDim2(); j++)
+					xaintd[i][j] = (double)xaint[i][j];
+			XArray2D<char> input_mask(xaint.GetDim1(), xaint.GetDim2(), 255);
+			XArray2DMove<char> xamove(input_mask);
+			xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, 0);
+			unwrap2D(&xaintd.front(), &xaintd1.front(), (unsigned char*)&input_mask.front(), (int)xaintd.GetDim2(), (int)xaintd.GetDim1(), 0, 0, 0, 0);
+			for (index_t i = 0; i < xaint.GetDim1(); i++)
+				for (index_t j = 0; j < xaint.GetDim2(); j++)
+					xaint[i][j] = (float)xaintd1[i][j];
+
 			xaint /= float(0.5 * delta2beta);
 			xaint.Exp();
 			XArData::WriteFileGRD(xaint, (strfilepathout + "GSnew_" + infile_i).c_str(), eGRDBIN);
@@ -121,6 +134,7 @@ int main()
 
 			// write the result to output file
 			//xaint += tMaskVal.real(); //@@@@@@ temporary code for bad input data
+			printf("\nWriting output file = %s ...", outfile_i.c_str());
 			XArData::WriteFileGRD(xaint, (strfilepathout + outfile_i).c_str(), eGRDBIN);
 		}
 	}
