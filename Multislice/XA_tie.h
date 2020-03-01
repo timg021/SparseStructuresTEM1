@@ -22,6 +22,7 @@
 //
 #include "XA_move2.h"
 #include "OouraFft.h"
+#include "unwrap_2d_ljmu.h"
 //#include "XA_fftr2.h"
 //#include "XA_lin2.h"
 //#include "XA_filt2.h"
@@ -104,11 +105,11 @@ namespace xar
 		//! Enforce the homogeneous object condition by changing the phase of the complex amplitude
 		void Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta);
 		//! Enforce the homogeneous object condition by changing the modulus of the complex amplitude
-		void Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta);
+		void Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta, char* pinput_mask = 0);
 		//! Enforce unit plane wave within a given vicinity of the boundary
 		void EnforceSupport(xar::XArray2D< std::complex<T> >& F, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, std::complex<T> tMaskVal);
-		//! Extracts continuous 2D phase (solves 2D phase unwrapping problem) using TIE-Hom
-		template <class T> void XA_2DTIE<T>::CPhaseDP(const xar::XArray2D<std::complex<T> >& U, xar::XArray2D<T>& Fi, double deltaoverbeta, double R)
+		//! Solves 2D phase unwrapping problem using unwrap_2d_ljmu.c module
+		void CPhaseUnwrap(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& Fi, char* pinput_mask = 0);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using TIE approximation and PSF deconvolution
 		void DPDeconv(xar::XArray2D<T>& F, xar::XArray2D<T>& Ker, double deltaoverbeta, double R, double alpha);
 		//! Retrieves phase&amplitude from 2 images at different defocus distances using TIE approximation
@@ -339,24 +340,24 @@ template <class T> void XA_2DTIE<T>::ReplaceModulus(xar::XArray2D< std::complex<
 
 template <class T> void XA_2DTIE<T>::Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta)
 {
-	T d2b = T(delta2beta), amp, pha;
+	T d2b = T(delta2beta), amp;
 	std::complex<T>* arrF = &F.front();
 
 	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++)
 	{
 		amp = abs(arrF[i]);
-		pha = d2b * log(amp);
-		arrF[i] = std::polar<T>(amp, pha);
+		arrF[i] = std::polar<T>(amp, d2b * log(amp));
 	}
 }
 
-template <class T> void XA_2DTIE<T>::Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta)
+template <class T> void XA_2DTIE<T>::Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta, char* pinput_mask)
 {
 	T b2d = T(1.0 / delta2beta);
 	std::complex<T>* arrF = &F.front();
 
-	xar::XArray2D<T> P(F.GetDim1(), F.GetDim2());
-	CArg(F, P);
+	xar::XArray2D<T> P; // (F.GetDim1(), F.GetDim2());
+	//CArg(F, P);
+	CPhaseUnwrap(F, P, pinput_mask);
 	T* arrP = &P.front();
 
 	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++)
@@ -369,19 +370,36 @@ template <class T> void XA_2DTIE<T>::EnforceSupport(xar::XArray2D< std::complex<
 	xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
 }
 
-template <class T> void XA_2DTIE<T>::CPhaseDP(const xar::XArray2D<std::complex<T> >& U, xar::XArray2D<T>& Fi, double deltaoverbeta, double R)
+// In order to use this function, the extern "C" module unwrap_2d_ljmu.c must be included into the project
+// NOTE!!!: the description of input_mask in unwrap_2d_ljmu.c is incorrect: 0 corresponds to "good" points, 255 (unsigned char(-1)) corresponds to "bad" points
+template<class T> void XA_2DTIE<T>::CPhaseUnwrap(xar::XArray2D< std::complex<T> >& F, xar::XArray2D<T>& Fi, char* pinput_mask)
 {
-	//thickness(r) = -(1/mu)*lnF
-	//double amu = -1.0 / (4.0 * PI / wl * beta);
-	//arr = F.GetArr();
-	//try { for (i=0; i<F.GetNp(); i++) arr[i] = amu * log(arr[i]); }
-	//catch (vo_math_exception& E)
-	//{
-	//	if (!strcmp(E.GetDescription(), "argument domain error")) throw vo_math_exception("negative absorption", "DP");
-	//	else throw vo_math_exception(E.GetDescription(), "DP");
-	//}
-}
+	// prepare wrapped input phase array
+	XArray2D<double> Fid(F.GetDim1(), F.GetDim2()), Fid1(F.GetDim1(), F.GetDim2());
+	for (index_t i = 0; i < F.GetDim1(); i++)
+		for (index_t j = 0; j < F.GetDim2(); j++)
+			Fid[i][j] = (double)std::arg(F[i][j]);
 
+	// prepare input mask
+	unsigned char* pinput_mask1;
+	XArray2D<char> input_mask;
+	if (pinput_mask == 0)
+	{
+		input_mask.Resize(F.GetDim1(), F.GetDim2(), 0);
+		pinput_mask1 = (unsigned char*)&input_mask.front();
+	}
+	else
+		pinput_mask1 = (unsigned char*)pinput_mask;
+
+	// do phase unwrapping
+	unwrap2D(&Fid.front(), &Fid1.front(), pinput_mask1, (int)F.GetDim2(), (int)F.GetDim1(), 0, 0, 0, 0);
+
+	// prepare output unwrapped phase array
+	Fi.Resize(F.GetDim1(), F.GetDim2(), 0.0f);
+	for (index_t i = 0; i < F.GetDim1(); i++)
+		for (index_t j = 0; j < F.GetDim2(); j++)
+			Fi[i][j] = (T)Fid1[i][j];
+}
 
 
 #if (0)

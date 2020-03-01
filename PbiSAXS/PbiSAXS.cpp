@@ -8,7 +8,6 @@
 #include "XA_file.h"
 #include "XA_fft2.h"
 #include "XA_tie.h"
-#include "unwrap_2d_ljmu.h"
 
 using namespace xar;
 
@@ -39,8 +38,8 @@ int main()
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
 
-		index_t numIter = 10; // number of GS iterations to perform after TIE-Hom(DP) for each input image
-		index_t iYLeft = 256, iYRight = 256, iXLeft = 256, iXRight = 256;
+		index_t numIter = 30; // number of GS iterations to perform after TIE-Hom(DP) for each input image
+		index_t iYLeft = 200, iYRight = 200, iXLeft = 200, iXRight = 200;
 		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
 		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
 		double defocus = 1.e+6; // 0.015; // defocus distance in microns
@@ -94,43 +93,27 @@ int main()
 			xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
 			MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
 			XArray2DFFT<float> xafft2(xacamp);
+			xatie.Homogenise(xacamp, delta2beta); // replace the phase with delta2beta*log(amplitude)
+			XArray2D<char> input_mask(xacamp.GetDim1(), xacamp.GetDim2(), 0); // input mask for phase unwrapping
+			XArray2DMove<char> xamove(input_mask);
+			xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, -1); // optionally exclude "bad" points from phase unwrapping
 			for (index_t kk = 0; kk < numIter; kk++)
 			{
-				printf("\nDoing GS, k = %zd ...", kk);
-				if (kk == 0) 
-					xatie.Homogenise(xacamp, delta2beta); // replace the phase with delta2beta*log(amplitude)
-				else
-				{
-					xatie.Homogenise1(xacamp, delta2beta); // replace the modulus with exp(beta2delta*phase)
-					//xatie.EnforceSupport(xacamp, iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
-				}
-				//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
+				printf("\nDoing GS iteration no. %zd ...", kk);
 				xafft2.Fresnel(defocus); // propagate forward to the image plane
 				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp1TIE.grc").c_str(), eGRCBIN);
 				xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
 				xafft2.Fresnel(-defocus); // propagate back to the object plane
 				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp0GS1.grc").c_str(), eGRCBIN);
+				xatie.Homogenise1(xacamp, delta2beta, &input_mask.front()); // replace the modulus with exp(beta2delta*phase)
+				//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
 			}
-			//Abs2(xacamp, xaint);
-			CArg(xacamp, xaint); // it is very important to extract the result from the phase, rather than from intensity
-			// Unwrap the phase
-			XArray2D<double> xaintd(xaint.GetDim1(), xaint.GetDim2()), xaintd1(xaint.GetDim1(), xaint.GetDim2());;
-			for (index_t i = 0; i < xaint.GetDim1(); i++)
-				for (index_t j = 0; j < xaint.GetDim2(); j++)
-					xaintd[i][j] = (double)xaint[i][j];
-			XArray2D<char> input_mask(xaint.GetDim1(), xaint.GetDim2(), 255);
-			XArray2DMove<char> xamove(input_mask);
-			xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, 0);
-			unwrap2D(&xaintd.front(), &xaintd1.front(), (unsigned char*)&input_mask.front(), (int)xaintd.GetDim2(), (int)xaintd.GetDim1(), 0, 0, 0, 0);
-			for (index_t i = 0; i < xaint.GetDim1(); i++)
-				for (index_t j = 0; j < xaint.GetDim2(); j++)
-					xaint[i][j] = (float)xaintd1[i][j];
-
-			xaint /= float(0.5 * delta2beta);
-			xaint.Exp();
+			
+			// Extract SAXS signal from the GS-retrieved object-plane intensity
+			Abs2(xacamp, xaint);
 			XArData::WriteFileGRD(xaint, (strfilepathout + "GSnew_" + infile_i).c_str(), eGRDBIN);
 			xaint -= xaobjtie; // GS minus TIE_Hom
-			xatie.DP(xaint, delta2beta / 10.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
+			xatie.DP(xaint, delta2beta / 100.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
 
 			// write the result to output file
 			//xaint += tMaskVal.real(); //@@@@@@ temporary code for bad input data

@@ -116,9 +116,6 @@
     <ClInclude Include="..\Multislice\XA_fftr2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Multislice\XA_born.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Multislice\unwrap_2d_ljmu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
