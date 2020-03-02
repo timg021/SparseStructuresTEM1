@@ -22,28 +22,28 @@ int main()
 		printf("\nStarting PbiSAXS program ...");
 
 		int nThreads = 1;
-		//string strfilepathin = "C:\\Users\\tgureyev\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
-		//string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\LysLesPhaseCT200keV_900rotSAXS\\";
+		string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\4607971L_34keV_6m_24mGy\\projGRD\\";
+		string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\4607971L_34keV_6m_24mGy\\projSAXS\\";
 		//string strfilepathin = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
 		//string strfilepathout = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
-		string strfilepathin = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		string strfilepathout = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		//string strfilepathin = "C:\\Users\\gur017\\Downloads\\Temp\\";
+		//string strfilepathout = "C:\\Users\\gur017\\Downloads\\Temp\\";
 		//string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; 
 		//string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
-		string infile = "img1m.grd", infile_i; // input file with an in-line projection image
-		string outfile = "saxsnew_" + infile, outfile_i; // output file with SAXS image
+		string infile = "aproj0000.grd", infile_i; // input file with an in-line projection image
+		string outfile = "saxs" + infile, outfile_i; // output file with SAXS image
 
 		XArray2D<float> xaampin; // input real amplitude array
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xaint; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
 
-		index_t numIter = 30; // number of GS iterations to perform after TIE-Hom(DP) for each input image
-		index_t iYLeft = 200, iYRight = 200, iXLeft = 200, iXRight = 200;
+		index_t numIter = 1; // number of GS iterations to perform after TIE-Hom(DP) for each input image
+		index_t iYTop = 176, iYBottom = 0, iXLeft = 96, iXRight = 96; // parameters for trimming the input image (e.g. to bring the dims to powers of 2)
 		fcomplex tMaskVal = fcomplex(1.0f, 0.0f);
-		double wl = 0.0001; // 2.5e-6; // X-ray wavelength in microns
-		double defocus = 1.e+6; // 0.015; // defocus distance in microns
-		double delta2beta = 100; // 1; // delta/beta
+		double wl = 0.00003647; // 2.5e-6; // X-ray wavelength in microns
+		double defocus = 5748000; // 0.015; // defocus distance in microns
+		double delta2beta = 300; // 1; // delta/beta
 
 		int nangles = 1; // needs to be 'int' for OpenMP
 		double angle_range = 180.0;
@@ -66,59 +66,69 @@ int main()
 		#pragma omp for schedule(dynamic) nowait
 		for (int i = 0; i < nangles; i++)
 		{
-			angle = angle_step * double(i);
-			printf("\nAngle = %f", angle);
-
-			// generate input and output file names
-			infile_i = infile;
-			outfile_i = outfile;
-			sprintf(buffer, myformat.data(), i);
-			infile_i.insert(i_dot, buffer);
-			outfile_i.insert(o_dot, buffer);
-
-			// read the in-line projection image from input file
-			printf("\nReading input file = %s ...", infile_i.c_str());
-			XArData::ReadFileGRD(xaint, (strfilepathin + infile_i).c_str(), wl);
-			//xaint += 1.0; //@@@@@@ temporary code for bad input data
-			xaampin = xaint; 
-			xaampin ^= 0.5; // convert input image into real amplitude for future use
-
-			// do TIE-Hom phase retrieval
-			XA_2DTIE<float> xatie;
-			xatie.DP(xaint, delta2beta, defocus);
-			xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
-			//XArData::WriteFileGRD(xaobjtie, (strfilepathout + "TIE" + infile_i).c_str(), eGRDBIN);
-
-			// Do Gerchberg-Saxton (maybe worth trying HIO later!!)
-			xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
-			MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
-			XArray2DFFT<float> xafft2(xacamp);
-			xatie.Homogenise(xacamp, delta2beta); // replace the phase with delta2beta*log(amplitude)
-			XArray2D<char> input_mask(xacamp.GetDim1(), xacamp.GetDim2(), 0); // input mask for phase unwrapping
-			XArray2DMove<char> xamove(input_mask);
-			xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, -1); // optionally exclude "bad" points from phase unwrapping
-			for (index_t kk = 0; kk < numIter; kk++)
+			try // this is needed in OMP mode in order to catch exceptions within the worker threads
 			{
-				printf("\nDoing GS iteration no. %zd ...", kk);
-				xafft2.Fresnel(defocus); // propagate forward to the image plane
-				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp1TIE.grc").c_str(), eGRCBIN);
-				xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
-				xafft2.Fresnel(-defocus); // propagate back to the object plane
-				//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp0GS1.grc").c_str(), eGRCBIN);
-				xatie.Homogenise1(xacamp, delta2beta, &input_mask.front()); // replace the modulus with exp(beta2delta*phase)
-				//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
-			}
-			
-			// Extract SAXS signal from the GS-retrieved object-plane intensity
-			Abs2(xacamp, xaint);
-			XArData::WriteFileGRD(xaint, (strfilepathout + "GSnew_" + infile_i).c_str(), eGRDBIN);
-			xaint -= xaobjtie; // GS minus TIE_Hom
-			xatie.DP(xaint, delta2beta / 100.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
+				angle = angle_step * double(i);
+				printf("\nAngle = %f", angle);
 
-			// write the result to output file
-			//xaint += tMaskVal.real(); //@@@@@@ temporary code for bad input data
-			printf("\nWriting output file = %s ...", outfile_i.c_str());
-			XArData::WriteFileGRD(xaint, (strfilepathout + outfile_i).c_str(), eGRDBIN);
+				// generate input and output file names
+				infile_i = infile;
+				outfile_i = outfile;
+				sprintf(buffer, myformat.data(), i);
+				infile_i.insert(i_dot, buffer);
+				outfile_i.insert(o_dot, buffer);
+
+				// read the in-line projection image from input file
+				printf("\nReading input file = %s ...", infile_i.c_str());
+				XArData::ReadFileGRD(xaint, (strfilepathin + infile_i).c_str(), wl);
+				XArray2DMove<float> xamoveint(xaint);
+				xamoveint.Trim(iYTop, iYBottom, iXLeft, iXRight);
+				xaampin = xaint; 
+				xaampin ^= 0.5; // convert input image into real amplitude for future use
+
+				// do TIE-Hom phase retrieval
+				XA_2DTIE<float> xatie;
+				xatie.DP(xaint, delta2beta, defocus);
+				xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
+				XArData::WriteFileGRD(xaobjtie, (strfilepathout + "TIE" + infile_i).c_str(), eGRDBIN);
+
+				// Do Gerchberg-Saxton (maybe worth trying HIO later!!)
+				xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
+				MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
+				XArray2DFFT<float> xafft2(xacamp);
+				xatie.Homogenise(xacamp, delta2beta); // replace the phase with delta2beta*log(amplitude)
+
+				XArray2D<char> input_mask(xacamp.GetDim1(), xacamp.GetDim2(), 0); // input mask for phase unwrapping
+				XArray2DMove<char> xamove(input_mask);
+				xamove.Mask(0, 0, 0, 0, -1); // optionally exclude "bad" points from phase unwrapping
+				for (index_t kk = 0; kk < numIter; kk++)
+				{
+					printf("\nDoing GS iteration no. %zd ...", kk);
+					xafft2.Fresnel(defocus); // propagate forward to the image plane
+					//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp1TIE.grc").c_str(), eGRCBIN);
+					xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
+					xafft2.Fresnel(-defocus); // propagate back to the object plane
+					//XArData::WriteFileGRC(xacamp, (strfilepathout + "camp0GS1.grc").c_str(), eGRCBIN);
+					xatie.Homogenise1(xacamp, delta2beta, defocus, &input_mask.front()); // replace the modulus with exp(beta2delta*phase)
+					//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
+				}
+			
+				// Extract SAXS signal from the GS-retrieved object-plane intensity
+				Abs2(xacamp, xaint);
+				XArData::WriteFileGRD(xaint, (strfilepathout + "GS" + infile_i).c_str(), eGRDBIN);
+				xaint -= xaobjtie; // GS minus TIE_Hom
+				xatie.DP(xaint, delta2beta / 100.0, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
+
+				// write the result to output file
+				//xaint += tMaskVal.real(); //@@@@@@ temporary code for bad input data
+				printf("\nWriting output file = %s ...", outfile_i.c_str());
+				XArData::WriteFileGRD(xaint, (strfilepathout + outfile_i).c_str(), eGRDBIN);
+			}
+			catch (std::exception & E)
+			{
+				printf("\n\n!!!Exception: %s\n", E.what());
+				exit(1);
+			}
 		}
 	}
 	catch (std::exception & E)

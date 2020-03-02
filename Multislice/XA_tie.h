@@ -21,8 +21,9 @@
 //	INCLUDE FILES
 //
 #include "XA_move2.h"
-#include "OouraFft.h"
+//#include "OouraFft.h"
 #include "unwrap_2d_ljmu.h"
+#include "XA_fft2.h"
 //#include "XA_fftr2.h"
 //#include "XA_lin2.h"
 //#include "XA_filt2.h"
@@ -105,7 +106,7 @@ namespace xar
 		//! Enforce the homogeneous object condition by changing the phase of the complex amplitude
 		void Homogenise(xar::XArray2D< std::complex<T> >& F, double delta2beta);
 		//! Enforce the homogeneous object condition by changing the modulus of the complex amplitude
-		void Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta, char* pinput_mask = 0);
+		void Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta, double defocus, char* pinput_mask = 0);
 		//! Enforce unit plane wave within a given vicinity of the boundary
 		void EnforceSupport(xar::XArray2D< std::complex<T> >& F, index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight, std::complex<T> tMaskVal);
 		//! Solves 2D phase unwrapping problem using unwrap_2d_ljmu.c module
@@ -128,6 +129,8 @@ namespace xar
 		bool TIE_Validity(const xar::XArray2D<T>& I0, const xar::XArray2D<T>& I1, const xar::XArray2D<T>& I2);
 		//! Solves 2D phase unwrapping problem using TIE approximation
 		void CPhaseTIE(const xar::XArray2D<std::complex<T> >& U, xar::XArray2D<T>& Fi, long ncycle, double alpha);
+		//! Solves 2D phase unwrapping problem using TIE-Hom approximation
+		void CPhaseTIE1(xar::XArray2D<std::complex<T> >& U, xar::XArray2D<T>& Fi, double defocus, double delta2beta);
 		//! Qualitatively enhances phase-contrast images using unsharp masking
 		void PhaseEnhancement(xar::XArray2D<T>& F, double deltaoverbeta=-1.0, double R=0.0, long blur_radius_in_pixels=0, double weighting_factor=0.3, double histogram_factor=0.99);
 		//! Deblurrs an image of a single-component sample by means of defocus
@@ -350,14 +353,20 @@ template <class T> void XA_2DTIE<T>::Homogenise(xar::XArray2D< std::complex<T> >
 	}
 }
 
-template <class T> void XA_2DTIE<T>::Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta, char* pinput_mask)
+template <class T> void XA_2DTIE<T>::Homogenise1(xar::XArray2D< std::complex<T> >& F, double delta2beta, double defocus, char* pinput_mask)
 {
 	T b2d = T(1.0 / delta2beta);
 	std::complex<T>* arrF = &F.front();
 
 	xar::XArray2D<T> P; // (F.GetDim1(), F.GetDim2());
 	//CArg(F, P);
-	CPhaseUnwrap(F, P, pinput_mask);
+	//CPhaseUnwrap(F, P, pinput_mask);
+	//CPhaseTIE1(F, P, defocus, delta2beta);
+	//@@@@@ test
+	Abs(F, P);
+	P -= T(1.0);
+	P *= T(delta2beta);
+	//@@@@@@
 	T* arrP = &P.front();
 
 	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++)
@@ -369,6 +378,8 @@ template <class T> void XA_2DTIE<T>::EnforceSupport(xar::XArray2D< std::complex<
 	XArray2DMove< std::complex<T> > xamove(F);
 	xamove.Mask(iYLeft, iYRight, iXLeft, iXRight, tMaskVal);
 }
+
+
 
 // In order to use this function, the extern "C" module unwrap_2d_ljmu.c must be included into the project
 // NOTE!!!: the description of input_mask in unwrap_2d_ljmu.c is incorrect: 0 corresponds to "good" points, 255 (unsigned char(-1)) corresponds to "bad" points
@@ -392,7 +403,7 @@ template<class T> void XA_2DTIE<T>::CPhaseUnwrap(xar::XArray2D< std::complex<T> 
 		pinput_mask1 = (unsigned char*)pinput_mask;
 
 	// do phase unwrapping
-	unwrap2D(&Fid.front(), &Fid1.front(), pinput_mask1, (int)F.GetDim2(), (int)F.GetDim1(), 0, 0, 0, 0);
+	unwrap2D(&Fid.front(), &Fid1.front(), pinput_mask1, (int)F.GetDim2(), (int)F.GetDim1(), 1, 1, 0, 0);
 
 	// prepare output unwrapped phase array
 	Fi.Resize(F.GetDim1(), F.GetDim2(), 0.0f);
@@ -1140,8 +1151,31 @@ template <class T> void XA_2DTIE<T>::CPhaseTIE(const xar::XArray2D<std::complex<
 	XA_2DLapl<T> xaLapl(Fi);
 	xaLapl.MDivIGradFMG(I, ncycle, alpha);
 }
+#endif
 
+//! Solves 2D phase unwrapping problem using TIE-Hom approximation
+// deterministic extraction of a continuous phase from a 2D complex amplitude distribution
+//
+// NOTE!!: this function changes the input complex array U
+template <class T> void XA_2DTIE<T>::CPhaseTIE1(xar::XArray2D<std::complex<T> >& U, xar::XArray2D<T>& Fi, double defocus, double delta2beta)
+{
+	// make the modulus of U equal to 1
+	for (index_t i = 0; i < U.GetDim1(); i++)
+		for (index_t j = 0; j < U.GetDim2(); j++)
+			U[i][j] /= abs(U[i][j]);
 
+	// calculate forward propagated intensity
+	XArray2DFFT<float> xafft2(U);
+	xafft2.Fresnel(defocus*10);
+	Abs2(U, Fi);
+
+	// extract phase using TIE-Hom
+	Fi -= T(1.0);
+	DP(Fi, delta2beta*100, defocus*10);
+	Fi *= T(delta2beta / 2.0);
+}
+
+#if (0)
 //! Qualitatively enhances phase-contrast images using unsharp masking and optional 'refocusing'
 // --------------------------------------------------------------------------------------------------------------------
 // PURPOSE :  
