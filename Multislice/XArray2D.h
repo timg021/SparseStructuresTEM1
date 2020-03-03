@@ -703,8 +703,32 @@ CArg(C, A);
 	*/	
 	template <class T> void CArg(const XArray2D< std::complex<T> >& C, XArray2D<T>& A) 
 	{
-		CArg((const XArray< std::complex<T> >&)C, (XArray<T>&)A);
-		A.SetDims(C.GetDim1(), C.GetDim2());
+		//CArg((const XArray< std::complex<T> >&)C, (XArray<T>&)A); OLD CODE
+		index_t idim1 = C.GetDim1();
+		index_t idim2 = C.GetDim2();
+		A.SetDims(idim1, idim2);
+		
+		if (C.GetHeadPtr()) C.GetHeadPtr()->Validate();
+		A.SetHeadPtr(C.GetHeadPtr() ? C.GetHeadPtr()->Clone() : 0);
+
+		A[0][0] = carg(C[0][0], T(0));
+		for (index_t j = 1; j < idim2; j++)
+			A[0][j] = carg(C[0][j], A[0][j - 1]);
+		for (index_t i = 1; i < idim1; i++)
+		{
+			if (i % 2) // odd i
+			{
+				A[i][idim2 - 1] = carg(C[i][idim2 - 1], A[i - 1][idim2 - 1]); // move down at the end
+				for (index_t j = idim2 - 2; j >= 0 && j < idim2; j--)
+					A[i][j] = carg(C[i][j], A[i][j + 1]); // move from right to left
+			}
+			else
+			{
+				A[i][0] = carg(C[i][0], A[i - 1][0]); // move down at the start
+				for (index_t j = 1; j < idim2; j++)
+					A[i][j] = carg(C[i][j], A[i][j - 1]); // move from left to right
+			}
+		}
 	}
 
 

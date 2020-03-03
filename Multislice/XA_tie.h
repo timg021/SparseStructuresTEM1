@@ -358,15 +358,10 @@ template <class T> void XA_2DTIE<T>::Homogenise1(xar::XArray2D< std::complex<T> 
 	T b2d = T(1.0 / delta2beta);
 	std::complex<T>* arrF = &F.front();
 
-	xar::XArray2D<T> P; // (F.GetDim1(), F.GetDim2());
+	xar::XArray2D<T> P(F.GetDim1(), F.GetDim2());
 	//CArg(F, P);
-	//CPhaseUnwrap(F, P, pinput_mask);
+	CPhaseUnwrap(F, P, pinput_mask); // this one works best in the context of GS-Hom
 	//CPhaseTIE1(F, P, defocus, delta2beta);
-	//@@@@@ test
-	Abs(F, P);
-	P -= T(1.0);
-	P *= T(delta2beta);
-	//@@@@@@
 	T* arrP = &P.front();
 
 	for (index_t i = 0; i < F.GetDim1() * F.GetDim2(); i++)
