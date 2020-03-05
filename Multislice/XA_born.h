@@ -712,6 +712,7 @@ template <class T> void XA_2DBorn<T>::BornSC(
 		dblAlpha = 1.e-10;
 	
 	double Iout = I1.Norm(xar::eNormAver); // Iout - average bulk transmission coefficient
+	T tIout = T(Iout);
 	
 	double matangamma = -atan(delta2beta);
 
@@ -726,9 +727,12 @@ template <class T> void XA_2DBorn<T>::BornSC(
 	double yhi = ph2->GetXhi();
 	double yst = GetXStep(I1);
 
-	I1 /= T(Iout);	
-	I1 -= T(1.0);
-	I1 *= T(0.5 / sqrt(1 + delta2beta * delta2beta));
+	//I1 /= tIout;	
+	//I1 -= T(1.0);
+	//I1 *= T(0.5 / sqrt(1 + delta2beta * delta2beta));
+	T* arrI1 = &I1.front();
+	T tAbra = T(0.5 / sqrt(1 + delta2beta * delta2beta)); 
+	for (index_t i = 0; i < I1.size(); i++) arrI1[i] = (arrI1[i] / tIout - T(1.0)) * tAbra;
 	
 	index_t nxF = I1.GetDim1(), nx = nxF;
 	index_t nyF = I1.GetDim2(), ny = nyF;
@@ -835,13 +839,15 @@ template <class T> void XA_2DBorn<T>::BornSC(
 		tmp1.Trim((nx-nxF)/2, nx-nxF-(nx-nxF)/2, (ny-nyF)/2, ny-nyF-(ny-nyF)/2);
 	}
 
+	// Output is I = A^2 * (1 + 2 * Re(psi))
 	// the average value of Re(psi) must be zero
-	I1 -= T(I1.Norm(xar::eNormAver));
-
-	// I = A^2 * (1 + 2 * Re(psi))
-	I1 *= T(2); 
-	I1 += T(1); 
-	I1 *= T(Iout);
+	//I1 -= I1.Norm(xar::eNormAver);
+	//I1 *= T(2);
+	//I1 += T(1);
+	//I1 *= T(Iout);
+	tAbra = T(I1.Norm(xar::eNormAver));
+	arrI1 = &I1.front();
+	for (index_t i = 0; i < I1.size(); i++) arrI1[i] = ((arrI1[i] - tAbra) * T(2.0) + T(1.0)) * tIout;
 }
 
 #if(0)

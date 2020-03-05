@@ -135,7 +135,6 @@ int main()
 
 				// homogenise the object-plane complex amplitude and do forward propagation
 				xacamp.Resize(xaint.GetDim1(), xaint.GetDim2());
-				XArray2DFFT<float> xafft2(xacamp);
 				fcomplex* arrC = &xacamp.front();
 				float* arrI = &xaint.front();
 				float famp, fdelta2beta = float(delta2beta);
@@ -145,14 +144,19 @@ int main()
 					arrC[i] = std::polar<float>(famp, fdelta2beta * log(famp));
 				}
 				xacamp.SetHeadPtr(xaint.GetHeadPtr() ? xaint.GetHeadPtr()->Clone() : 0);
+				XArray2DFFT<float> xafft2(xacamp);
 				xafft2.Fresnel(defocus); // propagate forward to the image plane
 
 				// Do 1st Born on the difference between the original image and DP-repropagated image
-				XA_2DBorn<float> xaborn;
-				//float fI1 = float(xaint0.Norm(xar::eNormAver));
 				float* arrI0 = &xaint0.front();
-				for (index_t i = 0; i < xacamp.size(); i++) arrI[i] = arrI0[i] / std::norm(arrC[i]);
+				for (index_t i = 0; i < xacamp.size(); i++) arrI[i] = arrI0[i] - std::norm(arrC[i]) + 1.0f;
+				float fIin = (float)xaint.Norm(xar::eNormAver);
+				XA_2DBorn<float> xaborn;
 				xaborn.BornSC(xaint, defocus, delta2beta, alpha);
+				arrI = &xaint.front();
+				float* arrItie = &xaobjtie.front();
+				// we add 1 below in order to output not mu_Born, but 1 - mu_Born ~ exp(-mu_Born)
+				for (index_t i = 0; i < xaint.size(); i++) arrI[i] = 1.0f + (arrI[i] / fIin - 1.0f) / (2.0f * arrItie[i]);
 
 				// write the result to output file
 				printf("\nWriting output file = %s ...", outfile_i.c_str());
