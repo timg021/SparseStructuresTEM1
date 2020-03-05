@@ -22,40 +22,78 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		int nThreads = 1;
-		string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\4607971L_34keV_6m_24mGy\\projGRD\\";
-		//string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\4607971L_34keV_6m_24mGy\\projSAXS\\";
-		string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\4607971L_34keV_6m_24mGy\\projSAXS\\";
-		//string strfilepathin = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
-		//string strfilepathout = "C:\\Users\\gur017\\OneDrive - The University of Melbourne\\SAXS\\LysLesPhaseCT200keV_900rot\\";
-		//string strfilepathin = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		//string strfilepathout = "C:\\Users\\gur017\\Downloads\\Temp\\";
-		//string strfilepathin = "C:\\Users\\tgureyev\\Downloads\\Temp\\"; 
-		//string strfilepathout = "C:\\Users\\tgureyev\\Downloads\\Temp\\";
-		string infile = "aproj.grd", infile_i; // input file with an in-line projection image
-		string outfile = "saxs" + infile, outfile_i; // output file with SAXS image
+		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024], cparam3[1024], cparam4[1024];
+		printf("\nReading PbiSAXS.txt input parameter file ...");
+		FILE* ff0 = fopen("PbiSAXS.txt", "rt");
+			if (!ff0) throw std::exception("Error: cannot open parameter file PbiSAXS.txt.");
 
-		XArray2D<float> xaampin; // input real amplitude array
+			fgets(cline, 1024, ff0); // 1st line - comment
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for input files
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading input file name base from input parameter file.");
+			string strfilepathin = cparam;
+			printf("\nInput file name base = %s", strfilepathin.c_str());
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for output files
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
+			string strfilepathout = cparam;
+			printf("\nInput file name base = %s", strfilepathout.c_str());
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of CT projection angles
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading the number of CT projection angles parameter from input parameter file.");
+			int nangles = atoi(cparam); // needs to be 'int' for OpenMP 
+			printf("\nNumber of CT projection angles = %d", nangles);
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // CT angle range in degrees
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading CT angle range parameter from input parameter file.");
+			double angle_range = atof(cparam);
+			printf("\nCT angle range = %g", angle_range);
+			double angle_step = angle_range / nangles, angle;
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // parameters for trimming the input image (e.g. to bring the dims to powers of 2)
+			if (sscanf(cline, "%s %s %s %s %s", ctitle, cparam1, cparam2, cparam3, cparam4) != 5) throw std::exception("Error reading image trim parameters from input parameter file.");
+			index_t iXLeft = (index_t)atoi(cparam1);
+			index_t iXRight = (index_t)atoi(cparam2);
+			index_t iYTop = (index_t)atoi(cparam3);
+			index_t iYBottom = (index_t)atoi(cparam4);
+			printf("\nImage trim parameters: iXLeft = %zd, iXRight = %zd, iYTop = %zd, iYBottom = %zd", iXLeft, iXRight, iYTop, iYBottom);
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in microns
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
+			double wl = atof(cparam);
+			printf("\nWavelength (microns) = %g", wl);
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // defocus distance in microns
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus distance parameter from input parameter file.");
+			double defocus = atof(cparam);
+			printf("\nDefocus distance (microns) = %g", defocus);
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // delta/beta
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading delta/beta parameter from input parameter file.");
+			double delta2beta = atof(cparam);
+			printf("\nDelta / beta = %g", delta2beta);
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // regularization parameter for 1st Born
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading regularization parameter for 1st Born from input parameter file.");
+			double alpha = atof(cparam);
+			printf("\nRegularization parameter for 1st Born = %g", alpha);
+
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of worker threads
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of worker threads from input parameter file.");
+			int nThreads = atoi(cparam);
+			printf("\nNumber of worker threads = %d", nThreads);
+
+			fclose(ff0);
+
+		string infile_i; // input file with an in-line projection image
+		string outfile_i; // output file with SAXS image
+
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xaint, xaint0; // auxillary real array
 		XArray2D<fcomplex> xacamp; // auxillary complex array
 
-		index_t numIter = 1; // number of GS iterations to perform after TIE-Hom(DP) for each input image
-		index_t iYTop = 176, iYBottom = 0, iXLeft = 96, iXRight = 96; // parameters for trimming the input image (e.g. to bring the dims to powers of 2)
-		//index_t iYTop = 0, iYBottom = 0, iXLeft = 0, iXRight = 0; // parameters for trimming the input image (e.g. to bring the dims to powers of 2)
-		double wl = 0.00003647; // 2.5e-6; // X-ray wavelength in microns
-		//double wl = 0.0001; // X-ray wavelength in microns
-		double defocus = 5748000; // 0.015; // defocus distance in microns
-		//double defocus = 1.e+5; // defocus distance in microns
-		double delta2beta = 300; // 1; // delta/beta
-
-		int nangles = 4800; // needs to be 'int' for OpenMP
-		double angle_range = 180.0;
-		double angle_step = angle_range / nangles, angle;
-
-		char buffer[128];
 		// create formatting string to add properly formatted indexes at the end of the output file names
-		size_t i_dot = infile.rfind('.'), o_dot = outfile.rfind('.'), nfieldB_length;
+		size_t i_dot = strfilepathin.rfind('.'), o_dot = strfilepathout.rfind('.'), nfieldB_length;
 		char ndig[8];
 		string myformat("");
 		if (nangles > 1)
@@ -66,7 +104,7 @@ int main()
 		}
 
 		omp_set_num_threads(nThreads);
-		#pragma omp parallel default(none) private(xaampin, xaobjtie, xaint, xacamp, infile_i, outfile_i, buffer)
+		#pragma omp parallel default(none) private(xaobjtie, xaint, xacamp, infile_i, outfile_i)
 		#pragma omp for schedule(dynamic) nowait
 		for (int i = 0; i < nangles; i++)
 		{
@@ -76,62 +114,49 @@ int main()
 				printf("\nAngle = %f", angle);
 
 				// generate input and output file names
-				infile_i = infile;
-				outfile_i = outfile;
+				char buffer[128];
+				infile_i = strfilepathin;
+				outfile_i = strfilepathout;
 				sprintf(buffer, myformat.data(), i);
 				infile_i.insert(i_dot, buffer);
 				outfile_i.insert(o_dot, buffer);
 
 				// read the in-line projection image from input file
 				printf("\nReading input file = %s ...", infile_i.c_str());
-				XArData::ReadFileGRD(xaint, (strfilepathin + infile_i).c_str(), wl);
+				XArData::ReadFileGRD(xaint, infile_i.c_str(), wl);
 				XArray2DMove<float> xamoveint(xaint);
 				xamoveint.Trim(iYTop, iYBottom, iXLeft, iXRight);
-				xaint0 = xaint; 
-				xaampin ^= 0.5; // convert input image into real amplitude for future use
+				xaint0 = xaint; // save the trimmed original image for later use
 
 				// do TIE-Hom phase retrieval
 				XA_2DTIE<float> xatie;
 				xatie.DP(xaint, delta2beta, defocus);
 				xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
-				//XArData::WriteFileGRD(xaobjtie, (strfilepathout + "TIE" + infile_i).c_str(), eGRDBIN);
 
-				// Do Gerchberg-Saxton (maybe worth trying HIO later!!)
-				xaint ^= 0.5; // convert TIE-Hom retrieved object-plane intensity into real amplitude
-				MakeComplex(xaint, 0.0f, xacamp, true); // create complex amplitude with TIE-Hom retrieved real amplitude and zero phase
+				// homogenise the object-plane complex amplitude and do forward propagation
+				xacamp.Resize(xaint.GetDim1(), xaint.GetDim2());
 				XArray2DFFT<float> xafft2(xacamp);
-				xatie.Homogenise(xacamp, delta2beta); // replace the phase with delta2beta*log(amplitude)
-
-				XA_2DBorn<float> xaborn;
-
-				XArray2D<char> input_mask(xacamp.GetDim1(), xacamp.GetDim2(), 0); // input mask for phase unwrapping
-				XArray2DMove<char> xamove(input_mask);
-				xamove.Mask(0, 0, 0, 0, -1); // optionally exclude "bad" points from phase unwrapping
-				for (index_t kk = 0; kk < numIter; kk++)
+				fcomplex* arrC = &xacamp.front();
+				float* arrI = &xaint.front();
+				float famp, fdelta2beta = float(delta2beta);
+				for (index_t i = 0; i < xacamp.size(); i++)
 				{
-					printf("\nDoing GS iteration no. %zd ...", kk);
-					xafft2.Fresnel(defocus); // propagate forward to the image plane
-					//xatie.ReplaceModulus(xacamp, xaampin); // replace the modulus with that of the input image
-					//xafft2.Fresnel(-defocus); // propagate back to the object plane
-					//xatie.Homogenise1(xacamp, delta2beta, defocus, &input_mask.front()); // replace the modulus with exp(beta2delta*phase)
-					//xatie.Homogenise(xacamp, delta2beta);
-					//XArData::WriteFileGRC(xacamp, (strfilepathout + "campTIE.grc").c_str(), eGRCBIN);
-					Abs2(xacamp, xaint);
-					xaint -= xaint0;
-					xaint *= -1.0f;
-					xaint += 1.0f;
-					xaborn.BornSC(xaint, defocus, delta2beta, 0.0);
+					famp = pow(arrI[i], 0.5f);
+					arrC[i] = std::polar<float>(famp, fdelta2beta * log(famp));
 				}
-			
-				// Extract SAXS signal from the GS-retrieved object-plane intensity
-				//Abs2(xacamp, xaint);
-				//XArData::WriteFileGRD(xaint, (strfilepathout + "GS" + infile_i).c_str(), eGRDBIN);
-				//xaint -= xaobjtie; // GS minus TIE_Hom
-				//xatie.DP(xaint, delta2beta / 10, defocus); // mysterious addional processing that seems to bring the result much closer to the "true SAXS" signal
+				xacamp.SetHeadPtr(xaint.GetHeadPtr() ? xaint.GetHeadPtr()->Clone() : 0);
+				xafft2.Fresnel(defocus); // propagate forward to the image plane
+
+				// Do 1st Born on the difference between the original image and DP-repropagated image
+				XA_2DBorn<float> xaborn;
+				//float fI1 = float(xaint0.Norm(xar::eNormAver));
+				float* arrI0 = &xaint0.front();
+				for (index_t i = 0; i < xacamp.size(); i++) arrI[i] = arrI0[i] / std::norm(arrC[i]);
+				xaborn.BornSC(xaint, defocus, delta2beta, alpha);
 
 				// write the result to output file
 				printf("\nWriting output file = %s ...", outfile_i.c_str());
-				XArData::WriteFileGRD(xaint, (strfilepathout + outfile_i).c_str(), eGRDBIN);
+				XArData::WriteFileGRD(xaint, outfile_i.c_str(), eGRDBIN);
 			}
 			catch (std::exception & E)
 			{

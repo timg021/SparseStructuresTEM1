@@ -121,7 +121,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)PbiSAXS;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
-      <OpenMPSupport>true</OpenMPSupport>
+      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -183,6 +183,9 @@
     <ClInclude Include="..\Multislice\XA_move3.h" />
     <ClInclude Include="..\Multislice\XA_nrrand.h" />
     <ClInclude Include="..\Multislice\XA_tie.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="PbiSAXS.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
