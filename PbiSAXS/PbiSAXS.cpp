@@ -104,7 +104,7 @@ int main()
 		}
 
 		omp_set_num_threads(nThreads);
-		#pragma omp parallel default(none) private(xaobjtie, xaint, xacamp, infile_i, outfile_i)
+		#pragma omp parallel default(none) private(xaobjtie, xaint, xaint0, xacamp, infile_i, outfile_i)
 		#pragma omp for schedule(dynamic) nowait
 		for (int i = 0; i < nangles; i++)
 		{
@@ -160,7 +160,7 @@ int main()
 
 				// write the result to output file
 				printf("\nWriting output file = %s ...", outfile_i.c_str());
-				XArData::WriteFileGRD(xaint, outfile_i.c_str(), eGRDBIN);
+				XArData::WriteFileGRD(xaint, outfile_i.c_str(), eGRDBIN); 
 			}
 			catch (std::exception & E)
 			{
