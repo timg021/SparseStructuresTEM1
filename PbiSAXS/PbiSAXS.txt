@@ -3,7 +3,7 @@
 2.Output_filename_base_in_GRD_format: C:\Users\gur017\Downloads\Temp\saxsimg10cm.grd
 3.Number_of_CT_projection_angles: 1
 4.CT_angle_scan_range_(degrees): 180.0
-5.Image_trim_parameters_iXLeft,_iXRight,_iYTop,_iYBottom_(pixels): 0 0 0 0
+5.Image_trim(-)/pad(+)_parameters_iXLeft,_iXRight,_iYTop,_iYBottom_(pixels)_PadValue: -96 -96 -176 0 1.0
 6.Wavelength_(microns): 0.0001
 7.Defocus_distance_(microns): 100000
 8.Delta/beta: 100

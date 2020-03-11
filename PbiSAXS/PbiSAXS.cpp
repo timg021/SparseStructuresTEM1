@@ -22,7 +22,7 @@ int main()
 	{
 		printf("\nStarting PbiSAXS program ...");
 
-		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024], cparam3[1024], cparam4[1024];
+		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024], cparam3[1024], cparam4[1024], cparam5[1024];
 		printf("\nReading PbiSAXS.txt input parameter file ...");
 		FILE* ff0 = fopen("PbiSAXS.txt", "rt");
 			if (!ff0) throw std::exception("Error: cannot open parameter file PbiSAXS.txt.");
@@ -50,13 +50,20 @@ int main()
 			printf("\nCT angle range = %g", angle_range);
 			double angle_step = angle_range / nangles, angle;
 
-			fgets(cline, 1024, ff0); strtok(cline, "\n"); // parameters for trimming the input image (e.g. to bring the dims to powers of 2)
-			if (sscanf(cline, "%s %s %s %s %s", ctitle, cparam1, cparam2, cparam3, cparam4) != 5) throw std::exception("Error reading image trim parameters from input parameter file.");
-			index_t iXLeft = (index_t)atoi(cparam1);
-			index_t iXRight = (index_t)atoi(cparam2);
-			index_t iYTop = (index_t)atoi(cparam3);
-			index_t iYBottom = (index_t)atoi(cparam4);
-			printf("\nImage trim parameters: iXLeft = %zd, iXRight = %zd, iYTop = %zd, iYBottom = %zd", iXLeft, iXRight, iYTop, iYBottom);
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // parameters for trimming or padding the input image (to bring the dims to powers of 2)
+			if (sscanf(cline, "%s %s %s %s %s %s", ctitle, cparam1, cparam2, cparam3, cparam4, cparam5) != 6) throw std::exception("Error reading image trim/pad parameters from input parameter file.");
+			int iXLeft = atoi(cparam1);
+			int iXRight = atoi(cparam2);
+			int iYTop = atoi(cparam3);
+			int iYBottom = atoi(cparam4);
+			float fPadVal = (float)atof(cparam5);
+			printf("\nImage trim(-)/pad(+) parameters: iXLeft = %d, iXRight = %d, iYTop = %d, iYBottom = %d, PadValue = %g", iXLeft, iXRight, iYTop, iYBottom, fPadVal);
+			if (iXLeft > 0 && (iXRight < 0 || iYTop < 0 || iYBottom < 0)) throw std::exception("All trim/pad parameters must be either non-negative or non-positive.");
+			else if (iXLeft < 0 && (iXRight > 0 || iYTop > 0 || iYBottom > 0)) throw std::exception("All trim/pad parameters must be either non-negative or non-positive.");
+			else if (iXRight > 0 &&( iYTop < 0 || iYBottom < 0)) throw std::exception("All trim/pad parameters must be either non-negative or non-positive.");
+			else if (iXRight < 0 && (iYTop > 0 || iYBottom > 0)) throw std::exception("All trim/pad parameters must be either non-negative or non-positive.");
+			else if (iYTop > 0 && iYBottom < 0) throw std::exception("All trim/pad parameters must be either non-negative or non-positive.");
+			else if (iYTop < 0 && iYBottom > 0) throw std::exception("All trim/pad parameters must be either non-negative or non-positive.");
 
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in microns
 			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
@@ -125,7 +132,10 @@ int main()
 				printf("\nReading input file = %s ...", infile_i.c_str());
 				XArData::ReadFileGRD(xaint, infile_i.c_str(), wl);
 				XArray2DMove<float> xamoveint(xaint);
-				xamoveint.Trim(iYTop, iYBottom, iXLeft, iXRight);
+				if (iXRight > 0 || iXLeft > 0 || iYTop > 0 || iYBottom > 0) xamoveint.Pad(index_t(iYTop), index_t(iYBottom), index_t(iXLeft), index_t(iXRight), fPadVal);
+				else if (iXRight < 0 || iXLeft < 0 || iYTop < 0 || iYBottom < 0) xamoveint.Trim(index_t(-iYTop), index_t(-iYBottom), index_t(-iXLeft), index_t(-iXRight));
+				double l2dim1 = log2(xaint.GetDim1()), l2dim2 = log2(xaint.GetDim2());
+				if (int(l2dim1) != l2dim1 || int(l2dim2) != l2dim2) throw std::exception("Dimensions of the input image after pad/trim are not integer powers of 2.");
 				xaint0 = xaint; // save the trimmed original image for later use
 
 				// do TIE-Hom phase retrieval
@@ -158,7 +168,8 @@ int main()
 				// we add 1 below in order to output not mu_Born, but 1 - mu_Born ~ exp(-mu_Born)
 				for (index_t i = 0; i < xaint.size(); i++) arrI[i] = 1.0f + (arrI[i] / fIin - 1.0f) / (2.0f * arrItie[i]);
 
-				// write the result to output file
+				// trim back and write the result to output file
+				if (iXRight > 0 || iXLeft > 0 || iYTop > 0 || iYBottom > 0) xamoveint.Trim(index_t(iYTop), index_t(iYBottom), index_t(iXLeft), index_t(iXRight));
 				printf("\nWriting output file = %s ...", outfile_i.c_str());
 				XArData::WriteFileGRD(xaint, outfile_i.c_str(), eGRDBIN); 
 			}
