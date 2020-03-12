@@ -108,7 +108,7 @@ namespace xar
 		//! Retrieves phase from 1 image of a pure phase object using Rytov approximation
 		void Rytov1(xar::XArray2D<T>& I1, double R, double dblAlpha = 0);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using 1st Born approximation
-		void BornSC(xar::XArray2D<T>& I1, double R, double delta2beta, double dblAlpha = 0);
+		void BornSC(xar::XArray2D<T>& I1, double R, double delta2beta, double dblAlpha, bool bFullFresnelHom);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using 1st Born approximation optimizing over rAlphaOpt
 		//void BornSCOpt(xar::XArray2D<T>& I1, double R, double delta2beta, double sigma, double& rAlphaOpt);
 		//! Retrieves phase&amplitude from 1 image of a 'single-material' object using iterative 1st Born approximation
@@ -692,7 +692,8 @@ template <class T> void XA_2DBorn<T>::Rytov1(xar::XArray2D<T>& I1, double R, dou
 // I1 = image; on exit I1 is replaced by the reconstructed INTENSITY (more precisely, by Iout * (1 + 2 * Re(psi)))
 // R = propagation distance R'
 // delta2beta = delta / beta
-// dblAlpha (DEFAULT=0) is the regularisation parameter
+// dblAlpha is the regularisation parameter
+// bFullFresnel - if true will calculate full Fresnel-Hom retrieval, else will calculate 1stBorn-Hom retrieval
 // NOTE!!!: the program assumes that I1 is background-corrected, i.e. DIVIDED by the INCIDENT intensity
 // NOTE!!!: if delta2beta==0, then this programs does 'pure absorption' retrieval
 // NOTE: this program uses the Ooura FFT library
@@ -700,7 +701,8 @@ template <class T> void XA_2DBorn<T>::BornSC(
 	xar::XArray2D<T>& I1, 
 	double R, 
 	double delta2beta, 
-	double dblAlpha)
+	double dblAlpha,
+	bool bFullFresnelHom)
 {
 	if (delta2beta<0)
 		throw std::invalid_argument("invalid_argument 'delta2beta' in XA_2DBorn<T>::BornSC (negative delta/beta parameter)");
@@ -732,7 +734,13 @@ template <class T> void XA_2DBorn<T>::BornSC(
 	//I1 *= T(0.5 / sqrt(1 + delta2beta * delta2beta));
 	T* arrI1 = &I1.front();
 	T tAbra = T(0.5 / sqrt(1 + delta2beta * delta2beta)); 
-	for (index_t i = 0; i < I1.size(); i++) arrI1[i] = (arrI1[i] / tIout - T(1.0)) * tAbra;
+	if (bFullFresnelHom)
+	{
+		tAbra *= T(2);
+		for (index_t i = 0; i < I1.size(); i++) arrI1[i] *= tAbra;
+	}
+	else
+		for (index_t i = 0; i < I1.size(); i++) arrI1[i] = (arrI1[i] / tIout - T(1.0)) * tAbra;
 	
 	index_t nxF = I1.GetDim1(), nx = nxF;
 	index_t nyF = I1.GetDim2(), ny = nyF;
@@ -847,7 +855,8 @@ template <class T> void XA_2DBorn<T>::BornSC(
 	//I1 *= T(Iout);
 	tAbra = T(I1.Norm(xar::eNormAver));
 	arrI1 = &I1.front();
-	for (index_t i = 0; i < I1.size(); i++) arrI1[i] = ((arrI1[i] - tAbra) * T(2.0) + T(1.0)) * tIout;
+	if (!bFullFresnelHom)
+		for (index_t i = 0; i < I1.size(); i++) arrI1[i] = ((arrI1[i] - tAbra) * T(2.0) + T(1.0)) * tIout;
 }
 
 #if(0)

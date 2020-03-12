@@ -85,6 +85,23 @@ int main()
 			double alpha = atof(cparam);
 			printf("\nRegularization parameter for 1st Born = %g", alpha);
 
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // calculate BornHom(0) or TIEHom+BornHom(1)
+			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading BornHom / Tie+BornHom / FresnelHom parameter from input parameter file.");
+			int iMode = atoi(cparam);
+			switch (iMode)
+			{
+				case 0:
+					printf("\nThis program will calculate BornHom retrieval increment to TieHom.");
+					break;
+				case 1:
+					printf("\nThis program will calculate Tie+BornHom retrieval.");
+					break;
+				case 2:
+					printf("\nThis program will calculate FresnelHom retrieval.");
+					break;
+				default:
+					throw std::exception("BornHom / Tie+BornHom / FresnelHom parameter values can only be 0, 1 or 2.");
+			}
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of worker threads
 			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of worker threads from input parameter file.");
 			int nThreads = atoi(cparam);
@@ -136,37 +153,48 @@ int main()
 				else if (iXRight < 0 || iXLeft < 0 || iYTop < 0 || iYBottom < 0) xamoveint.Trim(index_t(-iYTop), index_t(-iYBottom), index_t(-iXLeft), index_t(-iXRight));
 				double l2dim1 = log2(xaint.GetDim1()), l2dim2 = log2(xaint.GetDim2());
 				if (int(l2dim1) != l2dim1 || int(l2dim2) != l2dim2) throw std::exception("Dimensions of the input image after pad/trim are not integer powers of 2.");
-				xaint0 = xaint; // save the trimmed original image for later use
 
-				// do TIE-Hom phase retrieval
-				XA_2DTIE<float> xatie;
-				xatie.DP(xaint, delta2beta, defocus);
-				xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
-
-				// homogenise the object-plane complex amplitude and do forward propagation
-				xacamp.Resize(xaint.GetDim1(), xaint.GetDim2());
-				fcomplex* arrC = &xacamp.front();
-				float* arrI = &xaint.front();
-				float famp, fdelta2beta = float(delta2beta);
-				for (index_t i = 0; i < xacamp.size(); i++)
+				if (iMode == 0 || iMode == 1)
 				{
-					famp = pow(arrI[i], 0.5f);
-					arrC[i] = std::polar<float>(famp, fdelta2beta * log(famp));
-				}
-				xacamp.SetHeadPtr(xaint.GetHeadPtr() ? xaint.GetHeadPtr()->Clone() : 0);
-				XArray2DFFT<float> xafft2(xacamp);
-				xafft2.Fresnel(defocus); // propagate forward to the image plane
+					xaint0 = xaint; // save the trimmed original image for later use
+					// do TIE-Hom phase retrieval
+					XA_2DTIE<float> xatie;
+					xatie.DP(xaint, delta2beta, defocus);
+					xaobjtie = xaint; // save the TIE-Hom retrieved intensity for later use
 
-				// Do 1st Born on the difference between the original image and DP-repropagated image
-				float* arrI0 = &xaint0.front();
-				for (index_t i = 0; i < xacamp.size(); i++) arrI[i] = arrI0[i] - std::norm(arrC[i]) + 1.0f;
-				float fIin = (float)xaint.Norm(xar::eNormAver);
-				XA_2DBorn<float> xaborn;
-				xaborn.BornSC(xaint, defocus, delta2beta, alpha);
-				arrI = &xaint.front();
-				float* arrItie = &xaobjtie.front();
-				// we add 1 below in order to output not mu_Born, but 1 - mu_Born ~ exp(-mu_Born)
-				for (index_t i = 0; i < xaint.size(); i++) arrI[i] = 1.0f + (arrI[i] / fIin - 1.0f) / (2.0f * arrItie[i]);
+					// homogenise the object-plane complex amplitude and do forward propagation
+					xacamp.Resize(xaint.GetDim1(), xaint.GetDim2());
+					fcomplex* arrC = &xacamp.front();
+					float* arrI = &xaint.front();
+					float famp, fdelta2beta = float(delta2beta);
+					for (index_t i = 0; i < xacamp.size(); i++)
+					{
+						famp = pow(arrI[i], 0.5f);
+						arrC[i] = std::polar<float>(famp, fdelta2beta * log(famp));
+					}
+					xacamp.SetHeadPtr(xaint.GetHeadPtr() ? xaint.GetHeadPtr()->Clone() : 0);
+					XArray2DFFT<float> xafft2(xacamp);
+					xafft2.Fresnel(defocus); // propagate forward to the image plane
+
+					// Do 1st Born on the difference between the original image and DP-repropagated image
+					float* arrI0 = &xaint0.front();
+					for (index_t i = 0; i < xacamp.size(); i++) arrI[i] = arrI0[i] - std::norm(arrC[i]) + 1.0f;
+					float fIin = (float)xaint.Norm(xar::eNormAver);
+					XA_2DBorn<float> xaborn;
+					xaborn.BornSC(xaint, defocus, delta2beta, alpha, false);
+					arrI = &xaint.front();
+					float* arrItie = &xaobjtie.front();
+					//if (iMode == 0) // we output 1 - 2*Itie*Mu_Born - i.e. do nothing here
+						//for (index_t i = 0; i < xaint.size(); i++) arrI[i] = 1.0f + (arrI[i] / fIin - 1.0f) / arrItie[i]; // to output just Mu_Born
+					if (iMode == 1)	// we add TieHom to mu_Born here
+						for (index_t i = 0; i < xaint.size(); i++) arrI[i] = arrItie[i] + arrI[i] - 1.0f;
+				}
+
+				if (iMode == 2)
+				{
+					XA_2DBorn<float> xaborn;
+					xaborn.BornSC(xaint, defocus, delta2beta, alpha, true);
+				}
 
 				// trim back and write the result to output file
 				if (iXRight > 0 || iXLeft > 0 || iYTop > 0 || iYBottom > 0) xamoveint.Trim(index_t(iYTop), index_t(iYBottom), index_t(iXLeft), index_t(iXRight));

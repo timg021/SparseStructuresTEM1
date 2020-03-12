@@ -8,6 +8,7 @@
 7.Defocus_distance_(microns): 100000
 8.Delta/beta: 100
 9.Regularization_parameter_for_1st_Born_(e.g._0.01): 1.0
-10.Number_of_parallel_worker_threads: 1
+10.Calculate_BornHom(0),_Tie+BornHom(1)_or_FresnelHom(2)_retrieval: 0
+11.Number_of_parallel_worker_threads: 1
 //*****
 //*****!!!Don't forget to save this file after editing the parameters
