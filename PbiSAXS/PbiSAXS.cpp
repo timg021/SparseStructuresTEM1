@@ -30,14 +30,14 @@ int main()
 			fgets(cline, 1024, ff0); // 1st line - comment
 
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for input files
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading input file name base from input parameter file.");
+			if (sscanf(cline, "%s %[^\n]s", ctitle, cparam) != 2) throw std::exception("Error reading input file name base from input parameter file.");
 			string strfilepathin = cparam;
 			printf("\nInput file name base = %s", strfilepathin.c_str());
 
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // file name base for output files
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
+			if (sscanf(cline, "%s %[^\n]s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
 			string strfilepathout = cparam;
-			printf("\nInput file name base = %s", strfilepathout.c_str());
+			printf("\nOutput file name base = %s", strfilepathout.c_str());
 
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of CT projection angles
 			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading the number of CT projection angles parameter from input parameter file.");
