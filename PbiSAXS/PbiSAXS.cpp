@@ -39,9 +39,10 @@ int main()
 			string strfilepathout = cparam;
 			printf("\nOutput file name base = %s", strfilepathout.c_str());
 
-			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of CT projection angles
-			if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading the number of CT projection angles parameter from input parameter file.");
+			fgets(cline, 1024, ff0); strtok(cline, "\n"); // number of CT projection angles, stride
+			if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading the number of CT projection angles & stride parameters from input parameter file.");
 			int nangles = atoi(cparam); // needs to be 'int' for OpenMP 
+			int istride = atoi(cparam1);
 			printf("\nNumber of CT projection angles = %d", nangles);
 
 			fgets(cline, 1024, ff0); strtok(cline, "\n"); // CT angle range in degrees
@@ -110,7 +111,7 @@ int main()
 			fclose(ff0);
 
 		string infile_i; // input file with an in-line projection image
-		string outfile_i; // output file with SAXS image
+		string outfile_j; // output file with SAXS image
 
 		XArray2D<float> xaobjtie; // TIE-Hom retrieved intensity array
 		XArray2D<float> xaint, xaint0; // auxillary real array
@@ -119,31 +120,36 @@ int main()
 		// create formatting string to add properly formatted indexes at the end of the output file names
 		size_t i_dot = strfilepathin.rfind('.'), o_dot = strfilepathout.rfind('.'), nfieldB_length;
 		char ndig[8];
-		string myformat("");
+		string myformat(""), myformat1("");
 		if (nangles > 1)
 		{
-			nfieldB_length = 1 + size_t(log10(double(nangles - 1))); //maximum number of digits corresponding to angles in the output file name
+			nfieldB_length = 1 + size_t(log10(double(nangles - 1))); //maximum number of digits corresponding to angles in the input file name
 			sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
 			myformat += "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded angle indexes into file names - see usage below
+			nfieldB_length = 1 + size_t(log10(double(nangles / istride - 1))); //maximum number of digits corresponding to angles in the output file name
+			sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
+			myformat1 += "%0" + string(ndig) + "d"; //construct format string for inserting 0-padded angle indexes into file names - see usage below
 		}
 
 		omp_set_num_threads(nThreads);
-		#pragma omp parallel default(none) private(xaobjtie, xaint, xaint0, xacamp, infile_i, outfile_i)
+		#pragma omp parallel default(none) private(xaobjtie, xaint, xaint0, xacamp, infile_i, outfile_j)
 		#pragma omp for schedule(dynamic) nowait
-		for (int i = 0; i < nangles; i++)
+		for (int i = 0; i < nangles; i += istride)
 		{
 			try // this is needed in OMP mode in order to catch exceptions within the worker threads
 			{
+				int j = i / istride;
 				angle = angle_step * double(i);
 				printf("\nAngle = %f", angle);
 
 				// generate input and output file names
-				char buffer[128];
+				char buffer[128], buffer1[128];
 				infile_i = strfilepathin;
-				outfile_i = strfilepathout;
+				outfile_j = strfilepathout;
 				sprintf(buffer, myformat.data(), i);
+				sprintf(buffer1, myformat1.data(), j);
 				infile_i.insert(i_dot, buffer);
-				outfile_i.insert(o_dot, buffer);
+				outfile_j.insert(o_dot, buffer1);
 
 				// read the in-line projection image from input file
 				printf("\nReading input file = %s ...", infile_i.c_str());
@@ -153,6 +159,10 @@ int main()
 				else if (iXRight < 0 || iXLeft < 0 || iYTop < 0 || iYBottom < 0) xamoveint.Trim(index_t(-iYTop), index_t(-iYBottom), index_t(-iXLeft), index_t(-iXRight));
 				double l2dim1 = log2(xaint.GetDim1()), l2dim2 = log2(xaint.GetDim2());
 				if (int(l2dim1) != l2dim1 || int(l2dim2) != l2dim2) throw std::exception("Dimensions of the input image after pad/trim are not integer powers of 2.");
+
+				xaint.Abs(); // @@@@@ temporary fix for bad input images with small negative values (but no zeros)
+				if (xaint.Norm(xar::eNormMin) <= 0)
+					throw std::exception("Input image intensity distribution contains some negative or zero values.");
 
 				if (iMode == 0 || iMode == 1)
 				{
@@ -167,10 +177,10 @@ int main()
 					fcomplex* arrC = &xacamp.front();
 					float* arrI = &xaint.front();
 					float famp, fdelta2beta = float(delta2beta);
-					for (index_t i = 0; i < xacamp.size(); i++)
+					for (index_t k = 0; k < xacamp.size(); k++)
 					{
-						famp = pow(arrI[i], 0.5f);
-						arrC[i] = std::polar<float>(famp, fdelta2beta * log(famp));
+						famp = pow(arrI[k], 0.5f);
+						arrC[k] = std::polar<float>(famp, fdelta2beta * log(famp));
 					}
 					xacamp.SetHeadPtr(xaint.GetHeadPtr() ? xaint.GetHeadPtr()->Clone() : 0);
 					XArray2DFFT<float> xafft2(xacamp);
@@ -178,7 +188,7 @@ int main()
 
 					// Do 1st Born on the difference between the original image and DP-repropagated image
 					float* arrI0 = &xaint0.front();
-					for (index_t i = 0; i < xacamp.size(); i++) arrI[i] = arrI0[i] - std::norm(arrC[i]) + 1.0f;
+					for (index_t k = 0; k < xacamp.size(); k++) arrI[k] = arrI0[k] - std::norm(arrC[k]) + 1.0f;
 					float fIin = (float)xaint.Norm(xar::eNormAver);
 					XA_2DBorn<float> xaborn;
 					xaborn.BornSC(xaint, defocus, delta2beta, alpha, false);
@@ -187,7 +197,7 @@ int main()
 					//if (iMode == 0) // we output 1 - 2*Itie*Mu_Born - i.e. do nothing here
 						//for (index_t i = 0; i < xaint.size(); i++) arrI[i] = 1.0f + (arrI[i] / fIin - 1.0f) / arrItie[i]; // to output just Mu_Born
 					if (iMode == 1)	// we add TieHom to mu_Born here
-						for (index_t i = 0; i < xaint.size(); i++) arrI[i] = arrItie[i] + arrI[i] - 1.0f;
+						for (index_t k = 0; k < xaint.size(); k++) arrI[k] = arrItie[k] + arrI[k] - 1.0f;
 				}
 
 				if (iMode == 2)
@@ -198,8 +208,8 @@ int main()
 
 				// trim back and write the result to output file
 				if (iXRight > 0 || iXLeft > 0 || iYTop > 0 || iYBottom > 0) xamoveint.Trim(index_t(iYTop), index_t(iYBottom), index_t(iXLeft), index_t(iXRight));
-				printf("\nWriting output file = %s ...", outfile_i.c_str());
-				XArData::WriteFileGRD(xaint, outfile_i.c_str(), eGRDBIN); 
+				printf("\nWriting output file = %s ...", outfile_j.c_str());
+				XArData::WriteFileGRD(xaint, outfile_j.c_str(), eGRDBIN); 
 			}
 			catch (std::exception & E)
 			{
