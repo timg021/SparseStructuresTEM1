@@ -129,7 +129,7 @@ namespace xar
 		swap(temp);
 	}
 
-	//! Accepts an external memory  buffer with its contents
+	//! Accepts an external memory buffer with its contents
 	// This buffer can be legitimately passed to any vector<T>-derived class 
 	// without copying(!) by calling the vector::swap function
 	// This is a dirty solution for the 'vector accepting an external memory buffer' problem.
