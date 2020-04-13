@@ -87,6 +87,8 @@ namespace xar
 	public:
 		//! Transposes the matrix
 		void Transpose(void);
+		//! Mirror-reflects the rows
+		void FlipX(void);
 		//! Trims elements from the edges of the array
 		void Trim(index_t iYLeft, index_t iYRight, index_t iXLeft, index_t iXRight);
 		//! Adds new elements with a given value at the edges of the array
@@ -210,6 +212,31 @@ namespace xar
 		m_rXArray2D.Swap(xarTemp);
 	}
 
+	//---------------------------------------------------------------------------
+		//Function XArray2DMove<T>::FlipX
+		//
+		//	Flips the matrix along the second dimension
+		//
+		/*!
+			\brief		Flips the matrix along the second dimension
+			\param		None
+			\exception	std::exception and derived exceptions can be thrown indirectly by the functions
+						called from inside this function
+			\return		\a None
+			\par		Description:
+				This function Flips the 2D array (matrix) along the second dimension, i.e. mirror-reflects its rows;
+				it does not change the Wavehead2D
+		*/
+	template <class T> void XArray2DMove<T>::FlipX(void)
+	{
+		index_t nx1 = m_rXArray2D.GetDim2() - 1;
+		index_t nxd2 = m_rXArray2D.GetDim2() / 2;
+
+		for (index_t i = 0; i < m_rXArray2D.GetDim1(); i++)
+			for (index_t j = 0; j < nxd2; j++)
+				std::swap(m_rXArray2D[i][j], m_rXArray2D[i][nx1 - j]);
+	}
+	
 	//---------------------------------------------------------------------------
 	//Function XArray2DMove<T>::Trim
 	//

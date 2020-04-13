@@ -157,6 +157,7 @@
     <ClCompile Include="..\Multislice\XA_file.cpp" />
     <ClCompile Include="..\Multislice\XA_ini.cpp" />
     <ClCompile Include="PbiSAXS.cpp" />
+    <ClCompile Include="PbiTEMDT.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Multislice\IXAHead.h" />
@@ -186,6 +187,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="PbiSAXS.txt" />
+    <Text Include="PbiTEMDT.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
