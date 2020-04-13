@@ -96,11 +96,10 @@ namespace xar
 		void truncate();
 		//! Accepts an external memory buffer with its contents
 		// Dirty implementation (depends on the Microsoft implementation of std::vector)
-		//!!! Update TEG 13.04.2020: since C++ 11, the same can be cleanly achieved by using vector<T>::assign(T* first, T* last);
 		void acceptMemBuffer(T* ptBufBegin, index_t BufSize); 
 		//! Relinquishes the responsibility for the memory area occupied by the internal array
 		// Dirty implementation (depends on the Microsoft implementation of std::vector)
-		//void releaseMemBuffer();
+		void releaseMemBuffer();
 
 	// Overridables
 	public:
@@ -136,17 +135,17 @@ namespace xar
 	// The solution uses the Visual C++ 6.0 implementaton details of the STL <vector>, namely
 	// the protected members _First, _Last and _End. Note also that some related standard
 	// features (e.g. 'hint' in allocator.allocate) are in fact NOT IMPLEMENTED in the VC++ 6.0 STL.
+/*
 	template <class T> void XArrayBase<T>::acceptMemBuffer(T* ptBufBegin, index_t BufSize)
 	{
 		truncate();
-//#if _MSC_VER <= 1200 // VC++ 6.0 and lower
-//	_First = ptBufBegin; _Last = _End = ptBufBegin + BufSize;
-//#else
-//	_Myfirst = ptBufBegin; _Mylast = _Myend = ptBufBegin + BufSize;
-//#endif
-		assign(ptBufBegin, ptBufBegin + BufSize);
+#if _MSC_VER <= 1200 // VC++ 6.0 and lower
+	_First = ptBufBegin; _Last = _End = ptBufBegin + BufSize;
+#else
+	_Myfirst = ptBufBegin; _Mylast = _Myend = ptBufBegin + BufSize;
+#endif
 	}
-/*
+
 	//! Relinquishes the responsibility for the memory area occupied by the internal array	
 	// This is a dirty solution for the 'vector surrendering its memory buffer' problem.
 	// The solution uses the Visual C++ 6.0 implementaton details of the STL <vector>, namely
