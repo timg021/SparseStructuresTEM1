@@ -771,7 +771,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 				}
 				case 1: // phase out
 				{
-					xar::XArray2D<float> phase;
+					xar::XArray2D<float> phase(camp.GetDim1(), camp.GetDim2(), 0.0f);
 					xar::CArg(camp, phase);
 					xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
 					break;
