@@ -128,7 +128,7 @@
     <ClInclude Include="..\..\XArrayLibrary\XArrayB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\fftwlib\fftw3.h">
+    <ClInclude Include="..\..\XArrayLibrary\fftw3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

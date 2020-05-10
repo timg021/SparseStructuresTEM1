@@ -157,7 +157,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\fftwlib\fftwf3drc.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\fftwf3drc.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\IXAHWave.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\stdafx.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp" />
@@ -170,8 +170,8 @@
     <Text Include="BigBangCT.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\fftwlib\fftw3.h" />
-    <ClInclude Include="..\..\fftwlib\fftwf3drc.h" />
+    <ClInclude Include="..\..\XArrayLibrary\fftw3.h" />
+    <ClInclude Include="..\..\XArrayLibrary\fftwf3drc.h" />
     <ClInclude Include="..\..\XArrayLibrary\IXAHead.h" />
     <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h" />
     <ClInclude Include="..\..\XArrayLibrary\stdafx.h" />

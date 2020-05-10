@@ -148,7 +148,7 @@
     <ClCompile Include="slicelib.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\fftwlib\fftw3.h" />
+    <ClInclude Include="..\..\XArrayLibrary\fftw3.h" />
     <ClInclude Include="..\..\XArrayLibrary\IXAHead.h" />
     <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h" />
     <ClInclude Include="..\..\XArrayLibrary\OouraFft.h" />
