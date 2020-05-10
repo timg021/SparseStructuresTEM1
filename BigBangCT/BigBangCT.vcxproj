@@ -92,7 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)BigBangCT;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)BigBangCT;$(SolutionDir)..\XArrayLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -101,7 +101,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\BigBangCT\x64\Debug</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\fftwlib;$(OutDir)..\..\BigBangCT\x64\Debug</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -128,12 +128,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)BigBangCT;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)BigBangCT;$(SolutionDir)..\XArrayLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\BigBangCT\x64\Debug</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\fftwlib;$(OutDir)..\..\BigBangCT\x64\Debug</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -157,37 +157,38 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Multislice\IXAHWave.cpp" />
-    <ClCompile Include="..\Multislice\stdafx.cpp" />
-    <ClCompile Include="..\Multislice\XAHWave.cpp" />
-    <ClCompile Include="..\Multislice\XA_file.cpp" />
-    <ClCompile Include="..\Multislice\XA_ini.cpp" />
+    <ClCompile Include="..\..\fftwlib\fftwf3drc.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\IXAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\stdafx.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XA_file.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XA_ini.cpp" />
     <ClCompile Include="BigBangCT.cpp" />
     <ClCompile Include="BigBangCT1.cpp" />
-    <ClCompile Include="fftwf3drc.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\Multislice\IXAHead.h" />
-    <ClInclude Include="..\Multislice\IXAHWave.h" />
-    <ClInclude Include="..\Multislice\stdafx.h" />
-    <ClInclude Include="..\Multislice\XAHWave.h" />
-    <ClInclude Include="..\Multislice\XArray.h" />
-    <ClInclude Include="..\Multislice\XArray1D.h" />
-    <ClInclude Include="..\Multislice\XArray2D.h" />
-    <ClInclude Include="..\Multislice\XArray3D.h" />
-    <ClInclude Include="..\Multislice\XArrayB.h" />
-    <ClInclude Include="..\Multislice\XA_data.h" />
-    <ClInclude Include="..\Multislice\XA_file.h" />
-    <ClInclude Include="..\Multislice\XA_head1.h" />
-    <ClInclude Include="..\Multislice\XA_head2.h" />
-    <ClInclude Include="..\Multislice\XA_head3.h" />
-    <ClInclude Include="..\Multislice\XA_ini.h" />
-    <ClInclude Include="..\Multislice\XA_move3.h" />
-    <ClInclude Include="fftw3.h" />
-    <ClInclude Include="fftwf3drc.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="BigBangCT.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\fftwlib\fftw3.h" />
+    <ClInclude Include="..\..\fftwlib\fftwf3drc.h" />
+    <ClInclude Include="..\..\XArrayLibrary\IXAHead.h" />
+    <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\stdafx.h" />
+    <ClInclude Include="..\..\XArrayLibrary\unwrap_2d_ljmu.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray1D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray2D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray3D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArrayB.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_data.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_file.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head1.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head3.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_ini.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_move3.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

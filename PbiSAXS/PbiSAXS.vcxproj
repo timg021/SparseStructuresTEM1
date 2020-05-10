@@ -89,7 +89,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)PbiSAXS;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\XArrayLibrary;$(SolutionDir)PbiSAXS;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -119,7 +119,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)PbiSAXS;$(SolutionDir)Multislice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\XArrayLibrary;$(SolutionDir)PbiSAXS;C:\Users\tgureyev\Documents\XArray_tests\XArrayLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
@@ -146,48 +146,48 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Multislice\IXAHWave.cpp" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg2d_dbl.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg2d_flt.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg_dbl.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg_flt.c" />
-    <ClCompile Include="..\Multislice\stdafx.cpp" />
-    <ClCompile Include="..\Multislice\unwrap_2d_ljmu.c" />
-    <ClCompile Include="..\Multislice\XAHWave.cpp" />
-    <ClCompile Include="..\Multislice\XA_file.cpp" />
-    <ClCompile Include="..\Multislice\XA_ini.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\IXAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_dbl.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_flt.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_dbl.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_flt.c" />
+    <ClCompile Include="..\..\XArrayLibrary\stdafx.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\unwrap_2d_ljmu.c" />
+    <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XA_file.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XA_ini.cpp" />
     <ClCompile Include="PbiSAXS.cpp" />
     <ClCompile Include="PbiTEMDT.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Multislice\IXAHead.h" />
-    <ClInclude Include="..\Multislice\IXAHWave.h" />
-    <ClInclude Include="..\Multislice\OouraFft.h" />
-    <ClInclude Include="..\Multislice\stdafx.h" />
-    <ClInclude Include="..\Multislice\unwrap_2d_ljmu.h" />
-    <ClInclude Include="..\Multislice\XAHWave.h" />
-    <ClInclude Include="..\Multislice\XArray.h" />
-    <ClInclude Include="..\Multislice\XArray1D.h" />
-    <ClInclude Include="..\Multislice\XArray2D.h" />
-    <ClInclude Include="..\Multislice\XArray3D.h" />
-    <ClInclude Include="..\Multislice\XArrayB.h" />
-    <ClInclude Include="..\Multislice\XA_born.h" />
-    <ClInclude Include="..\Multislice\XA_data.h" />
-    <ClInclude Include="..\Multislice\XA_fft2.h" />
-    <ClInclude Include="..\Multislice\XA_fftr2.h" />
-    <ClInclude Include="..\Multislice\XA_file.h" />
-    <ClInclude Include="..\Multislice\XA_head1.h" />
-    <ClInclude Include="..\Multislice\XA_head2.h" />
-    <ClInclude Include="..\Multislice\XA_head3.h" />
-    <ClInclude Include="..\Multislice\XA_ini.h" />
-    <ClInclude Include="..\Multislice\XA_move2.h" />
-    <ClInclude Include="..\Multislice\XA_move3.h" />
-    <ClInclude Include="..\Multislice\XA_nrrand.h" />
-    <ClInclude Include="..\Multislice\XA_tie.h" />
-  </ItemGroup>
-  <ItemGroup>
     <Text Include="PbiSAXS.txt" />
     <Text Include="PbiTEMDT.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\XArrayLibrary\IXAHead.h" />
+    <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\OouraFft.h" />
+    <ClInclude Include="..\..\XArrayLibrary\stdafx.h" />
+    <ClInclude Include="..\..\XArrayLibrary\unwrap_2d_ljmu.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray1D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray2D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray3D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArrayB.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_born.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_data.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_fft2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_fftr2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_file.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head1.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head3.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_ini.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_move2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_move3.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_nrrand.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_tie.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

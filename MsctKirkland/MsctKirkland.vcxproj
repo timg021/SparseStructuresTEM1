@@ -79,13 +79,13 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Multislice;$(SolutionDir)MsctKirkland;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\fftwlib;$(SolutionDir)..\XArrayLibrary;$(SolutionDir)MsctKirkland;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\MsctKirkland\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\fftwlib;$(OutDir)..\..\MsctKirkland\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -107,11 +107,11 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Multislice;$(SolutionDir)MsctKirkland;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\fftwlib;$(SolutionDir)..\XArrayLibrary;$(SolutionDir)MsctKirkland;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(OutDir)..\..\fftwlib;$(OutDir)..\..\MsctKirkland\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\fftwlib;$(OutDir)..\..\MsctKirkland\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -131,16 +131,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Multislice\IXAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\IXAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_dbl.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_flt.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_dbl.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_flt.c" />
+    <ClCompile Include="..\..\XArrayLibrary\stdafx.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XA_file.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\XA_ini.cpp" />
     <ClCompile Include="..\Multislice\MultisliceK.cpp" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg2d_dbl.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg2d_flt.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg_dbl.c" />
-    <ClCompile Include="..\Multislice\Ooura_fftsg_flt.c" />
-    <ClCompile Include="..\Multislice\stdafx.cpp" />
-    <ClCompile Include="..\Multislice\XAHWave.cpp" />
-    <ClCompile Include="..\Multislice\XA_file.cpp" />
-    <ClCompile Include="..\Multislice\XA_ini.cpp" />
     <ClCompile Include="autoslic.cpp" />
     <ClCompile Include="autosliccmd.cpp" />
     <ClCompile Include="cfpix.cpp" />
@@ -148,27 +148,27 @@
     <ClCompile Include="slicelib.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Multislice\IXAHead.h" />
-    <ClInclude Include="..\Multislice\IXAHWave.h" />
-    <ClInclude Include="..\Multislice\OouraFft.h" />
-    <ClInclude Include="..\Multislice\stdafx.h" />
-    <ClInclude Include="..\Multislice\XAHWave.h" />
-    <ClInclude Include="..\Multislice\XArray.h" />
-    <ClInclude Include="..\Multislice\XArray1D.h" />
-    <ClInclude Include="..\Multislice\XArray2D.h" />
-    <ClInclude Include="..\Multislice\XArray3D.h" />
-    <ClInclude Include="..\Multislice\XArrayB.h" />
-    <ClInclude Include="..\Multislice\XA_data.h" />
-    <ClInclude Include="..\Multislice\XA_fft2.h" />
-    <ClInclude Include="..\Multislice\XA_file.h" />
-    <ClInclude Include="..\Multislice\XA_head1.h" />
-    <ClInclude Include="..\Multislice\XA_head2.h" />
-    <ClInclude Include="..\Multislice\XA_ini.h" />
-    <ClInclude Include="..\Multislice\XA_nrrand.h" />
+    <ClInclude Include="..\..\fftwlib\fftw3.h" />
+    <ClInclude Include="..\..\XArrayLibrary\IXAHead.h" />
+    <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\OouraFft.h" />
+    <ClInclude Include="..\..\XArrayLibrary\stdafx.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray1D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray2D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray3D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArrayB.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_data.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_fft2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_file.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head1.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_ini.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_nrrand.h" />
     <ClInclude Include="autoslic.hpp" />
     <ClInclude Include="autosliccmd.h" />
     <ClInclude Include="cfpix.hpp" />
-    <ClInclude Include="fftw3.h" />
     <ClInclude Include="floatTIFF.hpp" />
     <ClInclude Include="slicelib.hpp" />
   </ItemGroup>
