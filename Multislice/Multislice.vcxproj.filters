@@ -59,9 +59,6 @@
     <ClInclude Include="..\..\XArrayLibrary\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\unwrap_2d_ljmu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\XArrayLibrary\XA_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
