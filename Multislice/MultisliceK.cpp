@@ -52,34 +52,34 @@ int main(void)
 		autoslictxt[26] = ""; // this parameter is not used any more, defocus values are passed as a separate argument vdefocus
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line:Objective_aperture_in_mrad
 		autoslictxt[7] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Include_thermal_vibrations(1)_or_not(0)
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Spherical_aberration_Cs3,_Cs5_in_mm
+		autoslictxt[5] = cline;
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: Include_thermal_vibrations(1)_or_not(0)
 		autoslictxt[17] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: ____Temperature_in_degrees_K
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13th line: ____Temperature_in_degrees_K
 		autoslictxt[18] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13th line: ____Number_of_configurations_to_average_over
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14th line: ____Number_of_configurations_to_average_over
 		autoslictxt[19] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14th line: ____Initial_seed_for_random_number_generator
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: ____Initial_seed_for_random_number_generator
 		autoslictxt[20] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Total_CT_rotation_span_in_degrees
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Total_CT_rotation_span_in_degrees
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 10 of input parameter file.");
 		double angle_max = atof(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Number_of_CT_rotation_angles
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: Number_of_CT_rotation_angles
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 11 of input parameter file.");
 		size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 12 of input parameter file.");
 		unsigned int ncores = (unsigned int)atoi(cparam) + 1; // number of threads to use (expected to be equal to the number of cores) 
-		fgets(cline, 1024, ff0); // 18st line - comment
-		fgets(cline, 1024, ff0); // 119st line - comment
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 20th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
+		fgets(cline, 1024, ff0); // 19st line - comment
+		fgets(cline, 1024, ff0); // 20st line - comment
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
 		autoslictxt[1] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: Do_you_want_to_include_partial_coherence
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22th line: Do_you_want_to_include_partial_coherence
 		autoslictxt[2] = ""; // this parameter is not used any more, output filenames are passed as a separate argument vstrfileout
 		autoslictxt[3] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22th line: ____Illumination_angle_min,_max_in_mrad
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 23th line: ____Illumination_angle_min,_max_in_mrad
 		autoslictxt[4] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 23th line: ____Spherical_aberration_Cs3,_Cs5_in_mm
-		autoslictxt[5] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 24th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
 		autoslictxt[6] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 25th line: Do_you_want_to_start_from_previous_result

@@ -8,6 +8,7 @@
 14.Slice_thickness_in_Angstroms: 0.1375
 27.Defocus_distance_MIN,MAX,STEP_in_Angstroms: -10.0 1.0 1.0
 8.Objective_aperture_in_mrad: 0.0
+6.Spherical_aberration_Cs3,_Cs5_in_mm: 0.0 0.0
 18.Include_thermal_vibrations(1)_or_not(0): 0
 19.____Temperature_in_degrees_K: 300.0
 20.____Number_of_configurations_to_average_over: 64
@@ -20,7 +21,6 @@
 2.Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ: 1 1 1
 4.Do_you_want_to_include_partial_coherence: 0
 5.____Illumination_angle_min,_max_in_mrad: 0.0 0.0
-6.____Spherical_aberration_Cs3,_Cs5_in_mm: 0.0 0.0
 7.____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms: 0.0 0.0 0.0
 9.Do_you_want_to_start_from_previous_result: 0
 10.____Name_of_file_to_start_from: 0
