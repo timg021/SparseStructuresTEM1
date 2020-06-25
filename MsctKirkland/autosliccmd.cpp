@@ -749,8 +749,8 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 					for (iy = 0; iy < ny; iy++)
 						camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
 
-				if (defocus[j] == 0 && k2maxo != 0) 
-					xafft.Fresnel(double(wavlen), false, double(k2maxo), C3, C5); // in the case of finite objective aperture, fake propagation is needed in order to enforce the spatial Fourier frequency cutoff
+				if (defocus[j] == 0 && (k2maxo != 0 || C3 != 0 || C5 != 0)) 
+					xafft.Fresnel(double(wavlen), false, double(k2maxo), C3, C5); // fake propagation is needed in order to enforce the spatial Fourier frequency cutoff or aberrations
 				else 
 					xafft.Fresnel(defocus[j], false, double(k2maxo), C3, C5); // propagate to the current defocus distance
 
