@@ -615,6 +615,8 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 			<< wmin << " to " << wmax << endl;
 #endif	
 		//@@@@@ start TEG code
+		if(lwobble == 1 && wmin == 0 && wmax == 0)
+			throw std::exception("Input XYZ file does not contain thermal vibrations for atoms.");
 		// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
 		if (xmin < 0 || ymin < 0 || zmin < 0)
 			throw std::exception("Error: xmin, ymin or zmin < 0 in the XYZ file.");
