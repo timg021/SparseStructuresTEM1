@@ -19,11 +19,14 @@ int main(void)
 #endif // TEG_MULTITHREADED
 	vector<string> autoslictxt(29); // 29 is the current number of input parameters; if it is changed, the corresponding changes need to be applied in autosliccmd.cpp too.
 
+	printf("\nStarting MsctKirkland program ...");
 	try
 	{
 		// read input parameter file
-		FILE* ff0 = fopen("MsctKirkland.txt", "rt");
-			if (!ff0) throw std::exception("Error: cannot open parameter file MsctKirkland.txt.");
+		constexpr char iparfile[] = "MsctKirkland.txt";
+		FILE* ff0 = fopen(iparfile, "rt");
+		if (!ff0) throw std::exception((std::string("Error opening parameter file ") + iparfile + ".").c_str());
+		else printf("\nReading input parameters from %s file ...", iparfile);
 
 		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
 	
@@ -40,6 +43,8 @@ int main(void)
 		autoslictxt[25] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6th line: Incident__electron_beam_energy_in_keV
 		autoslictxt[10] = cline;
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 6 of input parameter file.");
+		double ev = atof(cparam) * 1000; // accelerating voltage in eV
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 7th line: Wavefunction_size_in_pixels,_Nx,Ny
 		autoslictxt[11] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8th line: Slice_thickness_in_Angstroms
@@ -63,13 +68,13 @@ int main(void)
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: ____Initial_seed_for_random_number_generator
 		autoslictxt[20] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Total_CT_rotation_span_in_degrees
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 10 of input parameter file.");
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 16 of input parameter file.");
 		double angle_max = atof(cparam); // total rotation span in degrees 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: Number_of_CT_rotation_angles
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 11 of input parameter file.");
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 17 of input parameter file.");
 		size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 12 of input parameter file.");
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 18 of input parameter file.");
 		unsigned int ncores = (unsigned int)atoi(cparam) + 1; // number of threads to use (expected to be equal to the number of cores) 
 		fgets(cline, 1024, ff0); // 19st line - comment
 		fgets(cline, 1024, ff0); // 20st line - comment
@@ -109,6 +114,12 @@ int main(void)
 		
 		size_t ndefocus = size_t((defocus_max - defocus_min) / defocus_step + 0.5); // number of defocus planes to propagate to at each rotation angle		
 		printf("\nNumber of defocus planes = %zd.", ndefocus);
+		constexpr double hp = 6.62607004e-34; // Planck's constant (m2 kg / s)
+		constexpr double cc = 299792458; // speed of light (m / s)
+		constexpr double ee = 1.602176634e-19; // electron charge (coulomb)
+		constexpr double m0 = 9.1093837015e-31; // electron rest mass (kg)
+		double ewl = hp * cc / sqrt(ee * ev * (2.0 * m0 * cc * cc + ee * ev));
+		printf("\nElectron wavelength = %f (pm)", ewl * 1.0e+12);
 		vector<string> vstrfileout(ndefocus); // vector of full output filenames
 		vector<double> vdefocus(ndefocus); // vector of defocus distances
 		for (size_t j = 0; j < ndefocus; j++) vdefocus[j] = defocus_min + defocus_step * j;
@@ -138,7 +149,6 @@ int main(void)
 		std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
 	
 		// start the cycle over projection angles
-		printf("\nStarting TEG MultisliceK program ...");
 		for (size_t i = 0; i < nangles; i++)
 		{
 			printf("\nAngle = %zd", i);

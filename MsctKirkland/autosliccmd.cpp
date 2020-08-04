@@ -173,7 +173,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
 	try
 	{
-		printf("\nNumber of active threads (inside w.thread) = %d", thread_counter.GetCount());
+		printf("\nNumber of active threads (inside worker thread) = %d", thread_counter.GetCount());
 		thread_counter.SetUpdated(true); // lets the main thread know that the thread counter has been updated
 
 		string filein, filestart, filebeam, filecross, cline, description;
@@ -770,6 +770,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 						inten += inten1;
 						if (iwobble == (nwobble - 1)) inten /= (float)nwobble;
 					}
+					printf("\n  Writing output file %s ...", fileout[j].c_str());
 					xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
 					break;
 				}
@@ -777,11 +778,13 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 				{
 					xar::XArray2D<float> phase(camp.GetDim1(), camp.GetDim2(), 0.0f);
 					xar::CArg(camp, phase);
+					printf("\n  Writing output file %s ...", fileout[j].c_str());
 					xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
 					break;
 				}
 				case 2: // complex amplitude out
 				{
+					printf("\n  Writing output file %s ...", fileout[j].c_str());
 					xar::XArData::WriteFileGRC(camp, fileout[j].data(), xar::eGRCBIN);
 					break;
 				}
