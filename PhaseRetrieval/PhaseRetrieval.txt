@@ -1,0 +1,8 @@
+//*****Input parameter file for PhaseRetrieval.exe program*****
+1.Defocus_distances_in_Angstroms: 0.0 11.0 1.0
+2.Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\asp.grd
+3.Wavelength_in_Angstroms: 0.025
+4.Output_file_name_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\000PhaseOut.grd
+5.Number_of_parallel_threads: 1
+//*****
+//*****!!!Don't forget to save this file after editing the parameters

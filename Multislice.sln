@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "1atomwiseMSimage", "1atomwi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BigBangCT", "BigBangCT\BigBangCT.vcxproj", "{DD723F48-162E-4BAF-AA94-1DF80DEB0455}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PhaseRetrieval", "PhaseRetrieval\PhaseRetrieval.vcxproj", "{FD2CD98B-AB26-48E6-BA42-0AB187344420}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,14 @@ Global
 		{DD723F48-162E-4BAF-AA94-1DF80DEB0455}.Release|x64.Build.0 = Release|x64
 		{DD723F48-162E-4BAF-AA94-1DF80DEB0455}.Release|x86.ActiveCfg = Release|Win32
 		{DD723F48-162E-4BAF-AA94-1DF80DEB0455}.Release|x86.Build.0 = Release|Win32
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Debug|x64.ActiveCfg = Debug|x64
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Debug|x64.Build.0 = Debug|x64
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Debug|x86.ActiveCfg = Debug|Win32
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Debug|x86.Build.0 = Debug|Win32
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Release|x64.ActiveCfg = Release|x64
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Release|x64.Build.0 = Release|x64
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Release|x86.ActiveCfg = Release|Win32
+		{FD2CD98B-AB26-48E6-BA42-0AB187344420}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
