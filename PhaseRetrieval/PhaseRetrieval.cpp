@@ -117,8 +117,7 @@ int main()
 		index_t iarad = index_t(atomsize / xstep / 2.0 + 0.5); // atom radius in the number of physical x-step units - may be overwritten below by data read from input files
 		index_t karadt = int(atomlength / zstep / 2.0 + 0.5); // 1/2 length of the template atom image "trace" in the defocus direction to mask "in", in the number of physical z-step units
 		index_t karad0 = index_t(atomsizeZ0 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the same type, in the number of physical z-step units
-		index_t karad1 = index_t(atomsizeZ1 / zstep / 2.0 + 0.5); // 1/2 length of an atom image "trace" in the defocus direction to mask when searching for atoms of the next type, in the number of physical z-step units
-			printf("\nAtom trace lengths in grid steps: 'in' = %zd, 'out_same' = %zd, 'out_previous' = %zd", 2 * karadt + 1, 2 * karad0 + 1, 2 * karad1 + 1);
+		
 		index_t natomtotal = 0; // total number of found atoms
 
 		// allocate storage for detected atom positions
