@@ -141,7 +141,6 @@ int main()
 		FILE* ff = fopen(filenameOut.c_str(), "wt");
 		printf("\n\nWriting output file %s in Vesta XYZ format ...\n", filenameOut.c_str());
 		fclose(ff);
-
 	}
 	catch (std::exception& E)
 	{
