@@ -145,6 +145,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\XArrayLibrary\IXAHWave.cpp" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_dbl.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_flt.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_dbl.c" />
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_flt.c" />
     <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\XA_file.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\XA_ini.cpp" />
@@ -153,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\XArrayLibrary\IXAHead.h" />
     <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h" />
+    <ClInclude Include="..\..\XArrayLibrary\OouraFft.h" />
     <ClInclude Include="..\..\XArrayLibrary\XAHWave.h" />
     <ClInclude Include="..\..\XArrayLibrary\XArray.h" />
     <ClInclude Include="..\..\XArrayLibrary\XArray1D.h" />

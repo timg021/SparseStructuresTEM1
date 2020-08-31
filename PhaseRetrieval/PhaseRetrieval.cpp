@@ -9,7 +9,7 @@
 #include "XArray2D.h"
 #include "XA_data.h"
 #include "XA_file.h"
-
+#include "XA_fft2.h"
 
 using namespace xar;
 
@@ -24,7 +24,7 @@ int main()
 		printf("\nStarting PhaseRetrieval program ...");
 		//************************************ read input parameters from file
 		// read input parameter file
-		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024], cparam3[1024], cparam4[1024];
+		char cline[1024], ctitle[1024], cparam[1024];
 		FILE* ff0 = fopen("PhaseRetrieval.txt", "rt");
 		if (!ff0) throw std::exception("Error: cannot open parameter file PhaseRetrieval.txt.");
 		fgets(cline, 1024, ff0); // 1st line - comment
@@ -32,12 +32,12 @@ int main()
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // Defocus_distances_in_Angstroms
 		std::vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
 		for (size_t i = 1; i < strlen(cline); i++) if (isspace(cline[i])) vwhite.push_back(i); // count the number of different defocus distances in the input parameter file
-		int ndefocus = vwhite.size(); // number of detected defocus distances
+		size_t ndefocus = vwhite.size(); // number of detected defocus distances
 		if (!ndefocus) throw std::exception("Error reading defocus distances from input parameter file.");
 		std::vector<char[1024]> vstr_defocus(ndefocus); // vector of strings into which defocus distances will be read
 		std::vector<double> defocus(ndefocus); // vector of defocus distances (double precision numbers)
 		vwhite.push_back(strlen(cline)); // add one more entry corresponding to the end of the parameter string
-		printf("\nDefocus planes positions (%d in total): ", ndefocus);
+		printf("\nDefocus planes positions (%zd in total): ", ndefocus);
 		for (size_t j = 0; j < ndefocus; j++)
 		{
 			for (size_t i = vwhite[j]; i < vwhite[j + 1]; i++)
@@ -49,8 +49,8 @@ int main()
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
-		string filenamebaseIn1 = cparam;
-		printf("\nDefocus series file name base = %s", filenamebaseIn1.c_str());
+		string filenamebaseIn = cparam;
+		printf("\nDefocus series file name base = %s", filenamebaseIn.c_str());
 		
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength parameter from input parameter file.");
@@ -67,21 +67,75 @@ int main()
 		int nThreads = atoi(cparam);
 		printf("\nNumber of parallel threads = %d", nThreads);
 		if (nThreads < 1)
-			throw std::exception("The number of parallel threads in input parameter file should be >= 1.");
+			throw std::exception("Error: the number of parallel threads in input parameter file should be >= 1.");
 
 		fclose(ff0); // close input parameter file
 
+		// minimal reconstruction error for interrupting the reconstruction cycle
+		double epsilon(0.01);
+
+		// microscope aberrations - for future extension
+		double Caobj(0.0), k2maxo = pow(Caobj * 0.001f / wl, 2.0); // objective aperture, mrad --> rad
+		double Cs3(0.0), C3 = double(Cs3 * 1.e+7); // C3 aberration, mm --> Angstroms
+		double Cs5(0.0), C5 = double(Cs5 * 1.e+7); // C5 aberration, mm --> Angstroms
+
 		//************************************ end reading input parameters from file
 
-		// calculate some useful parameters
-		if (ndefocus < 1) throw std::exception("Error: the number of defocus planes is less than 1.");
-		index_t nz = ndefocus;
-		printf("\nNumber of defocus planes = %zd.", nz);
-		index_t ny, nx, nx2; // x and y sizes of the arrays
-		index_t nangles = 1; // !!! nangles values other than 1 are currently not supported in the code below
-		double xmin = 0.0, ymin = 0.0;  // default values - may be overwritten below by data read from input files
-		double xstep = 1.0, ystep = 1.0; // default values - may be overwritten below by data read from input files
-		
+		// read input GRD files and create the initial complex amplitudes
+		vector<string> vinfilenames;
+		FileNames(1, ndefocus, filenamebaseIn, vinfilenames); // create vector of input filenames
+		vector<XArray2D<double>> vint0(ndefocus), vint(ndefocus);
+		vector<XArray2D<dcomplex>> vcamp(ndefocus);
+		vector<double> vint0_norms(ndefocus);
+		for (index_t n = 0; n < ndefocus; n++)
+		{
+			XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl);
+			vint0_norms[n] = vint0[n].Norm(eNormL1);
+			if (vint0_norms[n] == 0) throw std::exception("Error: input intensity file is empty");
+			vint0[n] ^= 0.5; // intensity into real amplitude
+			MakeComplex(vint0[n], 0.0, vcamp[n], true);
+		}
+
+		// starting point of the IWFR iterations
+		double ssej(1.0), ssejm1; // current and previous phase reconstruction error, error tolerance
+		vector<double> verr(ndefocus); // reconstruction errors in individual defocus planes
+		do
+		{
+			// remember the reconstruction error from the previous cycle
+			ssejm1 = ssej;
+
+			// backpropagate each defocus amplitude to the plane z = 0
+			// OMP parallelization here
+			for (index_t n = 0; n < ndefocus; n++)
+			{
+				xar::XArray2DFFT<double> xafft(vcamp[n]);
+				xafft.Fresnel(-defocus[n], false, k2maxo, C3, C5); // propagate to z = 0
+			}
+			// have to make sure that all OMP threads have finished
+
+			// average backpropagated complex amplitudes
+			for (index_t n = 1; n < ndefocus; n++) vcamp[0] += vcamp[n];
+			vcamp[0] /= double(ndefocus);
+
+			// forward propagate the averaged complex amplitude to the defocus planes
+			// OMP parallelization here
+			for (index_t n = 0; n < ndefocus; n++)
+			{
+				if (n) vcamp[n] = vcamp[0];
+				xar::XArray2DFFT<double> xafft(vcamp[n]);
+				xafft.Fresnel(defocus[n], false, k2maxo, C3, C5); // propagate to z = z[n]
+				Abs(vcamp[n], vint[n]);
+				vint[n] -= vint0[n];
+				verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_norms[n];
+			}
+			// have to make sure that all OMP threads have finished
+
+			// calculate the current reconstruction error
+			ssej = 0.0;
+			for (index_t n = 0; n < ndefocus; n++) ssej += verr[n];
+			ssej /= double(ndefocus);
+
+		} while ((ssejm1 - ssej) > epsilon);
 
 		// write the locations of the detected atoms into an XYZ file compatible with Vesta XYZ format
 		FILE* ff = fopen(filenameOut.c_str(), "wt");

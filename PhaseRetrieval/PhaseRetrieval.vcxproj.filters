@@ -35,6 +35,18 @@
     <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h">
@@ -71,6 +83,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\XArrayLibrary\XArrayB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\XArrayLibrary\OouraFft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
