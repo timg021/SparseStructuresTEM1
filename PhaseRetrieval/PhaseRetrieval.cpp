@@ -1,5 +1,7 @@
 // PhaseRetrieval.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+// The IWFR algorithm is implemented here according to the description in the paper
+// L. Allen, "Electron Microscope Cs Correction Using Iterative Wave - Function Reconstruction", Microscopy and Analysis 20(4):15-17 (UK), 2006
 
 #include <complex.h>
 #include <chrono>
@@ -21,7 +23,7 @@ int main()
 
 	try
 	{
-		printf("\nStarting PhaseRetrieval program ...");
+		printf("\nStarting IWFR PhaseRetrieval program ...");
 		//************************************ read input parameters from file
 		// read input parameter file
 		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024];
@@ -102,6 +104,7 @@ int main()
 		printf("\nNumber of parallel threads = %d", nThreads);
 		if (nThreads < 1)
 			throw std::exception("Error: the number of parallel threads in input parameter file should be >= 1.");
+		omp_set_num_threads(nThreads);
 
 		fclose(ff0); // close input parameter file
 
@@ -143,13 +146,12 @@ int main()
 						}
 
 			// backpropagate each defocused amplitude to the plane z = 0
-			// OMP parallelization here
-			for (index_t n = 0; n < ndefocus; n++)
+			#pragma omp parallel for
+			for (int n = 0; n < ndefocus; n++)
 			{
 				xar::XArray2DFFT<double> xafft(vcamp[n]);
 				xafft.Fresnel(-defocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
 			}
-			// have to make sure that all OMP threads have finished
 
 			// average backpropagated complex amplitudes
 			campOut = vcamp[0];
@@ -157,8 +159,8 @@ int main()
 			campOut /= double(ndefocus);
 
 			// forward propagate the averaged complex amplitude to the defocus planes
-			// OMP parallelization here
-			for (index_t n = 0; n < ndefocus; n++)
+			#pragma omp parallel for
+			for (int n = 0; n < ndefocus; n++)
 			{
 				vcamp[n] = campOut;
 				xar::XArray2DFFT<double> xafft(vcamp[n]);
@@ -167,7 +169,6 @@ int main()
 				vint[n] -= vint0[n];
 				verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
 			}
-			// have to make sure that all OMP threads have finished
 
 			// calculate the current reconstruction error and
 			// if the difference with the previous error is smaller than the defined minimum
