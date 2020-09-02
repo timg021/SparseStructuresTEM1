@@ -26,27 +26,27 @@ int main()
 		printf("\nStarting IWFR PhaseRetrieval program ...");
 		//************************************ read input parameters from file
 		// read input parameter file
-		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024];
+		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
 		FILE* ff0 = fopen("PhaseRetrieval.txt", "rt");
 		if (!ff0) throw std::exception("Error: cannot open parameter file PhaseRetrieval.txt.");
 		fgets(cline, 1024, ff0); // 1st line - comment
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Defocus_distances_in_Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input defocus distances in Angstroms
 		std::vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
 		for (size_t i = 1; i < strlen(cline); i++) if (isspace(cline[i])) vwhite.push_back(i); // count the number of different defocus distances in the input parameter file
 		size_t ndefocus = vwhite.size(); // number of detected defocus distances
 		if (!ndefocus) throw std::exception("Error reading defocus distances from input parameter file.");
 		std::vector<char[1024]> vstr_defocus(ndefocus); // vector of strings into which defocus distances will be read
-		std::vector<double> defocus(ndefocus); // vector of defocus distances (double precision numbers)
+		std::vector<double> vdefocus(ndefocus); // vector of defocus distances (double precision numbers)
 		vwhite.push_back(strlen(cline)); // add one more entry corresponding to the end of the parameter string
-		printf("\nDefocus planes positions (%zd in total): ", ndefocus);
+		printf("\nInput defocus plane positions (%zd in total): ", ndefocus);
 		for (size_t j = 0; j < ndefocus; j++)
 		{
 			for (size_t i = vwhite[j]; i < vwhite[j + 1]; i++)
 				vstr_defocus[j][i - vwhite[j]] = cline[i];
 			vstr_defocus[j][vwhite[j + 1] - vwhite[j]] = '\0'; // string terminator
-			defocus[j] = atof(vstr_defocus[j]);
-			printf("%g ", defocus[j]);
+			vdefocus[j] = atof(vstr_defocus[j]);
+			printf("%g ", vdefocus[j]);
 		}
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
@@ -91,12 +91,44 @@ int main()
 		if (epsilon < 0)
 			throw std::exception("Error: minimal phase reconstruction error must be non-negative.");
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Output file name in GRC format
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Output defocus distances min max and step in Angstroms
+		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading output defocus distances from input parameter file.");
+		double outdefocus_min = atof(cparam); // minimum output defocus in Angstroms 
+		double outdefocus_max = atof(cparam1); // maximum output defocus in Angstroms 
+		double outdefocus_step = atof(cparam2); // output defocus step in Angstroms 
+		printf("\nOutput defocus distances: min = %g, max = %g, step = %g (Angstroms)", outdefocus_min, outdefocus_max, outdefocus_step);
+		int noutdefocus = int((outdefocus_max - outdefocus_min) / outdefocus_step + 0.5); // number of defocus planes to propagate to
+		if (noutdefocus <= 0)
+			throw std::exception("Error: number of output defocus planes must be positive.");
+		vector<double> voutdefocus(noutdefocus); // vector of output defocus distances
+		printf("\nOutput defocus plane positions (%d in total): ", noutdefocus);
+		for (int j = 0; j < noutdefocus; j++)
+		{
+			voutdefocus[j] = outdefocus_min + outdefocus_step * j;
+			printf("%g ", voutdefocus[j]);
+		}
+
+		//@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Output intensity(0), phase(1) or complex_amplitude(2)
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
+		int noutformat = atoi(cparam);
+		switch (noutformat)
+		{
+		case 0: 
+			printf("\nOutput defocused intensities in GRD format = %d", kmax);
+		}
+
+		if (kmax < 1)
+			throw std::exception("Error: the maximal number of iterations should be >= 1.");
+
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Output file name base in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name from input parameter file.");
-		string filenameOut = cparam;
-		printf("\nOutput file name = %s", filenameOut.c_str());
-		if (GetFileExtension(filenameOut) != string(".GRC"))
+		string filenamebaseOut = cparam;
+		printf("\nOutput file name base = %s", filenamebaseOut.c_str());
+		if (GetFileExtension(filenamebaseOut) != string(".GRC"))
 			throw std::exception("Error: output file extension must be grc or GRC.");
+
+
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
@@ -150,7 +182,7 @@ int main()
 			for (int n = 0; n < ndefocus; n++)
 			{
 				xar::XArray2DFFT<double> xafft(vcamp[n]);
-				xafft.Fresnel(-defocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
+				xafft.Fresnel(-vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
 			}
 
 			// average backpropagated complex amplitudes
@@ -164,7 +196,7 @@ int main()
 			{
 				vcamp[n] = campOut;
 				xar::XArray2DFFT<double> xafft(vcamp[n]);
-				xafft.Fresnel(defocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
+				xafft.Fresnel(vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
 				Abs(vcamp[n], vint[n]);
 				vint[n] -= vint0[n];
 				verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
@@ -182,6 +214,11 @@ int main()
 			else ssejm1 = ssej;
 		} 
 		// finish point of IWFR iterations
+
+		// calculate output defocused images
+		vector<string> voutfilenames;
+		FileNames(1, noutdefocus, filenamebaseOut, voutfilenames); // create vector of input filenames
+
 
 		// write the reconstructed complex amplitude in the plane z=0 into a GRC file
 		XArData::WriteFileGRC(campOut, filenameOut.c_str(), eGRCBIN);
