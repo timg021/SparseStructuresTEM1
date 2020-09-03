@@ -53,6 +53,8 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
 		printf("\nDefocus series file name base = %s", filenamebaseIn.c_str());
+		vector<string> vinfilenames;
+		FileNames(1, ndefocus, filenamebaseIn, vinfilenames); // create vector of input filenames
 		
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3. Wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength from input parameter file.");
@@ -108,29 +110,38 @@ int main()
 			printf("%g ", voutdefocus[j]);
 		}
 
-		//@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Output intensity(0), phase(1) or complex_amplitude(2)
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
 		int noutformat = atoi(cparam);
-		switch (noutformat)
-		{
-		case 0: 
-			printf("\nOutput defocused intensities in GRD format = %d", kmax);
-		}
 
-		if (kmax < 1)
-			throw std::exception("Error: the maximal number of iterations should be >= 1.");
-
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Output file name base in GRD or GRC format
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name from input parameter file.");
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Output file name base in GRD or GRC format
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
 		string filenamebaseOut = cparam;
 		printf("\nOutput file name base = %s", filenamebaseOut.c_str());
-		if (GetFileExtension(filenamebaseOut) != string(".GRC"))
-			throw std::exception("Error: output file extension must be grc or GRC.");
+		switch (noutformat)
+		{
+		case 0:
+			printf("\nThe program will output defocused intensity distributions in GRD format.");
+			if (GetFileExtension(filenamebaseOut) != string(".GRD"))
+				throw std::exception("Error: output filename extension for intensity distributions must be grd or GRD.");
+			break;
+		case 1:
+			printf("\nThe program will output defocused phase distributions in GRD format.");
+			if (GetFileExtension(filenamebaseOut) != string(".GRD"))
+				throw std::exception("Error: output filename extension for phase distributions must be grd or GRD.");
+			break;
+		case 2:
+			printf("\nThe program will output defocused complex amplitudes in GRC format.");
+			if (GetFileExtension(filenamebaseOut) != string(".GRC"))
+				throw std::exception("Error: output filename extension for complex amplitides must be grc or GRC.");
+			break;
+		default:
+			throw std::exception("Error: unknown value for output file format in input parameter file.");
+		}
+		vector<string> voutfilenames;
+		FileNames(1, noutdefocus, filenamebaseOut, voutfilenames); // create vector of output filenames
 
-
-
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Number of parallel threads
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
 		int nThreads = atoi(cparam);
 		printf("\nNumber of parallel threads = %d", nThreads);
@@ -152,8 +163,6 @@ int main()
 		vector<double> vint0_L1(ndefocus); // L1 norms of the initial defocused intensities
 
 		// read input GRD files and create the initial complex amplitudes
-		vector<string> vinfilenames;
-		FileNames(1, ndefocus, filenamebaseIn, vinfilenames); // create vector of input filenames
 		for (index_t n = 0; n < ndefocus; n++)
 		{
 			XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl);
@@ -215,13 +224,33 @@ int main()
 		} 
 		// finish point of IWFR iterations
 
-		// calculate output defocused images
-		vector<string> voutfilenames;
-		FileNames(1, noutdefocus, filenamebaseOut, voutfilenames); // create vector of input filenames
+		// calculate and save output defocused images
+		#pragma omp parallel for
+		for (int n = 0; n < noutdefocus; n++)
+		{
+			XArray2D<dcomplex> campOutn(campOut);
+			xar::XArray2DFFT<double> xafft(campOutn);
+			xafft.Fresnel(voutdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
+			XArray2D<double> ipOut;
+			// write the defocused intensity, phase or complex amplitude into output file
+			printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
+			switch (noutformat)
+			{
+			case 0: // intensity out
+				Abs2(campOutn, ipOut);
+				XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
+				break;
+			case 1: // phase out
+				Arg(campOutn, ipOut);
+				XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
+				break;
+			case 2: // complex amplitude out
+				XArData::WriteFileGRC(campOutn, voutfilenames[n].c_str(), eGRCBIN);
+				break;
+			}
 
+		}
 
-		// write the reconstructed complex amplitude in the plane z=0 into a GRC file
-		XArData::WriteFileGRC(campOut, filenameOut.c_str(), eGRCBIN);
 	}
 	catch (std::exception& E)
 	{
