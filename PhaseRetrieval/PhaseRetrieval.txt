@@ -1,14 +1,15 @@
 //*****Input parameter file for PhaseRetrieval.exe program*****
-1.Input_defocus_distances_in_Angstroms: 0.0 11.0 1.0
-2.Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\asp.grd
-3.Wavelength_in_Angstroms: 0.025
-4.Objective_aperture_in_mrad: 0.0
-5.Spherical_aberration_Cs3,_Cs5_in_mm: 0 0
-6.Maximal_number_of_iterations: 10
-7.Minimal_phase_reconstruction_error: 1.e-4
-8.Output_defocus_distances_min_max_and_step_in_Angstroms: 10 100 10
-9.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0
-10.Output_GRD/GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\campOut.grc
-11.Number_of_parallel_threads: 1
+1.CT_rotation_span_in_degrees_and_number_of_rotation_angles: 180.0 4
+2.Input_defocus_distances_in_Angstroms: 10.0 20.0 30.0
+3.Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format: C:\Users\tgureyev\Downloads\Temp\asp.grd
+4.Wavelength_in_Angstroms: 0.025
+5.Objective_aperture_in_mrad: 0.0
+6.Spherical_aberration_Cs3,_Cs5_in_mm: 0 0
+7.Maximal_number_of_iterations: 10
+8.Minimal_phase_reconstruction_error: 1.e-4
+9.Output_defocus_distances_min_max_and_step_in_Angstroms: 10 100 10
+10.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 2
+11.Output_GRD/GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\campOut.grc
+12.Number_of_parallel_threads: 10
 //*****
 //*****!!!Don't forget to save this file after editing the parameters
