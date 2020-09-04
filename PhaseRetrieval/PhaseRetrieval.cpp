@@ -182,15 +182,6 @@ int main()
 			XArray2D<dcomplex> campOut; // complex amplitude in the plane z=0
 			vector<double> vint0_L1(ndefocus); // L1 norms of the initial defocused intensities
 
-			// read input GRD files and create the initial complex amplitudes
-			for (index_t n = 0; n < ndefocus; n++)
-			{
-				XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl);
-				vint0_L1[n] = vint0[n].Norm(eNormL1);
-				if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
-				vint0[n] ^= 0.5; // intensity --> real amplitude
-			}
-
 			// start point of IWFR iterations
 			for (int k = 0; k < kmax; k++)
 			{
@@ -201,7 +192,14 @@ int main()
 				{
 					try
 					{
-						if (k == 0)	MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
+						if (k == 0) // read input defocused intensity and create initial defocused complex amplitude
+						{
+							XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
+							vint0_L1[n] = vint0[n].Norm(eNormL1);
+							if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
+							vint0[n] ^= 0.5; // intensity --> real amplitude
+							MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
+						}
 						else // apply phases obtained on the previous iteration
 							for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
 								for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
@@ -278,7 +276,7 @@ int main()
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 1: // phase out
-						CArg(campOutn, ipOut); // @@@@ should be replaced by CArg later (after CArg is debugged)
+						CArg(campOutn, ipOut); 
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 2: // complex amplitude out
