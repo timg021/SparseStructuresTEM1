@@ -167,7 +167,7 @@ int main()
 			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle_step * na / PI * 180.0);
 			// We use the fact that currently the number of defocus planes, ndefocus, is assumed to be the same for all angles, and so we don't change it here.
 			// Similarly, the vectors of input and output defocus distances, vdefocus[] and voutdefocus[], are assumed to be the same for all angles.
-			// Filenames for the input and output defocus images are different for each angle, and so need to be adjusted here.
+			// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
 			vector<string> vinfilenames(ndefocus);
 			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[na * ndefocus + n];
 			vector<string> voutfilenames(noutdefocus);
