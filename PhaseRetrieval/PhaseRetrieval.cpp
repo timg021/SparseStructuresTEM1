@@ -34,7 +34,7 @@ int main()
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. CT rotation span in degrees and number of rotation angles
 		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading rotation span and number of rotations from input parameter file.");
 		double angle_span = atof(cparam); // total rotation span in degrees 
-		index_t nangles = (index_t)atoi(cparam); // number of rotation steps 
+		index_t nangles = (index_t)atoi(cparam1); // number of rotation steps 
 		double angle_step = angle_span / 180.0 * PI / double(nangles); // rotation step in radians
 		// !!!Later on, input parameter lines 1 and 2 (rotation angles and defocus distances) should be replaced by a single name of an input text (CSV-type) file
 		// which will contain one row per rotational position, each row containing a rotation angle followed by an arbitrary number of defocus distances at that angle
@@ -61,8 +61,8 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
 		printf("\nDefocus series file name base = %s", filenamebaseIn.c_str());
-		vector<string> vinfilenames;
-		FileNames(1, ndefocus, filenamebaseIn, vinfilenames); // create vector of input filenames
+		vector<string> vinfilenamesTot;
+		FileNames(nangles, ndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames
 		
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4. Wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength from input parameter file.");
@@ -146,8 +146,8 @@ int main()
 		default:
 			throw std::exception("Error: unknown value for output file format in input parameter file.");
 		}
-		vector<string> voutfilenames;
-		FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenames); // create vector of output filenames
+		vector<string> voutfilenamesTot;
+		FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 2D array" of output filenames
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
@@ -158,13 +158,21 @@ int main()
 		omp_set_num_threads(nThreads);
 
 		fclose(ff0); // close input parameter file
-		printf("\n");
 
 		//************************************ end reading input parameters from file
 
 		// start of cycle over rotation angles
 		for (index_t na = 0; na < nangles; na++) 
 		{
+			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle_step * na / PI * 180.0);
+			// We use the fact that currently the number of defocus planes, ndefocus, is assumed to be the same for all angles, and so we don't change it here.
+			// Similarly, the vectors of input and output defocus distances, vdefocus[] and voutdefocus[], are assumed to be the same for all angles.
+			// Filenames for the input and output defocus images are different for each angle, and so need to be adjusted here.
+			vector<string> vinfilenames(ndefocus);
+			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[na * ndefocus + n];
+			vector<string> voutfilenames(noutdefocus);
+			for (index_t n = 0; n < noutdefocus; n++) voutfilenames[n] = voutfilenamesTot[na * noutdefocus + n];
+
 			// define main work objects
 			double dtemp; // auxilliary variable
 			double ssej(0.0), ssejm1(0.0); // current and previous average reconstruction errors
@@ -175,7 +183,6 @@ int main()
 			vector<double> vint0_L1(ndefocus); // L1 norms of the initial defocused intensities
 
 			// read input GRD files and create the initial complex amplitudes
-			//@@@@@@@@@@@@@@@@@ these need to be changed to take into account different rotation angles
 			for (index_t n = 0; n < ndefocus; n++)
 			{
 				XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl);
