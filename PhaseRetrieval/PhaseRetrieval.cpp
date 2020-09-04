@@ -150,6 +150,7 @@ int main()
 		omp_set_num_threads(nThreads);
 
 		fclose(ff0); // close input parameter file
+		printf("\n");
 
 		//************************************ end reading input parameters from file
 
@@ -175,23 +176,29 @@ int main()
 		for (int k = 0; k < kmax; k++)
 		{
 			// apply initial or newly reconstructed phases (the second case is equal to restoring the original moduli)
-			for (index_t n = 0; n < ndefocus; n++)
-				if (k == 0)	MakeComplex(vint0[n], 0.0, vcamp[n], true);
-				else
-					for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
-						for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
-						{
-							dtemp = abs(vcamp[n][j][i]);
-							if (dtemp) vcamp[n][j][i] *= vint0[n][j][i] / dtemp;
-							else MakeComplex(vint0[n], 0.0, vcamp[n], true);
-						}
-
-			// backpropagate each defocused amplitude to the plane z = 0
+			// and backpropagate each defocused amplitude to the plane z = 0
 			#pragma omp parallel for
 			for (int n = 0; n < ndefocus; n++)
 			{
-				xar::XArray2DFFT<double> xafft(vcamp[n]);
-				xafft.Fresnel(-vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
+				try
+				{
+					if (k == 0)	MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
+					else // apply phases obtained on the previous iteration
+						for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
+							for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
+							{
+								dtemp = abs(vcamp[n][j][i]);
+								if (dtemp) vcamp[n][j][i] *= vint0[n][j][i] / dtemp;
+								else MakeComplex(vint0[n], 0.0, vcamp[n], true);
+							}
+					xar::XArray2DFFT<double> xafft(vcamp[n]);
+					xafft.Fresnel(-vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
+				}
+				catch (std::exception& E)
+				{
+					printf("\n\n!!!Exception: %s\n", E.what());
+					break;
+				}
 			}
 
 			// average backpropagated complex amplitudes
@@ -203,12 +210,20 @@ int main()
 			#pragma omp parallel for
 			for (int n = 0; n < ndefocus; n++)
 			{
-				vcamp[n] = campOut;
-				xar::XArray2DFFT<double> xafft(vcamp[n]);
-				xafft.Fresnel(vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
-				Abs(vcamp[n], vint[n]);
-				vint[n] -= vint0[n];
-				verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
+				try
+				{
+					vcamp[n] = campOut;
+					xar::XArray2DFFT<double> xafft(vcamp[n]);
+					xafft.Fresnel(vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
+					Abs(vcamp[n], vint[n]);
+					vint[n] -= vint0[n];
+					verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
+				}
+				catch (std::exception& E)
+				{
+					printf("\n\n!!!Exception: %s\n", E.what());
+					break;
+				}
 			}
 
 			// calculate the current reconstruction error and
@@ -222,33 +237,41 @@ int main()
 			if (k && (ssejm1 - ssej) < epsilon) break;
 			else ssejm1 = ssej;
 		} 
-		// finish point of IWFR iterations
+		// end point of IWFR iterations
 
 		// calculate and save output defocused images
+		printf("\n");
 		#pragma omp parallel for
 		for (int n = 0; n < noutdefocus; n++)
 		{
-			XArray2D<dcomplex> campOutn(campOut);
-			xar::XArray2DFFT<double> xafft(campOutn);
-			xafft.Fresnel(voutdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
-			XArray2D<double> ipOut;
-			// write the defocused intensity, phase or complex amplitude into output file
-			printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
-			switch (noutformat)
+			try
 			{
-			case 0: // intensity out
-				Abs2(campOutn, ipOut);
-				XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
-				break;
-			case 1: // phase out
-				Arg(campOutn, ipOut);
-				XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
-				break;
-			case 2: // complex amplitude out
-				XArData::WriteFileGRC(campOutn, voutfilenames[n].c_str(), eGRCBIN);
+				XArray2D<dcomplex> campOutn(campOut);
+				xar::XArray2DFFT<double> xafft(campOutn);
+				xafft.Fresnel(voutdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
+				XArray2D<double> ipOut;
+				// write the defocused intensity, phase or complex amplitude into output file
+				printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
+				switch (noutformat)
+				{
+				case 0: // intensity out
+					Abs2(campOutn, ipOut);
+					XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
+					break;
+				case 1: // phase out
+					CArg(campOutn, ipOut); // @@@@ should be replaced by CArg later (after CArg is debugged)
+					XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
+					break;
+				case 2: // complex amplitude out
+					XArData::WriteFileGRC(campOutn, voutfilenames[n].c_str(), eGRCBIN);
+					break;
+				}
+			}
+			catch (std::exception& E)
+			{
+				printf("\n\n!!!Exception: %s\n", E.what());
 				break;
 			}
-
 		}
 
 	}
