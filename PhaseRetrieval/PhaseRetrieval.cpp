@@ -258,6 +258,26 @@ int main()
 
 			// calculate and save output defocused images
 			printf("\n");
+			XArray2D<double> ipOut;
+			XArray3D<double> objOut;
+			//@@@@@@@@@@@@@@@@ 3D output case
+			IXAHWave2D* ph2(0);
+			double ylo, yhi, yst, xlo, xhi, xst, xc, zc, xxx, zzz;
+			if (noutformat == 3)
+			{
+				IXAHWave2D* ph2 = GetIXAHWave2D(vcamp[0]);
+				double ylo = ph2->GetYlo();
+				double yhi = ph2->GetYhi();
+				double yst = (yhi - ylo) / vcamp[0].GetDim1();
+				double xlo = ph2->GetXlo();
+				double xhi = ph2->GetXhi();
+				double xst = (xhi - xlo) / vcamp[0].GetDim2();
+				double xc((xhi - xlo) / 2.0), zc((voutdefocus[noutdefocus - 1] - voutdefocus[0]) / 2.0), xxx, zzz;
+
+				if (xc != zc) throw std::exception("Error: the reconstructed object is supposed to have square x-z section"); // this should be checked at the beginning
+			}
+			//@@@@@@@@@@@@@@@@
+
 			#pragma omp parallel for
 			for (int n = 0; n < noutdefocus; n++)
 			{
@@ -266,7 +286,7 @@ int main()
 					XArray2D<dcomplex> campOutn(campOut);
 					xar::XArray2DFFT<double> xafft(campOutn);
 					xafft.Fresnel(voutdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
-					XArray2D<double> ipOut;
+
 					// write the defocused intensity, phase or complex amplitude into output file
 					printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 					switch (noutformat)
@@ -281,6 +301,16 @@ int main()
 						break;
 					case 2: // complex amplitude out
 						XArData::WriteFileGRC(campOutn, voutfilenames[n].c_str(), eGRCBIN);
+						break;
+					case 3: // 3D output
+						// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
+						for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
+							for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
+							{
+								xxx = xc + (xlo + xst * i - xc) * cos(angle) + (-voutdefocus[n] + zc) * sin(angle);
+								zzz = zc + (xlo + xst * i - xc) * sin(angle) + (voutdefocus[n] - zc) * cos(angle);
+								x[k] = xxx; z[k] = zzz;
+							}
 						break;
 					}
 				}
