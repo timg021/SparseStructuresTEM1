@@ -163,11 +163,13 @@
     <ClInclude Include="..\..\XArrayLibrary\XArray.h" />
     <ClInclude Include="..\..\XArrayLibrary\XArray1D.h" />
     <ClInclude Include="..\..\XArrayLibrary\XArray2D.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XArray3D.h" />
     <ClInclude Include="..\..\XArrayLibrary\XArrayB.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_data.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_file.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_head1.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_head2.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_head3.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_ini.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

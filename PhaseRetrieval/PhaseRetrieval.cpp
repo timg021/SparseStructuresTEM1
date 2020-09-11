@@ -9,6 +9,7 @@
 
 #include "IXAHWave.h"
 #include "XArray2D.h"
+#include "XArray3D.h"
 #include "XA_data.h"
 #include "XA_file.h"
 #include "XA_fft2.h"
@@ -33,9 +34,9 @@ int main()
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. CT rotation span in degrees and number of rotation angles
 		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading rotation span and number of rotations from input parameter file.");
-		double angle_span = atof(cparam); // total rotation span in degrees 
+		double angle_span = atof(cparam) / 180.0 * PI; // total rotation span in radians 
 		index_t nangles = (index_t)atoi(cparam1); // number of rotation steps 
-		double angle_step = angle_span / 180.0 * PI / double(nangles); // rotation step in radians
+		double angle_step = angle_span / double(nangles); // rotation step in radians
 		// !!!Later on, input parameter lines 1 and 2 (rotation angles and defocus distances) should be replaced by a single name of an input text (CSV-type) file
 		// which will contain one row per rotational position, each row containing a rotation angle followed by an arbitrary number of defocus distances at that angle
 
@@ -118,7 +119,7 @@ int main()
 			printf("%g ", voutdefocus[j]);
 		}
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Output intensity(0), phase(1) or complex_amplitude(2)
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Output intensity(0), phase(1), complex_amplitude(2) or 3D contrast(3)
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
 		int noutformat = atoi(cparam);
 
@@ -143,6 +144,11 @@ int main()
 			if (GetFileExtension(filenamebaseOut) != string(".GRC"))
 				throw std::exception("Error: output filename extension for complex amplitides must be grc or GRC.");
 			break;
+		case 3:
+			printf("\nThe program will output 3D defocused contrast in a series of GRD files.");
+			if (GetFileExtension(filenamebaseOut) != string(".GRD"))
+				throw std::exception("Error: output filename extension for complex amplitides must be grd or GRD.");
+			break;
 		default:
 			throw std::exception("Error: unknown value for output file format in input parameter file.");
 		}
@@ -164,7 +170,10 @@ int main()
 		// start of cycle over rotation angles
 		for (index_t na = 0; na < nangles; na++) 
 		{
-			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle_step * na / PI * 180.0);
+			double angle = angle_step * double(na);
+			double cosangle = cos(angle);
+			double sinangle = sin(angle);
+			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle / PI * 180.0);
 			// We use the fact that currently the number of defocus planes, ndefocus, is assumed to be the same for all angles, and so we don't change it here.
 			// Similarly, the vectors of input and output defocus distances, vdefocus[] and voutdefocus[], are assumed to be the same for all angles.
 			// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
@@ -259,24 +268,35 @@ int main()
 			// calculate and save output defocused images
 			printf("\n");
 			XArray2D<double> ipOut;
-			XArray3D<double> objOut;
-			//@@@@@@@@@@@@@@@@ 3D output case
+			XArray3D<double> K3Out;
 			IXAHWave2D* ph2(0);
-			double ylo, yhi, yst, xlo, xhi, xst, xc, zc, xxx, zzz;
+			index_t ii, nn, ny = campOut.GetDim1(), nx = campOut.GetDim2();
+			double zlo, zst, xlo, xst, xc, zc, xxx, zzz, dK, zdef_sinangle, zdef_cosangle;
+			vector<double> x_sinangle(nx), x_cosangle(nx);
+
 			if (noutformat == 3)
 			{
 				IXAHWave2D* ph2 = GetIXAHWave2D(vcamp[0]);
-				double ylo = ph2->GetYlo();
-				double yhi = ph2->GetYhi();
-				double yst = (yhi - ylo) / vcamp[0].GetDim1();
-				double xlo = ph2->GetXlo();
+				zlo = voutdefocus[0] < voutdefocus[noutdefocus - 1] ? voutdefocus[0] : voutdefocus[noutdefocus - 1];
+				double zhi = voutdefocus[0] > voutdefocus[noutdefocus - 1] ? voutdefocus[0] : voutdefocus[noutdefocus - 1];
+				zst = (zhi - zlo) / noutdefocus; // this obviously assumes something about the set of output defocus planes
+				xlo = ph2->GetXlo();
 				double xhi = ph2->GetXhi();
-				double xst = (xhi - xlo) / vcamp[0].GetDim2();
-				double xc((xhi - xlo) / 2.0), zc((voutdefocus[noutdefocus - 1] - voutdefocus[0]) / 2.0), xxx, zzz;
+				xst = (xhi - xlo) / vcamp[0].GetDim2();
+				xc = (xhi - xlo) / 2.0;
+				zc = (zhi - zlo) / 2.0;
+				for (index_t i = 0; i < nx; i++)
+				{
+					xxx = xlo + xst * i - xc;
+					x_sinangle[i] = xxx * sinangle;
+					x_cosangle[i] = xxx * cosangle;
+				}
 
-				if (xc != zc) throw std::exception("Error: the reconstructed object is supposed to have square x-z section"); // this should be checked at the beginning
+				if (xc != zc || xst != zst) 
+					throw std::exception("Error: the reconstructed object is supposed to have square x-z section with square pixels"); // this should be checked at the beginning
+
+				K3Out.Resize(noutdefocus, ny, nx);
 			}
-			//@@@@@@@@@@@@@@@@
 
 			#pragma omp parallel for
 			for (int n = 0; n < noutdefocus; n++)
@@ -288,29 +308,40 @@ int main()
 					xafft.Fresnel(voutdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
 
 					// write the defocused intensity, phase or complex amplitude into output file
-					printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 					switch (noutformat)
 					{
 					case 0: // intensity out
 						Abs2(campOutn, ipOut);
+						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 1: // phase out
 						CArg(campOutn, ipOut); 
+						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 2: // complex amplitude out
+						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 						XArData::WriteFileGRC(campOutn, voutfilenames[n].c_str(), eGRCBIN);
 						break;
-					case 3: // 3D output
+					case 3: // 3D output of the contrast function
 						// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
-						for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
-							for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
+						zdef_sinangle = (voutdefocus[n] - zc) * sinangle;
+						zdef_cosangle = (voutdefocus[n] - zc) * cosangle;
+						for (index_t i = 0; i < nx; i++)
+						{
+							xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
+							zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
+							ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
+							nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
+							if (ii > nx - 1) ii = nx - 1;
+							if (nn > noutdefocus - 1) nn = noutdefocus - 1;
+							for (index_t j = 0; j < ny; j++)
 							{
-								xxx = xc + (xlo + xst * i - xc) * cos(angle) + (-voutdefocus[n] + zc) * sin(angle);
-								zzz = zc + (xlo + xst * i - xc) * sin(angle) + (voutdefocus[n] - zc) * cos(angle);
-								x[k] = xxx; z[k] = zzz;
+								dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
+								K3Out[nn][j][ii] = dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
 							}
+						}
 						break;
 					}
 				}
@@ -321,8 +352,22 @@ int main()
 				}
 			} // end of cycle over output defocus distances
 
-		} // end of cycle over rotation angles
+			// output the 3D array
+			if (na == nangles && noutformat == 3)
+			{
+				ipOut.Resize(ny, nx);
+				ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
+				for (int n = 0; n < noutdefocus; n++)
+				{
+					for (index_t j = 0; j < ny; j++)
+						for (index_t i = 0; i < nx; i++)
+							ipOut[j][i] = K3Out[n][j][i];
+					printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenames[n].c_str());
+					XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
+				}
+			}
 
+		} // end of cycle over rotation angles
 	}
 	catch (std::exception& E)
 	{
