@@ -275,7 +275,7 @@ int main()
 			XArray2D<double> ipOut;
 			IXAHWave2D* ph2(0);
 			index_t ii, nn, ny = campOut.GetDim1(), nx = campOut.GetDim2();
-			double xlo, xst, xc, zc, xxx, zzz, dK, zdef_sinangle, zdef_cosangle;
+			double xlo, xst, xc, zc, xxx, zzz, dK, zdef_sinangle, zdef_cosangle, dx0, dx1, dz0, dz1;
 			vector<double> x_sinangle(nx), x_cosangle(nx);
 
 			if (noutformat == 3)
@@ -335,16 +335,19 @@ int main()
 							{
 								xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
 								zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
-								ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
-								nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
-								if (ii > nx - 1) 
-									ii = nx - 1;
-								if (nn > noutdefocus - 1) 
-									nn = noutdefocus - 1;
+								//ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
+								//nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
+								dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; dx0 -= ii; dx0 *= 0.5; dx1 = 0.5 - dx0;
+								dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0;
+								if (ii > nx - 2 || nn > noutdefocus - 2) continue;
 								for (index_t j = 0; j < ny; j++)
 								{
 									dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
-									K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
+									//K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
+									K3Out[nn][j][ii] += (dx0 + dz0) * dK;
+									K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK;
+									K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK;
+									K3Out[nn + 1][j][ii + 1] += (dx1 + dz1) * dK;
 								}
 							}
 						}
