@@ -104,18 +104,19 @@ int main()
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Output defocus distances min max and step in Angstroms
 		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading output defocus distances from input parameter file.");
-		double outdefocus_min = atof(cparam); // minimum output defocus in Angstroms 
-		double outdefocus_max = atof(cparam1); // maximum output defocus in Angstroms 
-		double outdefocus_step = atof(cparam2); // output defocus step in Angstroms 
-		printf("\nOutput defocus distances: min = %g, max = %g, step = %g (Angstroms)", outdefocus_min, outdefocus_max, outdefocus_step);
-		int noutdefocus = int((outdefocus_max - outdefocus_min) / outdefocus_step + 0.5); // number of defocus planes to propagate to
+		double zlo = atof(cparam); // minimum output defocus in Angstroms 
+		double zhi = atof(cparam1); // maximum output defocus in Angstroms 
+		double zst = abs(atof(cparam2)); // output defocus step in Angstroms 
+		if (zlo > zhi) std::swap(zlo, zhi);
+		printf("\nOutput defocus distances: min = %g, max = %g, step = %g (Angstroms)", zlo, zhi, zst);
+		int noutdefocus = int((zhi - zlo) / zst + 0.5); // number of defocus planes to propagate to
 		if (noutdefocus <= 0)
 			throw std::exception("Error: number of output defocus planes must be positive.");
 		vector<double> voutdefocus(noutdefocus); // vector of output defocus distances
 		printf("\nOutput defocus plane positions (%d in total): ", noutdefocus);
 		for (int j = 0; j < noutdefocus; j++)
 		{
-			voutdefocus[j] = outdefocus_min + outdefocus_step * j;
+			voutdefocus[j] = zlo + zst * j;
 			printf("%g ", voutdefocus[j]);
 		}
 
@@ -153,8 +154,10 @@ int main()
 			throw std::exception("Error: unknown value for output file format in input parameter file.");
 		}
 		vector<string> voutfilenamesTot;
-		FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 2D array" of output filenames
-
+		if (noutformat == 3)
+			FileNames(1, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 1D array" of output filenames
+		else
+			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 2D array" of output filenames
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
 		int nThreads = atoi(cparam);
@@ -168,6 +171,7 @@ int main()
 		//************************************ end reading input parameters from file
 
 		// start of cycle over rotation angles
+		XArray3D<double> K3Out;
 		for (index_t na = 0; na < nangles; na++) 
 		{
 			double angle = angle_step * double(na);
@@ -180,7 +184,8 @@ int main()
 			vector<string> vinfilenames(ndefocus);
 			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[na * ndefocus + n];
 			vector<string> voutfilenames(noutdefocus);
-			for (index_t n = 0; n < noutdefocus; n++) voutfilenames[n] = voutfilenamesTot[na * noutdefocus + n];
+			if (noutformat != 3) 
+				for (index_t n = 0; n < noutdefocus; n++) voutfilenames[n] = voutfilenamesTot[na * noutdefocus + n];
 
 			// define main work objects
 			double dtemp; // auxilliary variable
@@ -223,7 +228,7 @@ int main()
 					catch (std::exception& E)
 					{
 						printf("\n\n!!!Exception: %s\n", E.what());
-						break;
+						throw;
 					}
 				}
 
@@ -248,7 +253,7 @@ int main()
 					catch (std::exception& E)
 					{
 						printf("\n\n!!!Exception: %s\n", E.what());
-						break;
+						throw;
 					}
 				}
 
@@ -268,23 +273,22 @@ int main()
 			// calculate and save output defocused images
 			printf("\n");
 			XArray2D<double> ipOut;
-			XArray3D<double> K3Out;
 			IXAHWave2D* ph2(0);
 			index_t ii, nn, ny = campOut.GetDim1(), nx = campOut.GetDim2();
-			double zlo, zst, xlo, xst, xc, zc, xxx, zzz, dK, zdef_sinangle, zdef_cosangle;
+			double xlo, xst, xc, zc, xxx, zzz, dK, zdef_sinangle, zdef_cosangle;
 			vector<double> x_sinangle(nx), x_cosangle(nx);
 
 			if (noutformat == 3)
 			{
 				IXAHWave2D* ph2 = GetIXAHWave2D(vcamp[0]);
-				zlo = voutdefocus[0] < voutdefocus[noutdefocus - 1] ? voutdefocus[0] : voutdefocus[noutdefocus - 1];
-				double zhi = voutdefocus[0] > voutdefocus[noutdefocus - 1] ? voutdefocus[0] : voutdefocus[noutdefocus - 1];
-				zst = (zhi - zlo) / noutdefocus; // this obviously assumes something about the set of output defocus planes
 				xlo = ph2->GetXlo();
 				double xhi = ph2->GetXhi();
 				xst = (xhi - xlo) / vcamp[0].GetDim2();
-				xc = (xhi - xlo) / 2.0;
-				zc = (zhi - zlo) / 2.0;
+				if (xst != zst)
+					throw std::exception("Error: the reconstructed object is supposed to have square pixels"); // this should be checked at the beginning
+
+				xc = (xhi + xlo) / 2.0; 
+				zc = (zhi + zlo) / 2.0;
 				for (index_t i = 0; i < nx; i++)
 				{
 					xxx = xlo + xst * i - xc;
@@ -292,13 +296,10 @@ int main()
 					x_cosangle[i] = xxx * cosangle;
 				}
 
-				if (xc != zc || xst != zst) 
-					throw std::exception("Error: the reconstructed object is supposed to have square x-z section with square pixels"); // this should be checked at the beginning
-
-				K3Out.Resize(noutdefocus, ny, nx);
+				if (na == 0) K3Out.Resize(noutdefocus, ny, nx, 0.0);
 			}
 
-			#pragma omp parallel for
+			#pragma omp parallel for shared (K3Out)
 			for (int n = 0; n < noutdefocus; n++)
 			{
 				try
@@ -316,7 +317,7 @@ int main()
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 1: // phase out
-						CArg(campOutn, ipOut); 
+						CArg(campOutn, ipOut);
 						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
@@ -326,20 +327,25 @@ int main()
 						break;
 					case 3: // 3D output of the contrast function
 						// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
-						zdef_sinangle = (voutdefocus[n] - zc) * sinangle;
-						zdef_cosangle = (voutdefocus[n] - zc) * cosangle;
-						for (index_t i = 0; i < nx; i++)
+						#pragma omp critical
 						{
-							xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
-							zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
-							ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
-							nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
-							if (ii > nx - 1) ii = nx - 1;
-							if (nn > noutdefocus - 1) nn = noutdefocus - 1;
-							for (index_t j = 0; j < ny; j++)
+							zdef_sinangle = (voutdefocus[n] - zc) * sinangle;
+							zdef_cosangle = (voutdefocus[n] - zc) * cosangle;
+							for (index_t i = 0; i < nx; i++)
 							{
-								dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
-								K3Out[nn][j][ii] = dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
+								xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
+								zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
+								ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
+								nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
+								if (ii > nx - 1) 
+									ii = nx - 1;
+								if (nn > noutdefocus - 1) 
+									nn = noutdefocus - 1;
+								for (index_t j = 0; j < ny; j++)
+								{
+									dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
+									K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
+								}
 							}
 						}
 						break;
@@ -348,12 +354,12 @@ int main()
 				catch (std::exception& E)
 				{
 					printf("\n\n!!!Exception: %s\n", E.what());
-					break;
+					throw;
 				}
 			} // end of cycle over output defocus distances
 
 			// output the 3D array
-			if (na == nangles && noutformat == 3)
+			if (na == (nangles - 1) && noutformat == 3)
 			{
 				ipOut.Resize(ny, nx);
 				ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
@@ -362,8 +368,8 @@ int main()
 					for (index_t j = 0; j < ny; j++)
 						for (index_t i = 0; i < nx; i++)
 							ipOut[j][i] = K3Out[n][j][i];
-					printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenames[n].c_str());
-					XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
+					printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
+					XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
 				}
 			}
 
