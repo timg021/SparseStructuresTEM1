@@ -172,9 +172,10 @@ int main()
 		fclose(ff0); // close input parameter file
 
 		//************************************ end reading input parameters from file
+		double xlo, xhi, xst;
+		XArray3D<double> K3Out; // big 3D reconstructed array (needs to fit into RAM alongside with with everything else)
 
 		// start of cycle over rotation angles
-		XArray3D<double> K3Out;
 		for (index_t na = 0; na < nangles; na++) 
 		{
 			double angle = angle_step * double(na);
@@ -236,6 +237,16 @@ int main()
 					}
 				}
 
+				if (k == 0 && noutformat == 3)
+				{
+					IXAHWave2D* ph2 = GetIXAHWave2D(vcamp[0]);
+					xlo = ph2->GetXlo();
+					xhi = ph2->GetXhi();
+					xst = (xhi - xlo) / vcamp[0].GetDim2();
+					if (xst != zst)
+						throw std::exception("Error: the reconstructed object is supposed to have square pixels");
+				}
+
 				// average complex amplitudes in the middle plane
 				campOut = vcamp[0];
 				for (index_t n = 1; n < ndefocus; n++) campOut += vcamp[n];
@@ -278,89 +289,44 @@ int main()
 			}
 			// end point of IWFR iterations
 
-			// calculate and save output defocused images
+			// now start calculations of the output defocused images
 			printf("\n");
-			XArray2D<double> ipOut;
-			IXAHWave2D* ph2(0);
-			index_t ii, nn, ny = campOut.GetDim1(), nx = campOut.GetDim2();
-			double xlo, xst, xc, zc, xxx, zzz, dK, zdef_sinangle, zdef_cosangle, dx0, dx1, dz0, dz1;
-			vector<double> x_sinangle(nx), x_cosangle(nx);
+			
+			vcamp.resize(noutdefocus); // repurpose the vector of 2D complex XArrays
 
-			if (noutformat == 3)
-			{
-				IXAHWave2D* ph2 = GetIXAHWave2D(vcamp[0]);
-				xlo = ph2->GetXlo();
-				double xhi = ph2->GetXhi();
-				xst = (xhi - xlo) / vcamp[0].GetDim2();
-				if (xst != zst)
-					throw std::exception("Error: the reconstructed object is supposed to have square pixels"); // this should be checked at the beginning
-
-				xc = (xhi + xlo) / 2.0; 
-				zc = (zhi + zlo) / 2.0;
-				for (index_t i = 0; i < nx; i++)
-				{
-					xxx = xlo + xst * i - xc;
-					x_sinangle[i] = xxx * sinangle;
-					x_cosangle[i] = xxx * cosangle;
-				}
-
-				if (na == 0) K3Out.Resize(noutdefocus, ny, nx, 0.0);
-			}
-
-			#pragma omp parallel for shared (campOut, K3Out)
-			for (int n = 0; n < noutdefocus; n++)
+			#pragma omp parallel for
+			for (int n = 0; n < noutdefocus; n++) 
 			{
 				try
 				{
-					XArray2D<dcomplex> campOutn(campOut);
-					xar::XArray2DFFT<double> xafft(campOutn);
+					// propagate to the output defocused plane
+					vcamp[n] = campOut;
+					xar::XArray2DFFT<double> xafft(vcamp[n]);
 					xafft.Fresnel(voutdefocus[n] - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
-
-					// write the defocused intensity, phase or complex amplitude into output file
+					
+					// write the defocused intensity, phase or complex amplitude into a separate 2D file (unless noutformat == 3)
+					XArray2D<double> ipOut;
 					switch (noutformat)
 					{
 					case 0: // intensity out
-						Abs2(campOutn, ipOut);
+						Abs2(vcamp[n], ipOut);
 						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 1: // phase out
-						CArg(campOutn, ipOut);
+						CArg(vcamp[n], ipOut);
 						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
 						XArData::WriteFileGRD(ipOut, voutfilenames[n].c_str(), eGRDBIN);
 						break;
 					case 2: // complex amplitude out
 						printf("\nOutput defocus distance = %g; output file = %s", voutdefocus[n], voutfilenames[n].c_str());
-						XArData::WriteFileGRC(campOutn, voutfilenames[n].c_str(), eGRCBIN);
+						XArData::WriteFileGRC(vcamp[n], voutfilenames[n].c_str(), eGRCBIN);
 						break;
 					case 3: // 3D output of the contrast function
-						// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
-						#pragma omp critical
-						{
-							zdef_sinangle = (voutdefocus[n] - zc) * sinangle;
-							zdef_cosangle = (voutdefocus[n] - zc) * cosangle;
-							for (index_t i = 0; i < nx; i++)
-							{
-								xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
-								zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
-								//ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
-								//nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
-								dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; dx0 -= ii; dx0 *= 0.5; dx1 = 0.5 - dx0;
-								dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0;
-								if (ii > nx - 2 || nn > noutdefocus - 2) continue;
-								for (index_t j = 0; j < ny; j++)
-								{
-									//dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
-									dK = std::norm(campOutn[j][i]); // @@@@@@@@@@@@@ temporary
-									//K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
-									K3Out[nn][j][ii] += (dx0 + dz0) * dK;
-									K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK;
-									K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK;
-									K3Out[nn + 1][j][ii + 1] += (dx1 + dz1) * dK;
-								}
-							}
-						}
+						// in this case the output takes place only once, at the last rotation angle
 						break;
+					default:
+						throw std::exception("Error: unknown output format");
 					}
 				}
 				catch (std::exception& E)
@@ -368,20 +334,71 @@ int main()
 					printf("\n\n!!!Exception: %s\n", E.what());
 					throw;
 				}
-			} // end of cycle over output defocus distances
+			}
 
-			// output the 3D array
-			if (na == (nangles - 1) && noutformat == 3)
+			if (noutformat == 3) // add the output defocused data obtained at the current rotational angle to the 3D object that is being reconstructed
 			{
-				ipOut.Resize(ny, nx);
-				ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
+				index_t ny = vcamp[0].GetDim1();
+				index_t nx = vcamp[0].GetDim2();
+
+				double xc = (xhi + xlo) / 2.0; // x-coordinate of the centre of rotation
+				double zc = (zhi + zlo) / 2.0; // z-coordinate of the centre of rotation
+
+				// calculate the coordinate rotation angle parameters
+				double xxx;
+				vector<double> x_sinangle(nx), x_cosangle(nx);
+				for (index_t i = 0; i < nx; i++)
+				{
+					xxx = xlo + xst * i - xc;
+					x_sinangle[i] = xxx * sinangle;
+					x_cosangle[i] = xxx * cosangle;
+				}
+
+				// allocate the large 3D output array
+				if (na == 0) K3Out.Resize(noutdefocus, ny, nx, 0.0);
+
+				// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
+				index_t ii, nn;
+				double zzz, dK, zdef_sinangle, zdef_cosangle, dx0, dx1, dz0, dz1;
 				for (int n = 0; n < noutdefocus; n++)
 				{
-					for (index_t j = 0; j < ny; j++)
-						for (index_t i = 0; i < nx; i++)
-							ipOut[j][i] = K3Out[n][j][i];
-					printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
-					XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
+					zdef_sinangle = (voutdefocus[n] - zc) * sinangle;
+					zdef_cosangle = (voutdefocus[n] - zc) * cosangle;
+					for (index_t i = 0; i < nx; i++)
+					{
+						xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
+						zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
+						//ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
+						//nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
+						dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; dx0 -= ii; dx0 *= 0.5; dx1 = 0.5 - dx0;
+						dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0;
+						if (ii > nx - 2 || nn > noutdefocus - 2) continue;
+						for (index_t j = 0; j < ny; j++)
+						{
+							//dK = 1.0 - std::norm(vcamp[n][j][i]); // contrast value at this point of the defocused plane
+							dK = std::norm(vcamp[n][j][i]); // @@@@@@@@@@@@@ temporary
+							//K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
+							K3Out[nn][j][ii] += (dx0 + dz0) * dK;
+							K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK;
+							K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK;
+							K3Out[nn + 1][j][ii + 1] += (dx1 + dz1) * dK;
+						}
+					}
+				}
+
+				// output the 3D array
+				if (na == (nangles - 1))
+				{
+					XArray2D<double> ipOut(ny, nx);
+					ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
+					for (int n = 0; n < noutdefocus; n++)
+					{
+						for (index_t j = 0; j < ny; j++)
+							for (index_t i = 0; i < nx; i++)
+								ipOut[j][i] = K3Out[n][j][i];
+						printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
+						XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
+					}
 				}
 			}
 
