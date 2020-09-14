@@ -746,7 +746,7 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 
 			for (size_t j = 0; j < defocus.size(); j++)
 			{
-				printf("\n  Defocus = %g", defocus[j]);
+				printf("\n  Defocus = %g (A)", defocus[j]);
 				for (ix = 0; ix < nx; ix++)
 					for (iy = 0; iy < ny; iy++)
 						camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));

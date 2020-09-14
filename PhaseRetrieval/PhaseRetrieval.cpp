@@ -57,11 +57,14 @@ int main()
 			vdefocus[j] = atof(vstr_defocus[j]);
 			printf("%g ", vdefocus[j]);
 		}
+		double zmiddle(0.0); // "middle z plane" position
+		for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
+		zmiddle /= double(ndefocus);
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
-		printf("\nDefocus series file name base = %s", filenamebaseIn.c_str());
+		printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());
 		vector<string> vinfilenamesTot;
 		FileNames(nangles, ndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames
 		
@@ -200,7 +203,7 @@ int main()
 			for (int k = 0; k < kmax; k++)
 			{
 				// apply initial or newly reconstructed phases (the second case is equal to restoring the original moduli)
-				// and backpropagate each defocused amplitude to the plane z = 0
+				// and propagate each defocused amplitude to the "middle" plane z = zmiddle
 				#pragma omp parallel for
 				for (int n = 0; n < ndefocus; n++)
 				{
@@ -210,6 +213,7 @@ int main()
 						{
 							XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
 							vint0_L1[n] = vint0[n].Norm(eNormL1);
+							printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
 							if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
 							vint0[n] ^= 0.5; // intensity --> real amplitude
 							MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
@@ -220,10 +224,10 @@ int main()
 								{
 									dtemp = abs(vcamp[n][j][i]);
 									if (dtemp) vcamp[n][j][i] *= vint0[n][j][i] / dtemp;
-									else MakeComplex(vint0[n], 0.0, vcamp[n], true);
+									else vcamp[n][j][i] = std::polar(vint0[n][j][i], 0.0);
 								}
 						xar::XArray2DFFT<double> xafft(vcamp[n]);
-						xafft.Fresnel(-vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
+						xafft.Fresnel(zmiddle - vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
 					}
 					catch (std::exception& E)
 					{
@@ -232,20 +236,20 @@ int main()
 					}
 				}
 
-				// average backpropagated complex amplitudes
+				// average complex amplitudes in the middle plane
 				campOut = vcamp[0];
 				for (index_t n = 1; n < ndefocus; n++) campOut += vcamp[n];
 				campOut /= double(ndefocus);
 
-				// forward propagate the averaged complex amplitude to the defocus planes
-				#pragma omp parallel for
+				// propagate the averaged complex amplitude from the middle plane to the individual defocus planes
+				#pragma omp parallel for shared(campOut)
 				for (int n = 0; n < ndefocus; n++)
 				{
 					try
 					{
 						vcamp[n] = campOut;
 						xar::XArray2DFFT<double> xafft(vcamp[n]);
-						xafft.Fresnel(vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
+						xafft.Fresnel(vdefocus[n] - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
 						Abs(vcamp[n], vint[n]);
 						vint[n] -= vint0[n];
 						verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
@@ -263,9 +267,13 @@ int main()
 				ssej = 0.0;
 				for (index_t n = 0; n < ndefocus; n++) ssej += verr[n];
 				ssej /= double(ndefocus);
-				printf("\nIteration number %d; SSE_aver error difference = %g\n", k, ssejm1 - ssej);
+				
+				if (k == 0) printf("\nIteration number %d; SSE_aver error at 0th iteration = %g\n", k, ssej);
+				else printf("\nIteration number %d; SSE_aver error difference with previous iteration = %g\n", k, ssejm1 - ssej);
+				
 				for (index_t n = 0; n < ndefocus; n++) printf("SSE(%zd) = %g ", n, verr[n]);
-				if (k && (ssejm1 - ssej) < epsilon) break;
+				
+				if (k > 0 && (ssejm1 - ssej) < epsilon) break;
 				else ssejm1 = ssej;
 			}
 			// end point of IWFR iterations
@@ -299,14 +307,14 @@ int main()
 				if (na == 0) K3Out.Resize(noutdefocus, ny, nx, 0.0);
 			}
 
-			#pragma omp parallel for shared (K3Out)
+			#pragma omp parallel for shared (campOut, K3Out)
 			for (int n = 0; n < noutdefocus; n++)
 			{
 				try
 				{
 					XArray2D<dcomplex> campOutn(campOut);
 					xar::XArray2DFFT<double> xafft(campOutn);
-					xafft.Fresnel(voutdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
+					xafft.Fresnel(voutdefocus[n] - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z_out[n]
 
 					// write the defocused intensity, phase or complex amplitude into output file
 					switch (noutformat)
@@ -342,7 +350,8 @@ int main()
 								if (ii > nx - 2 || nn > noutdefocus - 2) continue;
 								for (index_t j = 0; j < ny; j++)
 								{
-									dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
+									//dK = 1.0 - std::norm(campOutn[j][i]); // contrast value at this point of the defocused plane
+									dK = std::norm(campOutn[j][i]); // @@@@@@@@@@@@@ temporary
 									//K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
 									K3Out[nn][j][ii] += (dx0 + dz0) * dK;
 									K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK;

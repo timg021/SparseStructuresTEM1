@@ -151,8 +151,8 @@ int main(void)
 		// start the cycle over projection angles
 		for (size_t i = 0; i < nangles; i++)
 		{
-			printf("\nAngle = %zd", i);
 			angle = angle_step * double(i);
+			printf("\nAngle = %g (degrees)", angle / PI180);
 			sprintf(bufangle, "%f", angle); strAngle = bufangle;
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
 
