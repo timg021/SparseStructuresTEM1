@@ -217,11 +217,7 @@ int main()
 							XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
 							vint0_L1[n] = vint0[n].Norm(eNormL1);
 							printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
-							if (vint0_L1[n] == 0) //throw std::exception("Error: input intensity file is empty");
-							{
-								vint0[n] += 1.e-7; //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-								vint0_L1[n] = vint0[n].Norm(eNormL1); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-							}
+							if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
 							vint0[n] ^= 0.5; // intensity --> real amplitude
 							MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
 						}
@@ -394,7 +390,6 @@ int main()
 						{
 #if defined(BILINEAR_INTERPOLATION)
 							dK = 1.0 - std::norm(vcamp[n][j][i]); // contrast value at this point of the defocused plane
-							//dK = std::norm(vcamp[n][j][i]); // bilinear interpolation variant @@@@@@@@@@@@@ temporary
 							K3Out[nn][j][ii] += (dx0 + dz0) * dK; // "bilinear" interpolation variant
 							K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK; // "bilinear" interpolation variant
 							K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK; // "bilinear" interpolation variant
@@ -410,6 +405,7 @@ int main()
 				// output the 3D array
 				if (na == (nangles - 1))
 				{
+					K3Out /= double(nangles);
 					XArray2D<double> ipOut(ny, nx);
 					ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
 					for (int n = 0; n < noutdefocus; n++)
