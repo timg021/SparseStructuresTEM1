@@ -16,6 +16,8 @@
 
 using namespace xar;
 
+#define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
+
 
 int main()
 {
@@ -178,7 +180,7 @@ int main()
 		// start of cycle over rotation angles
 		for (index_t na = 0; na < nangles; na++) 
 		{
-			double angle = angle_step * double(na);
+ 			double angle = angle_step * double(na);
 			double cosangle = cos(angle);
 			double sinangle = sin(angle);
 			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle / PI * 180.0);
@@ -215,7 +217,11 @@ int main()
 							XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
 							vint0_L1[n] = vint0[n].Norm(eNormL1);
 							printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
-							if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
+							if (vint0_L1[n] == 0) //throw std::exception("Error: input intensity file is empty");
+							{
+								vint0[n] += 1.e-7; //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+								vint0_L1[n] = vint0[n].Norm(eNormL1); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+							}
 							vint0[n] ^= 0.5; // intensity --> real amplitude
 							MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
 						}
@@ -244,7 +250,7 @@ int main()
 					xhi = ph2->GetXhi();
 					xst = (xhi - xlo) / vcamp[0].GetDim2();
 					if (xst != zst)
-						throw std::exception("Error: the reconstructed object is supposed to have square pixels");
+						throw std::exception("Error: the 3D reconstructed object is supposed to have square pixels");
 				}
 
 				// average complex amplitudes in the middle plane
@@ -290,7 +296,7 @@ int main()
 			// end point of IWFR iterations
 
 			// now start calculations of the output defocused images
-			printf("\n");
+			printf("\nPropagating to output defocus planes ...");
 			
 			vcamp.resize(noutdefocus); // repurpose the vector of 2D complex XArrays
 
@@ -338,6 +344,7 @@ int main()
 
 			if (noutformat == 3) // add the output defocused data obtained at the current rotational angle to the 3D object that is being reconstructed
 			{
+				printf("\nUpdating 3D reconstructed object ...");
 				index_t ny = vcamp[0].GetDim1();
 				index_t nx = vcamp[0].GetDim2();
 
@@ -359,29 +366,43 @@ int main()
 
 				// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
 				index_t ii, nn;
-				double zzz, dK, zdef_sinangle, zdef_cosangle, dx0, dx1, dz0, dz1;
+				double zzz, z_sinangle, z_cosangle;
+#if defined(BILINEAR_INTERPOLATION)
+				index_t nx2 = nx - 2, noutdefocus2 = noutdefocus - 2;
+				double dK, dx0, dx1, dz0, dz1;
+#else
+				index_t nx1 = nx - 1, noutdefocus1 = noutdefocus - 1;
+#endif
 				for (int n = 0; n < noutdefocus; n++)
 				{
-					zdef_sinangle = (voutdefocus[n] - zc) * sinangle;
-					zdef_cosangle = (voutdefocus[n] - zc) * cosangle;
+					z_sinangle = (voutdefocus[n] - zc) * sinangle;
+					z_cosangle = (voutdefocus[n] - zc) * cosangle;
 					for (index_t i = 0; i < nx; i++)
 					{
-						xxx = xc + x_cosangle[i] - zdef_sinangle; // x coordinate with respect to the rotated 3D sample
-						zzz = zc + x_sinangle[i] + zdef_cosangle; // z coordinate with respect to the rotated 3D sample
-						//ii = (index_t)(abs(xxx - xlo) / xst + 0.5);
-						//nn = (index_t)(abs(zzz - zlo) / zst + 0.5);
-						dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; dx0 -= ii; dx0 *= 0.5; dx1 = 0.5 - dx0;
-						dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0;
-						if (ii > nx - 2 || nn > noutdefocus - 2) continue;
+						xxx = xc + x_cosangle[i] - z_sinangle; // x coordinate with respect to the rotated 3D sample
+						zzz = zc + x_sinangle[i] + z_cosangle; // z coordinate with respect to the rotated 3D sample
+#if defined(BILINEAR_INTERPOLATION)
+						dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; dx0 -= ii; dx0 *= 0.5; dx1 = 0.5 - dx0; // "bilinear" interpolation variant
+						dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0; // "bilinear" interpolation variant
+						if (ii > nx2 || nn > noutdefocus2) continue;
+#else
+						ii = (index_t)(abs(xxx - xlo) / xst + 0.5); // nearest neighbour interpolation variant
+						nn = (index_t)(abs(zzz - zlo) / zst + 0.5); // nearest neighbour interpolation variant
+						if (ii > nx1 || nn > noutdefocus1) continue;
+#endif
 						for (index_t j = 0; j < ny; j++)
 						{
-							//dK = 1.0 - std::norm(vcamp[n][j][i]); // contrast value at this point of the defocused plane
-							dK = std::norm(vcamp[n][j][i]); // @@@@@@@@@@@@@ temporary
-							//K3Out[nn][j][ii] += dK; // nearest neigbour interpolation for now - should be replaced by bilinear interpolation later
-							K3Out[nn][j][ii] += (dx0 + dz0) * dK;
-							K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK;
-							K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK;
-							K3Out[nn + 1][j][ii + 1] += (dx1 + dz1) * dK;
+#if defined(BILINEAR_INTERPOLATION)
+							dK = 1.0 - std::norm(vcamp[n][j][i]); // contrast value at this point of the defocused plane
+							//dK = std::norm(vcamp[n][j][i]); // bilinear interpolation variant @@@@@@@@@@@@@ temporary
+							K3Out[nn][j][ii] += (dx0 + dz0) * dK; // "bilinear" interpolation variant
+							K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK; // "bilinear" interpolation variant
+							K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK; // "bilinear" interpolation variant
+							K3Out[nn + 1][j][ii + 1] += (dx1 + dz1) * dK; // "bilinear" interpolation variant
+#else
+							K3Out[nn][j][ii] += 1.0 - std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant
+							//K3Out[nn][j][ii] += std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant @@@@@ temporary
+#endif
 						}
 					}
 				}
