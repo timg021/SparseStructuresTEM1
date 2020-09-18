@@ -167,6 +167,7 @@
     <ClInclude Include="..\..\XArrayLibrary\XArrayB.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_data.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_file.h" />
+    <ClInclude Include="..\..\XArrayLibrary\XA_filt2.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_head1.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_head2.h" />
     <ClInclude Include="..\..\XArrayLibrary\XA_head3.h" />

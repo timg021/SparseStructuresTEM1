@@ -13,6 +13,7 @@
 #include "XA_data.h"
 #include "XA_file.h"
 #include "XA_fft2.h"
+#include "XA_filt2.h"
 
 using namespace xar;
 
@@ -338,6 +339,7 @@ int main()
 				}
 			}
 
+
 			if (noutformat == 3) // add the output defocused data obtained at the current rotational angle to the 3D object that is being reconstructed
 			{
 				printf("\nUpdating 3D reconstructed object ...");
@@ -382,9 +384,12 @@ int main()
 						dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0; // "bilinear" interpolation variant
 						if (ii > nx2 || nn > noutdefocus2) continue;
 #else
-						ii = (index_t)(abs(xxx - xlo) / xst + 0.5); // nearest neighbour interpolation variant
-						nn = (index_t)(abs(zzz - zlo) / zst + 0.5); // nearest neighbour interpolation variant
-						if (ii > nx1 || nn > noutdefocus1) continue;
+						if (xxx < xlo) xxx = xlo;
+						if (zzz < zlo) zzz = zlo;
+						ii = (index_t)((xxx - xlo) / xst + 0.5); // nearest neighbour interpolation variant
+						nn = (index_t)((zzz - zlo) / zst + 0.5); // nearest neighbour interpolation variant
+						if (ii > nx1) ii = nx1;
+						if (nn > noutdefocus1) nn = noutdefocus1;
 #endif
 						for (index_t j = 0; j < ny; j++)
 						{
@@ -408,11 +413,13 @@ int main()
 					K3Out /= double(nangles);
 					XArray2D<double> ipOut(ny, nx);
 					ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
+					XArray2DFilt<double> xafilt(ipOut);
 					for (int n = 0; n < noutdefocus; n++)
 					{
 						for (index_t j = 0; j < ny; j++)
 							for (index_t i = 0; i < nx; i++)
 								ipOut[j][i] = K3Out[n][j][i];
+						xafilt.AverageFilt(5, 0);
 						printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
 						XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
 					}
