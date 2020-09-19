@@ -13,12 +13,12 @@
 #include "XA_data.h"
 #include "XA_file.h"
 #include "XA_fft2.h"
-#include "XA_filt2.h"
 
 using namespace xar;
 
 #define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
+void TriangleFilter(double* pArr, int nn, int nfilt2);
 
 int main()
 {
@@ -410,18 +410,36 @@ int main()
 				// output the 3D array
 				if (na == (nangles - 1))
 				{
+					int nfilt2 = 5; // @@@@ should become an input parameter
+
 					K3Out /= double(nangles);
-					XArray2D<double> ipOut(ny, nx);
-					ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
-					XArray2DFilt<double> xafilt(ipOut);
+
+					#pragma omp parallel for shared(K3Out)
 					for (int n = 0; n < noutdefocus; n++)
 					{
-						for (index_t j = 0; j < ny; j++)
+						try
+						{
+							XArray1D<double> XArrTemp(ny);
+							double* pArr = &XArrTemp[0];
+
+							XArray2D<double> ipOut(ny, nx);
+							ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
+
 							for (index_t i = 0; i < nx; i++)
-								ipOut[j][i] = K3Out[n][j][i];
-						xafilt.AverageFilt(5, 0);
-						printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
-						XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
+								for (index_t j = 0; j < ny; j++)
+								{
+									for (index_t j = 0; j < ny; j++) XArrTemp[j] = K3Out[n][j][i];
+									TriangleFilter(pArr + nfilt2, int(ny - nfilt2 * 2), nfilt2);
+									for (index_t j = 0; j < ny; j++) ipOut[j][i] = XArrTemp[j];
+								}
+							printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
+							XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
+						}
+						catch (std::exception& E)
+						{
+							printf("\n\n!!!Exception: %s\n", E.what());
+							throw;
+						}
 					}
 				}
 			}
@@ -439,4 +457,18 @@ int main()
 	printf("\nPress any key to exit..."); getchar();
 	return 0;
 
+}
+
+
+void TriangleFilter(double* pArr, int nn, int nfilt2)
+{
+	XArray1D<double> temp(nn, 0.0);
+	double fact = 1.0 / double((nfilt2 + 1) * (nfilt2 + 1));
+	for (int i = 0; i < nn; i++)
+	{
+		for (int j = -nfilt2; j <= nfilt2; j++)
+			temp[i] += pArr[i + j] * double(1 + (nfilt2 - abs(j)));
+		temp[i] *= fact;
+	}
+	for (int i = 0; i < nn; i++) pArr[i] = temp[i];
 }
