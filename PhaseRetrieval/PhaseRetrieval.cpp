@@ -18,7 +18,7 @@ using namespace xar;
 
 #define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
-void TriangleFilter(double* pArr, int nn, int nfilt2);
+void TriangularFilter(vector<double>& xarr, int nfilt2);
 
 int main()
 {
@@ -130,7 +130,12 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
 		int noutformat = atoi(cparam);
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Output file name base in GRD or GRC format
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Width of triangular filter in y direction for 3D output in Angstroms (0 for no filter)
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
+		double wfilt = atof(cparam);
+		printf("\nWidth of triangular filter in y direction for 3D output = %g (Angstroms)", wfilt);
+
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Output file name base in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
 		string filenamebaseOut = cparam;
 		printf("\nOutput file name base = %s", filenamebaseOut.c_str());
@@ -164,7 +169,7 @@ int main()
 			FileNames(1, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 1D array" of output filenames
 		else
 			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 2D array" of output filenames
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Number of parallel threads
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
 		int nThreads = atoi(cparam);
 		printf("\nNumber of parallel threads = %d", nThreads);
@@ -175,6 +180,7 @@ int main()
 		fclose(ff0); // close input parameter file
 
 		//************************************ end reading input parameters from file
+		int nfilt2; // half-width of the triangular filter in y direction
 		double xlo, xhi, xst;
 		XArray3D<double> K3Out; // big 3D reconstructed array (needs to fit into RAM alongside with with everything else)
 
@@ -216,6 +222,16 @@ int main()
 						if (k == 0) // read input defocused intensity and create initial defocused complex amplitude
 						{
 							XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
+							if (noutformat == 3)
+							{
+								IXAHWave2D* ph2 = GetIXAHWave2D(vint0[n]);
+								xlo = ph2->GetXlo();
+								xhi = ph2->GetXhi();
+								xst = (xhi - xlo) / vint0[n].GetDim2();
+								if (xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have square pixels");
+								nfilt2 = int(wfilt / 2.0 / xst + 0.5);
+								if (n == 0) printf("\nnfilt2 = %d", nfilt2);
+							}
 							vint0_L1[n] = vint0[n].Norm(eNormL1);
 							printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
 							if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
@@ -238,16 +254,6 @@ int main()
 						printf("\n\n!!!Exception: %s\n", E.what());
 						throw;
 					}
-				}
-
-				if (k == 0 && noutformat == 3)
-				{
-					IXAHWave2D* ph2 = GetIXAHWave2D(vcamp[0]);
-					xlo = ph2->GetXlo();
-					xhi = ph2->GetXhi();
-					xst = (xhi - xlo) / vcamp[0].GetDim2();
-					if (xst != zst)
-						throw std::exception("Error: the 3D reconstructed object is supposed to have square pixels");
 				}
 
 				// average complex amplitudes in the middle plane
@@ -410,8 +416,6 @@ int main()
 				// output the 3D array
 				if (na == (nangles - 1))
 				{
-					int nfilt2 = 5; // @@@@ should become an input parameter
-
 					K3Out /= double(nangles);
 
 					#pragma omp parallel for shared(K3Out)
@@ -419,19 +423,21 @@ int main()
 					{
 						try
 						{
-							XArray1D<double> XArrTemp(ny);
-							double* pArr = &XArrTemp[0];
-
+							vector<double> vTemp(ny);
 							XArray2D<double> ipOut(ny, nx);
 							ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
 
 							for (index_t i = 0; i < nx; i++)
-								for (index_t j = 0; j < ny; j++)
+							{
+								if (nfilt2 > 0)
 								{
-									for (index_t j = 0; j < ny; j++) XArrTemp[j] = K3Out[n][j][i];
-									TriangleFilter(pArr + nfilt2, int(ny - nfilt2 * 2), nfilt2);
-									for (index_t j = 0; j < ny; j++) ipOut[j][i] = XArrTemp[j];
+									for (index_t j = 0; j < ny; j++) vTemp[j] = K3Out[n][j][i];
+									TriangularFilter(vTemp, nfilt2);
+									for (index_t j = 0; j < ny; j++) ipOut[j][i] = vTemp[j];
 								}
+								else
+									for (index_t j = 0; j < ny; j++) ipOut[j][i] = K3Out[n][j][i];
+							}
 							printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
 							XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
 						}
@@ -460,15 +466,17 @@ int main()
 }
 
 
-void TriangleFilter(double* pArr, int nn, int nfilt2)
+void TriangularFilter(vector<double>& xarr, int nfilt2)
+// Averages 1D array over each nfilt2 * 2 + 1 successive elements using triangular-shaped weight distribution
 {
-	XArray1D<double> temp(nn, 0.0);
+	if (xarr.size() < nfilt2 * 2 + 1) throw std::exception("Unsuitable arguments in TriangleFilter().");
 	double fact = 1.0 / double((nfilt2 + 1) * (nfilt2 + 1));
-	for (int i = 0; i < nn; i++)
-	{
-		for (int j = -nfilt2; j <= nfilt2; j++)
-			temp[i] += pArr[i + j] * double(1 + (nfilt2 - abs(j)));
-		temp[i] *= fact;
-	}
-	for (int i = 0; i < nn; i++) pArr[i] = temp[i];
+	vector<double> vtemp(xarr.size(), 0.0);
+	vector<double> vweight(nfilt2 * 2 + 1);
+	for (int j = -nfilt2; j <= nfilt2; j++)	vweight[j + nfilt2] = double(1 + (nfilt2 - abs(j))) * fact;
+	
+	for (int i = nfilt2; i < xarr.size() - nfilt2; i++)
+		for (int j = -nfilt2; j <= nfilt2; j++) 
+			vtemp[i] += xarr[i + j] * vweight[j + nfilt2];
+	for (int i = nfilt2; i < xarr.size() - nfilt2; i++) xarr[i] = vtemp[i];
 }
