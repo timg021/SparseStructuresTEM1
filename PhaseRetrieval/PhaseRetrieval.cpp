@@ -18,7 +18,10 @@ using namespace xar;
 
 #define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
+struct Triplet { double y; double x; double z; }; // triplet of double numbers (to be used for three rotation angles around y, x and z axes, in this order)
+
 void TriangularFilter(vector<double>& xarr, int nfilt2);
+void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <double> >& vvdefocus);
 
 int main()
 {
@@ -28,6 +31,9 @@ int main()
 	try
 	{
 		printf("\nStarting IWFR PhaseRetrieval program ...");
+		vector<Triplet> v3angles;
+		vector<vector <double> > vvdefocus;
+
 		//************************************ read input parameters from file
 		// read input parameter file
 		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
@@ -35,40 +41,18 @@ int main()
 		if (!ff0) throw std::exception("Error: cannot open parameter file PhaseRetrieval.txt.");
 		fgets(cline, 1024, ff0); // 1st line - comment
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. CT rotation span in degrees and number of rotation angles
-		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading rotation span and number of rotations from input parameter file.");
-		double angle_span = atof(cparam) / 180.0 * PI; // total rotation span in radians 
-		index_t nangles = (index_t)atoi(cparam1); // number of rotation steps 
-		double angle_step = angle_span / double(nangles); // rotation step in radians
-		// !!!Later on, input parameter lines 1 and 2 (rotation angles and defocus distances) should be replaced by a single name of an input text (CSV-type) file
-		// which will contain one row per rotational position, each row containing a rotation angle followed by an arbitrary number of defocus distances at that angle
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input_file_with_rotation_angles_and_defocus_distances
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 3) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
+		ReadDefocusInput(cparam, v3angles, vvdefocus);
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input defocus distances in Angstroms
-		std::vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
-		for (size_t i = 1; i < strlen(cline); i++) if (isspace(cline[i])) vwhite.push_back(i); // count the number of different defocus distances in the input parameter file
-		size_t ndefocus = vwhite.size(); // number of detected defocus distances
-		if (!ndefocus) throw std::exception("Error reading defocus distances from input parameter file.");
-		std::vector<char[1024]> vstr_defocus(ndefocus); // vector of strings into which defocus distances will be read
-		std::vector<double> vdefocus(ndefocus); // vector of defocus distances (double precision numbers)
-		vwhite.push_back(strlen(cline)); // add one more entry corresponding to the end of the parameter string
-		printf("\nInput defocus plane positions (%zd in total): ", ndefocus);
-		for (size_t j = 0; j < ndefocus; j++)
-		{
-			for (size_t i = vwhite[j]; i < vwhite[j + 1]; i++)
-				vstr_defocus[j][i - vwhite[j]] = cline[i];
-			vstr_defocus[j][vwhite[j + 1] - vwhite[j]] = '\0'; // string terminator
-			vdefocus[j] = atof(vstr_defocus[j]);
-			printf("%g ", vdefocus[j]);
-		}
-		double zmiddle(0.0); // "middle z plane" position
-		for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
-		zmiddle /= double(ndefocus);
+		index_t nangles = v3angles.size(); // number of rotation steps 
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
 		printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());
 		vector<string> vinfilenamesTot;
+		//@@@@@@@@@@@@@@@ the following function will need to be changed so that ndefocus could be different for different angles
 		FileNames(nangles, ndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames
 		
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4. Wavelength in Angstroms
@@ -187,12 +171,16 @@ int main()
 		// start of cycle over rotation angles
 		for (index_t na = 0; na < nangles; na++) 
 		{
- 			double angle = angle_step * double(na);
+ 			double angle = v3angles[na].y / 180.0 * PI; // @@@@@@@@@@@@@@@@@@@@@ add two other angles later
 			double cosangle = cos(angle);
 			double sinangle = sin(angle);
 			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle / PI * 180.0);
-			// We use the fact that currently the number of defocus planes, ndefocus, is assumed to be the same for all angles, and so we don't change it here.
-			// Similarly, the vectors of input and output defocus distances, vdefocus[] and voutdefocus[], are assumed to be the same for all angles.
+
+			double zmiddle(0.0); // "middle z plane" position
+			vector<double> vdefocus = vvdefocus[na];
+			for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
+			zmiddle /= double(ndefocus);
+			// The vector of output defocus distances, voutdefocus[], is assumed to be the same for all angles.
 			// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
 			vector<string> vinfilenames(ndefocus);
 			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[na * ndefocus + n];
@@ -479,4 +467,55 @@ void TriangularFilter(vector<double>& xarr, int nfilt2)
 		for (int j = -nfilt2; j <= nfilt2; j++) 
 			vtemp[i] += xarr[i + j] * vweight[j + nfilt2];
 	for (int i = nfilt2; i < xarr.size() - nfilt2; i++) xarr[i] = vtemp[i];
+}
+
+
+void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <double> >& vvdefocus)
+{
+	char cline[2049];
+	char buffer[1024];
+	double dtemp;
+
+	vector<double> vdefocus(0);
+	vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
+	FILE* ff0 = fopen(difile.c_str(), "rt");
+	if (!ff0) throw std::exception((string("Error: cannot open input file ") + difile + string(".")).c_str());
+	fgets(cline, 1024, ff0); // 1st line - comment
+
+	Triplet triplet;
+	v3angles.resize(0);
+	vvdefocus.resize(0);
+	while (fgets(cline, 2048, ff0) != NULL) // read lines, each line consisting of three rotation angles followed by one or more defocus distance
+	{
+		strtok(cline, "\n");
+		vwhite.resize(1); vwhite[0] = 0;
+		for (size_t i = 1; i < strlen(cline); i++) if (isspace(cline[i])) vwhite.push_back(i); // count the number of different defocus distances in the input parameter file
+		vwhite.push_back(strlen(cline)); // add one more entry corresponding to the end of the parameter string
+		int ndefocus = int(vwhite.size() - 4); // number of detected defocus distances
+		if (ndefocus < 1) throw std::exception((string("Error reading input file ") + difile + string(".")).c_str());
+		vdefocus.resize(ndefocus); // vector of defocus distances (double precision numbers)
+		printf("\nRotations angles: ");
+		for (size_t j = 0; j < 3; j++)
+		{
+			for (size_t i = vwhite[j]; i < vwhite[j + 1]; i++)
+				buffer[i - vwhite[j]] = cline[i];
+			buffer[vwhite[j + 1] - vwhite[j]] = '\0'; // string terminator
+			dtemp = atof(buffer); printf("%g ", dtemp);
+			if (j == 0) triplet.y = dtemp;
+			if (j == 1) triplet.x = dtemp;
+			if (j == 2) triplet.z = dtemp;
+		}
+		v3angles.push_back(triplet);
+		printf("\nInput defocus plane positions (%d in total): ", ndefocus);
+		for (size_t j = 0; j < ndefocus; j++)
+		{
+			for (size_t i = vwhite[j + 3]; i < vwhite[j + 4]; i++)
+				buffer[i - vwhite[j + 3]] = cline[i];
+			buffer[vwhite[j + 4] - vwhite[j + 3]] = '\0'; // string terminator
+			vdefocus[j] = atof(buffer);
+			printf("%g ", vdefocus[j]);
+		}
+		vvdefocus.push_back(vdefocus);
+	}
+	
 }
