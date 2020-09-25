@@ -18,7 +18,7 @@ using namespace xar;
 
 #define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
-struct Triplet { double y; double x; double z; }; // triplet of double numbers (to be used for three rotation angles around y, x and z axes, in this order)
+struct Triplet { double x; double y; double z; }; // triplet of double numbers (to be used for three rotation angles in degrees around X, Y and Z axes, in this order)
 
 void TriangularFilter(vector<double>& xarr, int nfilt2);
 void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <double> >& vvdefocus);
@@ -42,27 +42,27 @@ int main()
 		fgets(cline, 1024, ff0); // 1st line - comment
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input_file_with_rotation_angles_and_defocus_distances
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 3) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
 		ReadDefocusInput(cparam, v3angles, vvdefocus);
-
 		index_t nangles = v3angles.size(); // number of rotation steps 
+		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
+		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
 		printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());
 		vector<string> vinfilenamesTot;
-		//@@@@@@@@@@@@@@@ the following function will need to be changed so that ndefocus could be different for different angles
-		FileNames(nangles, ndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames
+		FileNames2(vndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames
 		
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4. Wavelength in Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 3. Wavelength in Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading wavelength from input parameter file.");
 		double wl = atof(cparam); // wavelength in Angstroms
 		printf("\nWavelength = %g (A)", wl);
 		if (wl < 0 || wl > 1)
 			throw std::exception("Error: wavelength value appears to be wrong.");
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5. Objective aperture in mrad
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4. Objective aperture in mrad
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading objective aperture from input parameter file.");
 		double aobj = atof(cparam); 
 		printf("\nObjective aperture = %g (mrad)", aobj);
@@ -70,7 +70,7 @@ int main()
 			throw std::exception("Error: objective aperture value appears to be wrong.");
 		double k2maxo = pow(aobj * 0.001f / wl, 2.0); // Fourier space bandwidth
 		
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6. Spherical aberrations Cs3 and Cs5 in mm
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5. Spherical aberrations Cs3 and Cs5 in mm
 		if (sscanf(cline, "%s %s %s", ctitle, cparam, cparam1) != 3) throw std::exception("Error reading spherical aberrations from input parameter file.");
 		double Cs3 = atof(cparam);
 		double Cs5 = atof(cparam1);
@@ -78,21 +78,21 @@ int main()
 		Cs3 *= 1.e+7; // mm --> Angstroms
 		Cs5 *= 1.e+7; // mm --> Angstroms
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 7. Maximal number of IWFR iterations
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6. Maximal number of IWFR iterations
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading maximal number of iterations from input parameter file.");
 		int kmax = atoi(cparam);
 		printf("\nMaximal number of iterations = %d", kmax);
 		if (kmax < 1)
 			throw std::exception("Error: the maximal number of iterations should be >= 1.");
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Minimal phase reconstruction error
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 7. Minimal phase reconstruction error
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading minimal phase reconstruction error from input parameter file.");
 		double epsilon = atof(cparam);
 		printf("\nMinimal phase reconstruciton error = %g", epsilon);
 		if (epsilon < 0)
 			throw std::exception("Error: minimal phase reconstruction error must be non-negative.");
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Output defocus distances min max and step in Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Output defocus distances min max and step in Angstroms
 		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading output defocus distances from input parameter file.");
 		double zlo = atof(cparam); // minimum output defocus in Angstroms 
 		double zhi = atof(cparam1); // maximum output defocus in Angstroms 
@@ -110,16 +110,16 @@ int main()
 			printf("%g ", voutdefocus[j]);
 		}
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Output intensity(0), phase(1), complex_amplitude(2) or 3D contrast(3)
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Output intensity(0), phase(1), complex_amplitude(2) or 3D contrast(3)
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
 		int noutformat = atoi(cparam);
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Width of triangular filter in y direction for 3D output in Angstroms (0 for no filter)
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Width of triangular filter in y direction for 3D output in Angstroms (0 for no filter)
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
 		double wfilt = atof(cparam);
 		printf("\nWidth of triangular filter in y direction for 3D output = %g (Angstroms)", wfilt);
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Output file name base in GRD or GRC format
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Output file name base in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
 		string filenamebaseOut = cparam;
 		printf("\nOutput file name base = %s", filenamebaseOut.c_str());
@@ -150,10 +150,12 @@ int main()
 		}
 		vector<string> voutfilenamesTot;
 		if (noutformat == 3)
-			FileNames(1, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 1D array" of output filenames
+			FileNames(1, noutdefocus, filenamebaseOut, voutfilenamesTot); // create 1D array of output filenames to save 2D slices of the reconstructed 3D object
 		else
-			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create "total 2D array" of output filenames
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13. Number of parallel threads
+			// note that the number of output defocus distances is assumed to be the same at all rotation angles
+			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create total 2D array of output filenames to save output 2D defocused images at different rotation angles and output defocus distances
+		
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
 		int nThreads = atoi(cparam);
 		printf("\nNumber of parallel threads = %d", nThreads);
@@ -169,6 +171,7 @@ int main()
 		XArray3D<double> K3Out; // big 3D reconstructed array (needs to fit into RAM alongside with with everything else)
 
 		// start of cycle over rotation angles
+		index_t ndefcurrent(0);
 		for (index_t na = 0; na < nangles; na++) 
 		{
  			double angle = v3angles[na].y / 180.0 * PI; // @@@@@@@@@@@@@@@@@@@@@ add two other angles later
@@ -176,14 +179,15 @@ int main()
 			double sinangle = sin(angle);
 			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle / PI * 180.0);
 
+			index_t ndefocus = vndefocus[na]; // number of defocus planes at the current rotation angle
+			vector<double> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle
 			double zmiddle(0.0); // "middle z plane" position
-			vector<double> vdefocus = vvdefocus[na];
 			for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
 			zmiddle /= double(ndefocus);
 			// The vector of output defocus distances, voutdefocus[], is assumed to be the same for all angles.
 			// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
 			vector<string> vinfilenames(ndefocus);
-			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[na * ndefocus + n];
+			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[ndefcurrent++];
 			vector<string> voutfilenames(noutdefocus);
 			if (noutformat != 3) 
 				for (index_t n = 0; n < noutdefocus; n++) voutfilenames[n] = voutfilenamesTot[na * noutdefocus + n];
@@ -471,22 +475,29 @@ void TriangularFilter(vector<double>& xarr, int nfilt2)
 
 
 void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <double> >& vvdefocus)
+// difile - text file with each line containing three rotation angles (around X, Y and Z axes) in degrees, followed by defocus distances at this angle in Angstroms
+//			all values should be separated by a single white space with the new line symbol at the end of each line
+// v3angles - vector of Triplets (x, y, z) corresponding to rotation angles around X, Y and Z axes
+// vvdefocus - vector of vectors of defocus distances at each rotation angle
 {
 	char cline[2049];
 	char buffer[1024];
 	double dtemp;
-
-	vector<double> vdefocus(0);
+	vector<double> vdefocus(0); // vector of defocus distances at a given rotation angle
 	vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
+
 	FILE* ff0 = fopen(difile.c_str(), "rt");
 	if (!ff0) throw std::exception((string("Error: cannot open input file ") + difile + string(".")).c_str());
-	fgets(cline, 1024, ff0); // 1st line - comment
+	//fgets(cline, 1024, ff0); // 1st line - comment
 
 	Triplet triplet;
 	v3angles.resize(0);
 	vvdefocus.resize(0);
+	index_t nline(0);
 	while (fgets(cline, 2048, ff0) != NULL) // read lines, each line consisting of three rotation angles followed by one or more defocus distance
 	{
+		nline++;
+		if (cline[0] == '/' and cline[1] == '/') continue; // skip any comment lines
 		strtok(cline, "\n");
 		vwhite.resize(1); vwhite[0] = 0;
 		for (size_t i = 1; i < strlen(cline); i++) if (isspace(cline[i])) vwhite.push_back(i); // count the number of different defocus distances in the input parameter file
@@ -501,8 +512,8 @@ void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <d
 				buffer[i - vwhite[j]] = cline[i];
 			buffer[vwhite[j + 1] - vwhite[j]] = '\0'; // string terminator
 			dtemp = atof(buffer); printf("%g ", dtemp);
-			if (j == 0) triplet.y = dtemp;
-			if (j == 1) triplet.x = dtemp;
+			if (j == 0) triplet.x = dtemp;
+			if (j == 1) triplet.y = dtemp;
 			if (j == 2) triplet.z = dtemp;
 		}
 		v3angles.push_back(triplet);
@@ -515,7 +526,21 @@ void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <d
 			vdefocus[j] = atof(buffer);
 			printf("%g ", vdefocus[j]);
 		}
+		// check for duplicate defocus distances in this line
+		bool duplicate = false;
+		for (index_t i = 0; i < vdefocus.size(); i++)
+		{
+			if (duplicate == true) break;
+			for (index_t j = i + 1; j < vdefocus.size(); j++)
+				if (vdefocus[i] == vdefocus[j]) { duplicate = true; break; }
+		}
+		if (duplicate)
+		{
+			printf("\nError: duplicate defocus distance in line no. %zd of input file %s !", nline, difile.c_str());
+			throw std::exception((string("Error reading input file ") + difile + string(".")).c_str());
+		}
 		vvdefocus.push_back(vdefocus);
 	}
-	
+
+	fclose(ff0); // close input file
 }

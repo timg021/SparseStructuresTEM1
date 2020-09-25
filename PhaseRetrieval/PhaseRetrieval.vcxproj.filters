@@ -18,6 +18,9 @@
     <Text Include="PhaseRetrieval.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="DefocusInput.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PhaseRetrieval.cpp">
