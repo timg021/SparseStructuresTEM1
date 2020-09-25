@@ -18,10 +18,7 @@ using namespace xar;
 
 #define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
-struct Triplet { double x; double y; double z; }; // triplet of double numbers (to be used for three rotation angles in degrees around X, Y and Z axes, in this order)
-
 void TriangularFilter(vector<double>& xarr, int nfilt2);
-void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <double> >& vvdefocus);
 
 int main()
 {
@@ -31,7 +28,7 @@ int main()
 	try
 	{
 		printf("\nStarting IWFR PhaseRetrieval program ...");
-		vector<Triplet> v3angles;
+		vector<Triplet<double> > v3angles;
 		vector<vector <double> > vvdefocus;
 
 		//************************************ read input parameters from file
@@ -43,7 +40,7 @@ int main()
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input_file_with_rotation_angles_and_defocus_distances
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
-		ReadDefocusInput(cparam, v3angles, vvdefocus);
+		ReadDefocusParamsFile(cparam, v3angles, vvdefocus);
 		index_t nangles = v3angles.size(); // number of rotation steps 
 		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
 		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
@@ -471,76 +468,4 @@ void TriangularFilter(vector<double>& xarr, int nfilt2)
 		for (int j = -nfilt2; j <= nfilt2; j++) 
 			vtemp[i] += xarr[i + j] * vweight[j + nfilt2];
 	for (int i = nfilt2; i < xarr.size() - nfilt2; i++) xarr[i] = vtemp[i];
-}
-
-
-void ReadDefocusInput(string difile, vector<Triplet>& v3angles, vector<vector <double> >& vvdefocus)
-// difile - text file with each line containing three rotation angles (around X, Y and Z axes) in degrees, followed by defocus distances at this angle in Angstroms
-//			all values should be separated by a single white space with the new line symbol at the end of each line
-// v3angles - vector of Triplets (x, y, z) corresponding to rotation angles around X, Y and Z axes
-// vvdefocus - vector of vectors of defocus distances at each rotation angle
-{
-	char cline[2049];
-	char buffer[1024];
-	double dtemp;
-	vector<double> vdefocus(0); // vector of defocus distances at a given rotation angle
-	vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
-
-	FILE* ff0 = fopen(difile.c_str(), "rt");
-	if (!ff0) throw std::exception((string("Error: cannot open input file ") + difile + string(".")).c_str());
-	//fgets(cline, 1024, ff0); // 1st line - comment
-
-	Triplet triplet;
-	v3angles.resize(0);
-	vvdefocus.resize(0);
-	index_t nline(0);
-	while (fgets(cline, 2048, ff0) != NULL) // read lines, each line consisting of three rotation angles followed by one or more defocus distance
-	{
-		nline++;
-		if (cline[0] == '/' and cline[1] == '/') continue; // skip any comment lines
-		strtok(cline, "\n");
-		vwhite.resize(1); vwhite[0] = 0;
-		for (size_t i = 1; i < strlen(cline); i++) if (isspace(cline[i])) vwhite.push_back(i); // count the number of different defocus distances in the input parameter file
-		vwhite.push_back(strlen(cline)); // add one more entry corresponding to the end of the parameter string
-		int ndefocus = int(vwhite.size() - 4); // number of detected defocus distances
-		if (ndefocus < 1) throw std::exception((string("Error reading input file ") + difile + string(".")).c_str());
-		vdefocus.resize(ndefocus); // vector of defocus distances (double precision numbers)
-		printf("\nRotations angles: ");
-		for (size_t j = 0; j < 3; j++)
-		{
-			for (size_t i = vwhite[j]; i < vwhite[j + 1]; i++)
-				buffer[i - vwhite[j]] = cline[i];
-			buffer[vwhite[j + 1] - vwhite[j]] = '\0'; // string terminator
-			dtemp = atof(buffer); printf("%g ", dtemp);
-			if (j == 0) triplet.x = dtemp;
-			if (j == 1) triplet.y = dtemp;
-			if (j == 2) triplet.z = dtemp;
-		}
-		v3angles.push_back(triplet);
-		printf("\nInput defocus plane positions (%d in total): ", ndefocus);
-		for (size_t j = 0; j < ndefocus; j++)
-		{
-			for (size_t i = vwhite[j + 3]; i < vwhite[j + 4]; i++)
-				buffer[i - vwhite[j + 3]] = cline[i];
-			buffer[vwhite[j + 4] - vwhite[j + 3]] = '\0'; // string terminator
-			vdefocus[j] = atof(buffer);
-			printf("%g ", vdefocus[j]);
-		}
-		// check for duplicate defocus distances in this line
-		bool duplicate = false;
-		for (index_t i = 0; i < vdefocus.size(); i++)
-		{
-			if (duplicate == true) break;
-			for (index_t j = i + 1; j < vdefocus.size(); j++)
-				if (vdefocus[i] == vdefocus[j]) { duplicate = true; break; }
-		}
-		if (duplicate)
-		{
-			printf("\nError: duplicate defocus distance in line no. %zd of input file %s !", nline, difile.c_str());
-			throw std::exception((string("Error reading input file ") + difile + string(".")).c_str());
-		}
-		vvdefocus.push_back(vdefocus);
-	}
-
-	fclose(ff0); // close input file
 }

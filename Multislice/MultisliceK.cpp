@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "XA_ini.h"
+#include "XA_file.h"
 #include "autosliccmd.h"
 
 using namespace xar;
@@ -49,77 +50,92 @@ int main(void)
 		autoslictxt[11] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8th line: Slice_thickness_in_Angstroms
 		autoslictxt[13] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line: Defocus_distance_MIN,MAX,STEP_in_Angstroms
-		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading line 9 of input parameter file.");
-		double defocus_min = atof(cparam); // minimum defocus in Angstroms 
-		double defocus_max = atof(cparam1); // maximum defocus in Angstroms 
-		double defocus_step = atof(cparam2); // defocus step in Angstroms 
+		
+		//fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line: Defocus_distance_MIN,MAX,STEP_in_Angstroms
+		//if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading line 9 of input parameter file.");
+		//double defocus_min = atof(cparam); // minimum defocus in Angstroms 
+		//double defocus_max = atof(cparam1); // maximum defocus in Angstroms 
+		//double defocus_step = atof(cparam2); // defocus step in Angstroms 
 		autoslictxt[26] = ""; // this parameter is not used any more, defocus values are passed as a separate argument vdefocus
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line:Objective_aperture_in_mrad
+		
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9th line:Objective_aperture_in_mrad
 		autoslictxt[7] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Spherical_aberration_Cs3,_Cs5_in_mm
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10th line: Spherical_aberration_Cs3,_Cs5_in_mm
 		autoslictxt[5] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: Include_thermal_vibrations(1)_or_not(0)
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11th line: Include_thermal_vibrations(1)_or_not(0)
 		autoslictxt[17] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13th line: ____Temperature_in_degrees_K
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12th line: ____Temperature_in_degrees_K
 		autoslictxt[18] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14th line: ____Number_of_configurations_to_average_over
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13th line: ____Number_of_configurations_to_average_over
 		autoslictxt[19] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: ____Initial_seed_for_random_number_generator
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14th line: ____Initial_seed_for_random_number_generator
 		autoslictxt[20] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Total_CT_rotation_span_in_degrees
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Text_file_with_output_rotation_angles_in_degrees_and_defocus_distances_in_Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 16 of input parameter file.");
-		double angle_max = atof(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: Number_of_CT_rotation_angles
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 17 of input parameter file.");
-		size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 18th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
+		vector<Triplet<double> > v3angles;
+		vector<vector <double> > vvdefocus;
+		ReadDefocusParamsFile(string(cparam), v3angles, vvdefocus);
+		index_t nangles = v3angles.size(); // number of rotation steps 
+		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
+		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
+		vector<string> voutfilenamesTot;
+		FileNames2(vndefocus, outfilename, voutfilenamesTot); // create "2D array" of output filenames
+		
+		//double angle_max = atof(cparam); // total rotation span in degrees 
+		//fgets(cline, 1024, ff0); strtok(cline, "\n"); // 17th line: Number_of_CT_rotation_angles
+		//if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 17 of input parameter file.");
+		//size_t nangles = (size_t)atoi(cparam); // total rotation span in degrees 
+		
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 16th line: Number_of_worker_threads_to_launch_in_CT_simulation_mode
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 18 of input parameter file.");
 		unsigned int ncores = (unsigned int)atoi(cparam) + 1; // number of threads to use (expected to be equal to the number of cores) 
+		
 		fgets(cline, 1024, ff0); // 19st line - comment
 		fgets(cline, 1024, ff0); // 20st line - comment
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 19th line: Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ
 		autoslictxt[1] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22th line: Do_you_want_to_include_partial_coherence
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 20th line: Do_you_want_to_include_partial_coherence
 		autoslictxt[2] = ""; // this parameter is not used any more, output filenames are passed as a separate argument vstrfileout
 		autoslictxt[3] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 23th line: ____Illumination_angle_min,_max_in_mrad
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 21th line: ____Illumination_angle_min,_max_in_mrad
 		autoslictxt[4] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 24th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 22th line: ____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms
 		autoslictxt[6] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 25th line: Do_you_want_to_start_from_previous_result
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 23th line: Do_you_want_to_start_from_previous_result
 		autoslictxt[8] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 26nd line: ____Name_of_file_to_start_from
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 24nd line: ____Name_of_file_to_start_from
 		autoslictxt[9] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 27nd line: Crystal_tilt_x,y_in_mrad
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 25nd line: Crystal_tilt_x,y_in_mrad
 		autoslictxt[12] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 28th line: Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 26th line: Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness
 		autoslictxt[14] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 29th line: ____Name_of_file_for_beams_info
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 27th line: ____Name_of_file_for_beams_info
 		autoslictxt[15] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 30th line: ____Number_of_beams
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 28th line: ____Number_of_beams
 		autoslictxt[16] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 31st line: Do_you_want_to_output_intensity_vs._depth_cross_section
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 29st line: Do_you_want_to_output_intensity_vs._depth_cross_section
 		autoslictxt[21] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 32nd line: ____Name_of_file_to_get_depth_profile_image
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 30nd line: ____Name_of_file_to_get_depth_profile_image
 		autoslictxt[22] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 33rd line: ____Y_position_of_depth_cross_section_in_Angstroms
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 31rd line: ____Y_position_of_depth_cross_section_in_Angstroms
 		autoslictxt[23] = cline;
 		fclose(ff0); // close input parameter file
 
-		char buffer[128], bufangle[128];
-		string strAngle, outfilename_i, outfilename_j;
-		double angle;
-		double angle_step = angle_max / 180.0 * PI / double(nangles); // rotation step in radians
+		//char buffer[128], bufangle[128];
+		//string strAngle, outfilename_i, outfilename_j;
+		//double angle;
+		//double angle_step = angle_max / 180.0 * PI / double(nangles); // rotation step in radians
+		//size_t ndefocus = size_t((defocus_max - defocus_min) / defocus_step + 0.5); // number of defocus planes to propagate to at each rotation angle		
+		//printf("\nNumber of defocus planes = %zd.", ndefocus);
 		
-		size_t ndefocus = size_t((defocus_max - defocus_min) / defocus_step + 0.5); // number of defocus planes to propagate to at each rotation angle		
-		printf("\nNumber of defocus planes = %zd.", ndefocus);
 		constexpr double hp = 6.62607004e-34; // Planck's constant (m2 kg / s)
 		constexpr double cc = 299792458; // speed of light (m / s)
 		constexpr double ee = 1.602176634e-19; // electron charge (coulomb)
 		constexpr double m0 = 9.1093837015e-31; // electron rest mass (kg)
 		double ewl = hp * cc / sqrt(ee * ev * (2.0 * m0 * cc * cc + ee * ev));
 		printf("\nElectron wavelength = %f (pm)", ewl * 1.0e+12);
+
+/*
 		vector<string> vstrfileout(ndefocus); // vector of full output filenames
 		vector<double> vdefocus(ndefocus); // vector of defocus distances
 		for (size_t j = 0; j < ndefocus; j++) vdefocus[j] = defocus_min + defocus_step * j;
@@ -140,7 +156,7 @@ int main(void)
 			sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
 			myformat += "_%0" + string(ndig) + "d"; //construct format string for inserting two 0-padded angle indexes into file names - see usage below
 		}
-		
+*/		
 		// find out the number of CPU cores available in the computer
 		//unsigned int ncores = std::thread::hardware_concurrency();
 		//printf("\nNumber of CPU cores detected: %d", ncores);
@@ -149,23 +165,26 @@ int main(void)
 		std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
 	
 		// start the cycle over projection angles
+		index_t ndefcurrent(0);
 		for (size_t i = 0; i < nangles; i++)
 		{
-			angle = angle_step * double(i);
+			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ editing here
+			double angle = angle_step * double(i);
 			printf("\nAngle = %g (degrees)", angle / PI180);
 			sprintf(bufangle, "%f", angle); strAngle = bufangle;
 			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
 
 			// start the cycle over defocus distances (we only create output file names in this inner cycle)
-			for (size_t j = 0; j < ndefocus; j++)
-			{
-				outfilename_j = outfilename;
-				if (ndefocus == 1 && nangles > 1) sprintf(buffer, myformat.data(), i);
-				else if (ndefocus > 1 && nangles == 1) sprintf(buffer, myformat.data(), j);
-				else sprintf(buffer, myformat.data(), j, i);
-				outfilename_j.insert(i_dot, buffer);
-				vstrfileout[j] = outfilename_j;
-			}
+			index_t ndefocus = vndefocus[i]; // number of defocus planes at the current rotation angle
+			vector<double> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle
+			double zmiddle(0.0); // "middle z plane" position
+			for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
+			zmiddle /= double(ndefocus);
+			// The vector of output defocus distances, voutdefocus[], is assumed to be the same for all angles.
+			// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
+			vector<string> vinfilenames(ndefocus);
+			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[ndefcurrent++];
+
 
 			//Here we call Kirkland's autoslic at each angle
 			autoslictxt[28] = "29.Copy(0)_or_initialize(1)_FFTW_plan: 1"; // the first thread must initialize the FFTW plan, subsequent ones can copy it
