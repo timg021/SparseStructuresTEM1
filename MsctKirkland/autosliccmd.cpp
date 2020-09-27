@@ -209,7 +209,8 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
 		int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
 		int nfftwinit; // the switch between copying(0) or initializing from new (1) the FFTW plan in autoslic
-		float angle(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
+		float angleY(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
+		float angleX(0); // sample rotation angle in radians (in yz' plane, i.e. around x' axis)
 		float ctblength(0); // length of the z-slab (containing the sample) in Angstroms
 		//@@@@@ end TEG code
 
@@ -328,8 +329,11 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		filecross = cinarg;
 		if (sscanf(params[23].data(), "%s %g", chaa, &ycross) != 2)
 			throw std::exception("Error reading line 24 of input parameter array.");
-		if (sscanf(params[24].data(), "%s %g", chaa, &angle) != 2)
+
+		if (sscanf(params[24].data(), "%s %f %f", chaa, &angleY, &angleX) != 3)
 			throw std::exception("Error reading line 25 of input parameter array.");
+
+
 		if (sscanf(params[25].data(), "%s %d", chaa, &nmode) != 2)
 			throw std::exception("Error reading line 26 of input parameter array.");
 		//if (sscanf(params[26].data(), "%s %g %g %g", chaa, &defocus_min, &defocus_max, &defocus_step) != 4)
@@ -580,12 +584,20 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 		else
 			if (by > cz) ctblength = by; else ctblength = cz;
 		// rotate the sample as necessary
-		float xc(float(ctblength / 2.0)), zc(float(ctblength / 2.0)), xxx, zzz;
+		float xc(float(ctblength / 2.0)), yc(float(ctblength / 2.0)), zc(float(ctblength / 2.0)), xxx, yyy, zzz;
+		// rotation around Y axis
 		for (size_t k = 0; k < natom; k++)
 		{
-			xxx = xc + (x[k] - xc) * cos(angle) + (z[k] - zc) * sin(angle);
-			zzz = zc + (-x[k] + xc) * sin(angle) + (z[k] - zc) * cos(angle);
+			xxx = xc + (x[k] - xc) * cos(angleY) + (z[k] - zc) * sin(angleY);
+			zzz = zc + (-x[k] + xc) * sin(angleY) + (z[k] - zc) * cos(angleY);
 			x[k] = xxx; z[k] = zzz;
+		}
+		// rotation around X' axis
+		for (size_t k = 0; k < natom; k++)
+		{
+			yyy = yc + (y[k] - yc) * cos(angleX) + (z[k] - zc) * sin(angleX);
+			zzz = zc + (-y[k] + yc) * sin(angleX) + (z[k] - zc) * cos(angleX);
+			y[k] = yyy; z[k] = zzz;
 		}
 		//@@@@@ end TEG code
 

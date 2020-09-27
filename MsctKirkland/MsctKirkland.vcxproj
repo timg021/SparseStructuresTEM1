@@ -173,6 +173,7 @@
     <ClInclude Include="slicelib.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="DefocusOutput.txt" />
     <Text Include="MsctKirkland.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

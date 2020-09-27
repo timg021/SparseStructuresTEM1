@@ -28,7 +28,7 @@ int main()
 	try
 	{
 		printf("\nStarting IWFR PhaseRetrieval program ...");
-		vector<Triplet<double> > v3angles;
+		vector<Pair> v2angles;
 		vector<vector <double> > vvdefocus;
 
 		//************************************ read input parameters from file
@@ -40,7 +40,7 @@ int main()
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input_file_with_rotation_angles_and_defocus_distances
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
-		ReadDefocusParamsFile(cparam, v3angles, vvdefocus);
+		ReadDefocusParamsFile(cparam, v2angles, vvdefocus);
 		index_t nangles = v3angles.size(); // number of rotation steps 
 		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
 		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
@@ -171,10 +171,13 @@ int main()
 		index_t ndefcurrent(0);
 		for (index_t na = 0; na < nangles; na++) 
 		{
- 			double angle = v3angles[na].y / 180.0 * PI; // @@@@@@@@@@@@@@@@@@@@@ add two other angles later
-			double cosangle = cos(angle);
-			double sinangle = sin(angle);
-			printf("\n\n*** Rotation angle[%zd] = %g (degrees)", na, angle / PI * 180.0);
+ 			double angleY = v2angles[na].y * PI180;
+			double angleX = v2angles[na].x * PI180;
+			double cosangleY = cos(angleY);
+			double sinangleY = sin(angleY);
+			double cosangleX = cos(angleX);
+			double sinangleX = sin(angleX);
+			printf("\n\n*** Rotation angle[%zd] = (%g, %g) (degrees)", na, angleY / PI180, angleX / PI180);
 
 			index_t ndefocus = vndefocus[na]; // number of defocus planes at the current rotation angle
 			vector<double> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle

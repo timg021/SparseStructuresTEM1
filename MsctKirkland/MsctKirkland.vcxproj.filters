@@ -136,5 +136,8 @@
     <Text Include="MsctKirkland.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="DefocusOutput.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

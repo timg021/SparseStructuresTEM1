@@ -29,7 +29,7 @@ int main(void)
 		if (!ff0) throw std::exception((std::string("Error opening parameter file ") + iparfile + ".").c_str());
 		else printf("\nReading input parameters from %s file ...", iparfile);
 
-		char cline[1024], ctitle[1024], cparam[1024], cparam1[1024], cparam2[1024];
+		char cline[1024], ctitle[1024], cparam[1024];
 	
 		// The ordering of these parameters is 'historic', it can be changed, but then the corresponding changes need to be applied in autosliccmd.cpp too.
 		fgets(cline, 1024, ff0); // 1st line - comment
@@ -72,10 +72,10 @@ int main(void)
 		autoslictxt[20] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Text_file_with_output_rotation_angles_in_degrees_and_defocus_distances_in_Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 16 of input parameter file.");
-		vector<Triplet<double> > v3angles;
+		vector<Pair> v2angles;
 		vector<vector <double> > vvdefocus;
-		ReadDefocusParamsFile(string(cparam), v3angles, vvdefocus);
-		index_t nangles = v3angles.size(); // number of rotation steps 
+		ReadDefocusParamsFile(string(cparam), v2angles, vvdefocus);
+		index_t nangles = v2angles.size(); // number of rotation steps 
 		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
 		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
 		vector<string> voutfilenamesTot;
@@ -134,7 +134,6 @@ int main(void)
 		constexpr double m0 = 9.1093837015e-31; // electron rest mass (kg)
 		double ewl = hp * cc / sqrt(ee * ev * (2.0 * m0 * cc * cc + ee * ev));
 		printf("\nElectron wavelength = %f (pm)", ewl * 1.0e+12);
-
 /*
 		vector<string> vstrfileout(ndefocus); // vector of full output filenames
 		vector<double> vdefocus(ndefocus); // vector of defocus distances
@@ -165,25 +164,20 @@ int main(void)
 		std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
 	
 		// start the cycle over projection angles
+		char bufangle[1024];
 		index_t ndefcurrent(0);
 		for (size_t i = 0; i < nangles; i++)
 		{
-			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ editing here
-			double angle = angle_step * double(i);
-			printf("\nAngle = %g (degrees)", angle / PI180);
-			sprintf(bufangle, "%f", angle); strAngle = bufangle;
-			autoslictxt[24] = "25.Sample_(xz)_rotation_angle_in_radians: " + strAngle;
+			Pair angle = v2angles[i];
+			printf("\nRotation angle: y = %g, x = %g (degrees)", angle.y, angle.x);
+			sprintf(bufangle, "%f %f", angle.y * PI180, angle.x * PI180); 
+			autoslictxt[24] = "25.Sample_Y_and_X_rotation_angles_in_radians: " + string(bufangle);
 
 			// start the cycle over defocus distances (we only create output file names in this inner cycle)
 			index_t ndefocus = vndefocus[i]; // number of defocus planes at the current rotation angle
-			vector<double> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle
-			double zmiddle(0.0); // "middle z plane" position
-			for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
-			zmiddle /= double(ndefocus);
-			// The vector of output defocus distances, voutdefocus[], is assumed to be the same for all angles.
-			// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
-			vector<string> vinfilenames(ndefocus);
-			for (index_t n = 0; n < ndefocus; n++) vinfilenames[n] = vinfilenamesTot[ndefcurrent++];
+			vector<double> vdefocus = vvdefocus[i]; // vector of defocus planes at the current defocus angle
+			vector<string> vstrfileout(ndefocus); // vector of output filenames at the current rotation angle
+			for (index_t n = 0; n < ndefocus; n++) vstrfileout[n] = voutfilenamesTot[ndefcurrent++];
 
 
 			//Here we call Kirkland's autoslic at each angle
