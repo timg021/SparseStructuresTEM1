@@ -16,7 +16,7 @@
 
 using namespace xar;
 
-//#define BILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
+#define TRILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
 void TriangularFilter(vector<double>& xarr, int nfilt2);
 
@@ -384,9 +384,10 @@ int main()
 
 				// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
 				index_t ii, jj, nn;
-#if defined(BILINEAR_INTERPOLATION)
-				index_t nx2 = nx - 2, noutdefocus2 = noutdefocus - 2;
-				double dK, dx0, dx1, dz0, dz1;
+				double zz;
+#if defined(TRILINEAR_INTERPOLATION)
+				index_t nx2 = nx - 2, ny2 = ny - 2, noutdefocus2 = noutdefocus - 2;
+				double dK, dx0, dx1, dy0, dy1, dz0, dz1, dz0K, dz1K;
 #else
 				index_t nx1 = nx - 1, ny1 = ny - 1, noutdefocus1 = noutdefocus - 1;
 #endif
@@ -395,17 +396,21 @@ int main()
 					for (index_t j = 0; j < ny; j++)
 					{
 						// inverse rotation around X' axis
-						yyy = yc + y_cosangleX[j] - z_sinangleX[n];
-						zzz = y_sinangleX[j] + z_cosangleX[n];
+						yyy = yc + y_cosangleX[j] - z_sinangleX[n]; // y coordinate with respect to the rotated 3D sample
+						zz = y_sinangleX[j] + z_cosangleX[n];
 						for (index_t i = 0; i < nx; i++)
 						{
 							// inverse rotation around Y axis
-							xxx = xc + x_cosangleY[i] - zzz * sinangleY; // x coordinate with respect to the rotated 3D sample
-							zzz = zc + x_sinangleY[i] + zzz * cosangleY; // z coordinate with respect to the rotated 3D sample
-#if defined(BILINEAR_INTERPOLATION)
-							dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; dx0 -= ii; dx0 *= 0.5; dx1 = 0.5 - dx0; // "bilinear" interpolation variant
-							dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0; dz0 -= nn; dz0 *= 0.5; dz1 = 0.5 - dz0; // "bilinear" interpolation variant
-							if (ii > nx2 || nn > noutdefocus2) continue;
+							xxx = xc + x_cosangleY[i] - zz * sinangleY; // x coordinate with respect to the rotated 3D sample
+							zzz = zc + x_sinangleY[i] + zz * cosangleY; // z coordinate with respect to the rotated 3D sample
+#if defined(TRILINEAR_INTERPOLATION)
+							dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; 
+							dy0 = abs(yyy - ylo) / yst; jj = (index_t)dy0; 
+							dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0;
+							if (ii > nx2 || jj > ny2 || nn > noutdefocus2) continue;
+							dx0 -= ii; dx1 = 1.0 - dx0;
+							dy0 -= jj; dy1 = 1.0 - dy0;
+							dz0 -= nn; dz1 = 1.0 - dz0;
 #else
 							if (xxx < xlo) xxx = xlo;
 							if (yyy < ylo) yyy = ylo;
@@ -417,12 +422,18 @@ int main()
 							if (jj > ny1) jj = ny1;
 							if (nn > noutdefocus1) nn = noutdefocus1;
 #endif
-#if defined(BILINEAR_INTERPOLATION)
-							dK = 1.0 - std::norm(vcamp[n][j][i]); // contrast value at this point of the defocused plane
-							K3Out[nn][j][ii] += (dx0 + dz0) * dK; // "bilinear" interpolation variant
-							K3Out[nn][j][ii + 1] += (dx1 + dz0) * dK; // "bilinear" interpolation variant
-							K3Out[nn + 1][j][ii] += (dx0 + dz1) * dK; // "bilinear" interpolation variant
-							K3Out[nn + 1][j][ii + 1] += (dx1 + dz1) * dK; // "bilinear" interpolation variant
+#if defined(TRILINEAR_INTERPOLATION)
+							dK = 1.0 - std::norm(vcamp[n][j][i]);
+							dz0K = dz0 * dK;
+							dz1K = dz1 * dK;
+							K3Out[nn][jj][ii] += dx0 * dy0 * dz0K;
+							K3Out[nn][jj][ii + 1] += dx1 * dy0 * dz0K;
+							K3Out[nn + 1][jj][ii] += dx0 * dy0 * dz1K;
+							K3Out[nn + 1][jj][ii + 1] += dx1 * dy0 * dz1K;
+							K3Out[nn][jj + 1][ii] += dx0 * dy1 * dz0K;
+							K3Out[nn][jj + 1][ii + 1] += dx1 * dy1 * dz0K;
+							K3Out[nn + 1][jj + 1][ii] += dx0 * dy1 * dz1K;
+							K3Out[nn + 1][jj + 1][ii + 1] += dx1 * dy1 * dz1K;
 #else
 							K3Out[nn][jj][ii] += 1.0 - std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant
 							//K3Out[nn][jj][ii] += std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant @@@@@ temporary
