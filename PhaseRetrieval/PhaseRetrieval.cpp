@@ -404,13 +404,13 @@ int main()
 							xxx = xc + x_cosangleY[i] - zz * sinangleY; // x coordinate with respect to the rotated 3D sample
 							zzz = zc + x_sinangleY[i] + zz * cosangleY; // z coordinate with respect to the rotated 3D sample
 #if defined(TRILINEAR_INTERPOLATION)
-							dx0 = abs(xxx - xlo) / xst; ii = (index_t)dx0; 
-							dy0 = abs(yyy - ylo) / yst; jj = (index_t)dy0; 
-							dz0 = abs(zzz - zlo) / zst; nn = (index_t)dz0;
+							dx1 = abs(xxx - xlo) / xst; ii = (index_t)dx1; 
+							dy1 = abs(yyy - ylo) / yst; jj = (index_t)dy1; 
+							dz1 = abs(zzz - zlo) / zst; nn = (index_t)dz1;
 							if (ii > nx2 || jj > ny2 || nn > noutdefocus2) continue;
-							dx0 -= ii; dx1 = 1.0 - dx0;
-							dy0 -= jj; dy1 = 1.0 - dy0;
-							dz0 -= nn; dz1 = 1.0 - dz0;
+							dx1 -= ii; dx0 = 1.0 - dx1;
+							dy1 -= jj; dy0 = 1.0 - dy1;
+							dz1 -= nn; dz0 = 1.0 - dz1;
 #else
 							if (xxx < xlo) xxx = xlo;
 							if (yyy < ylo) yyy = ylo;
