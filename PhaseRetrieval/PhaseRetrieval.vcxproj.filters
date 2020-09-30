@@ -106,5 +106,8 @@
     <ClInclude Include="..\..\XArrayLibrary\fftwd3drc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\XArrayLibrary\XA_fft2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

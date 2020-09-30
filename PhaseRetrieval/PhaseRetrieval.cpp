@@ -443,32 +443,40 @@ int main()
 				// apply inverse 3D Laplace filter to the reconstructed 3D array
 				if (na == (nangles - 1))
 				{
+					printf("\n\n*** Saving the reconstructed 3D object into output files ...");
 					K3Out /= double(nangles);
 
 					//allocate space for FFT transform and create FFTW plans
 					Fftwd3drc fftf((int)noutdefocus, (int)ny, (int)nx);
 
 					// FFT of test array
-					printf("\nInverse Laplace filtering 3D reconstructed ...");
+					printf("\nInverse Laplace filtering 3D reconstructed object ...");
+
 					fftf.SetRealXArray3D(K3Out);
 					fftf.ForwardFFT();
 
-					/// multiply FFT of K3Out arrays by the FFT version of regularized 3D Laplacian
-					double alpha2 = sqrt(alpha), dtemp, k2, jk2;
+					/// multiply FFT of K3Out arrays by the FFT version of regularized inverse 3D Laplacian
+					double fact = 1.0 / (4.0 * PI * PI);
+					double dksi2 = fact / ((xhi - xlo) * (xhi - xlo));
+					double deta2 = fact / ((yhi - ylo) * (yhi - ylo));
+					double dzeta2 = fact / ((zhi - zlo) * (zhi - zlo));
+					alpha *= (dksi2 + deta2 + dzeta2) / 3.0; // normalize the regularization parameter with respect to dksi^2
+					double dtemp, dtemp1, k2, jk2;
+
 					fftw_complex* pout = fftf.GetComplex();
 					int m = 0, nc2 = fftf.GetNx2();
 					for (index_t k = 0; k < noutdefocus; k++)
 					{
-						k2 = k * k + alpha;
+						k2 = k * k * dzeta2  + alpha;
 						for (index_t j = 0; j < ny; j++)
 						{
-							jk2 = j * j + k2;
+							jk2 = j * j * deta2 + k2;
 							for (index_t i = 0; i < nc2; i++)
 							{
-								dtemp = i * i + jk2;
-								if (dtemp != 0) dtemp = alpha2 / dtemp; // protection against division by zero
-								pout[m][0] *= dtemp;
-								pout[m][1] *= dtemp;
+								dtemp = i * i * dksi2 + jk2;
+								dtemp != 0 ? dtemp1 = 1.0 / dtemp : dtemp1 = 0.0; // protection against division by zero
+								pout[m][0] *= dtemp1;
+								pout[m][1] *= dtemp1;
 								m++;
 							}
 						}
