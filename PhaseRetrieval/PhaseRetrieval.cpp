@@ -13,12 +13,13 @@
 #include "XA_data.h"
 #include "XA_file.h"
 #include "XA_fft2.h"
+#include "fftwd3drc.h"
 
 using namespace xar;
 
 #define TRILINEAR_INTERPOLATION // if this is not defined (commented out), nearest neighbour interpolation code is used in 3D reconstruction
 
-void TriangularFilter(vector<double>& xarr, int nfilt2);
+//void TriangularFilter(vector<double>& xarr, int nfilt2);
 
 int main()
 {
@@ -111,10 +112,10 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
 		int noutformat = atoi(cparam);
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Width of triangular filter in y direction for 3D output in Angstroms (0 for no filter)
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
-		double wfilt = atof(cparam);
-		printf("\nWidth of triangular filter in y direction for 3D output = %g (Angstroms)", wfilt);
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Regularization parameter for inverse 3D Laplacian
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading regularization parameter for inverse 3D Laplacian from input parameter file.");
+		double alpha = atof(cparam);
+		printf("\nRegularization parameter for inverse 3D Laplacian = %g", alpha);
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Output file name base in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
@@ -163,7 +164,6 @@ int main()
 		fclose(ff0); // close input parameter file
 
 		//************************************ end reading input parameters from file
-		int nfilt2; // half-width of the triangular filter in y direction
 		double xlo, xhi, xst;
 		double ylo, yhi, yst;
 		XArray3D<double> K3Out; // big 3D reconstructed array (needs to fit into RAM alongside with with everything else)
@@ -225,8 +225,6 @@ int main()
 								yhi = ph2->GetYhi();
 								yst = (yhi - ylo) / vint0[n].GetDim1();
 								if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
-								nfilt2 = int(wfilt / 2.0 / yst + 0.5);
-								if (n == 0) printf("\nnfilt2 = %d", nfilt2);
 							}
 							vint0_L1[n] = vint0[n].Norm(eNormL1);
 							printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
@@ -442,11 +440,45 @@ int main()
 					}
 				}
 
-				// output the 3D array
+				// apply inverse 3D Laplace filter to the reconstructed 3D array
 				if (na == (nangles - 1))
 				{
 					K3Out /= double(nangles);
 
+					//allocate space for FFT transform and create FFTW plans
+					Fftwd3drc fftf((int)noutdefocus, (int)ny, (int)nx);
+
+					// FFT of test array
+					printf("\nInverse Laplace filtering 3D reconstructed ...");
+					fftf.SetRealXArray3D(K3Out);
+					fftf.ForwardFFT();
+
+					/// multiply FFT of K3Out arrays by the FFT version of regularized 3D Laplacian
+					double alpha2 = sqrt(alpha), dtemp, k2, jk2;
+					fftw_complex* pout = fftf.GetComplex();
+					int m = 0, nc2 = fftf.GetNx2();
+					for (index_t k = 0; k < noutdefocus; k++)
+					{
+						k2 = k * k + alpha;
+						for (index_t j = 0; j < ny; j++)
+						{
+							jk2 = j * j + k2;
+							for (index_t i = 0; i < nc2; i++)
+							{
+								dtemp = i * i + jk2;
+								if (dtemp != 0) dtemp = alpha2 / dtemp; // protection against division by zero
+								pout[m][0] *= dtemp;
+								pout[m][1] *= dtemp;
+								m++;
+							}
+						}
+					}
+
+					// inverse FFT of the product
+					fftf.InverseFFT();
+					fftf.GetRealXArray3D(K3Out);
+
+					// output the 3D array
 					#pragma omp parallel for shared(K3Out)
 					for (int n = 0; n < noutdefocus; n++)
 					{
@@ -457,16 +489,9 @@ int main()
 							ipOut.SetHeadPtr(vint0[0].GetHeadPtr() ? vint0[0].GetHeadPtr()->Clone() : 0);
 
 							for (index_t i = 0; i < nx; i++)
-							{
-								if (nfilt2 > 0)
-								{
-									for (index_t j = 0; j < ny; j++) vTemp[j] = K3Out[n][j][i];
-									TriangularFilter(vTemp, nfilt2);
-									for (index_t j = 0; j < ny; j++) ipOut[j][i] = vTemp[j];
-								}
-								else
-									for (index_t j = 0; j < ny; j++) ipOut[j][i] = K3Out[n][j][i];
-							}
+									for (index_t j = 0; j < ny; j++) 
+										ipOut[j][i] = K3Out[n][j][i];
+
 							printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
 							XArData::WriteFileGRD(ipOut, voutfilenamesTot[n].c_str(), eGRDBIN);
 						}
@@ -495,6 +520,7 @@ int main()
 }
 
 
+/*
 void TriangularFilter(vector<double>& xarr, int nfilt2)
 // Averages 1D array over each nfilt2 * 2 + 1 successive elements using triangular-shaped weight distribution
 {
@@ -509,3 +535,4 @@ void TriangularFilter(vector<double>& xarr, int nfilt2)
 			vtemp[i] += xarr[i + j] * vweight[j + nfilt2];
 	for (int i = nfilt2; i < xarr.size() - nfilt2; i++) xarr[i] = vtemp[i];
 }
+*/

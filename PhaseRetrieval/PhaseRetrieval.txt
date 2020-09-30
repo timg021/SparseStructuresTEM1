@@ -8,7 +8,7 @@
 7.Minimal_phase_reconstruction_error: 1.e-4
 8.Output_defocus_distances_min_max_and_step_in_Angstroms: 10 100 10
 9.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 2
-10.Width_of_triangular_filter_in_y_direction_for_3D_output_in_Angstroms_(0_for_no_filter): 1.0
+10.Regularization_parameter_for_inverse_3D_Laplacian: 1.e-4
 11.Output_GRD/GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\campOut.grc
 12.Number_of_parallel_threads: 10
 //*****

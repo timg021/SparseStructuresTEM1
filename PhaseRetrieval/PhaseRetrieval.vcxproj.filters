@@ -50,6 +50,9 @@
     <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_flt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\XArrayLibrary\fftwd3drc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h">
@@ -95,6 +98,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\XArrayLibrary\XArray3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fftwlib\fftw3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\XArrayLibrary\fftwd3drc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
