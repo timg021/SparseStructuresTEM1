@@ -92,32 +92,39 @@ int main()
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 8. Output defocus distances min max and step in Angstroms
 		if (sscanf(cline, "%s %s %s %s", ctitle, cparam, cparam1, cparam2) != 4) throw std::exception("Error reading output defocus distances from input parameter file.");
-		double zlo = atof(cparam); // minimum output defocus in Angstroms 
-		double zhi = atof(cparam1); // maximum output defocus in Angstroms 
+		double zlo = atof(cparam); // minimum output defocus in Angstroms - !!! will be corrected with dzextra below
+		double zhi = atof(cparam1); // maximum output defocus in Angstroms - !!! will be corrected with dzextra below 
 		double zst = abs(atof(cparam2)); // output defocus step in Angstroms 
 		if (zlo > zhi) std::swap(zlo, zhi);
+
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); //9. Extra defocus for 3D reconstruction in_Angstroms
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading extra defocus for 3D reconstruction parameter from input parameter file.");
+		double dzextra = atof(cparam);
+		printf("\nExtra defocus for 3D reconstruction = %g (Angstroms)", dzextra);
+		zlo += dzextra; zhi += dzextra;
+
 		printf("\nOutput defocus distances: min = %g, max = %g, step = %g (Angstroms)", zlo, zhi, zst);
 		int noutdefocus = int((zhi - zlo) / zst + 0.5); // number of defocus planes to propagate to
 		if (noutdefocus <= 0)
 			throw std::exception("Error: number of output defocus planes must be positive.");
 		vector<double> voutdefocus(noutdefocus); // vector of output defocus distances
 		printf("\nOutput defocus plane positions (%d in total): ", noutdefocus);
-		for (int j = 0; j < noutdefocus; j++)
+		for (index_t n = 0; n < noutdefocus; n++)
 		{
-			voutdefocus[j] = zlo + zst * j;
-			printf("%g ", voutdefocus[j]);
+			voutdefocus[n] = zlo + zst * n;
+			printf("%g ", voutdefocus[n]);
 		}
-
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 9. Output intensity(0), phase(1), complex_amplitude(2) or 3D contrast(3)
-		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
-		int noutformat = atoi(cparam);
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Regularization parameter for inverse 3D Laplacian
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading regularization parameter for inverse 3D Laplacian from input parameter file.");
 		double alpha = atof(cparam);
 		printf("\nRegularization parameter for inverse 3D Laplacian = %g", alpha);
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Output file name base in GRD or GRC format
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 11. Output intensity(0), phase(1), complex_amplitude(2) or 3D contrast(3)
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output files format from input parameter file.");
+		int noutformat = atoi(cparam);
+
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Output file name base in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
 		string filenamebaseOut = cparam;
 		printf("\nOutput file name base = %s", filenamebaseOut.c_str());
@@ -153,7 +160,7 @@ int main()
 			// note that the number of output defocus distances is assumed to be the same at all rotation angles
 			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create total 2D array of output filenames to save output 2D defocused images at different rotation angles and output defocus distances
 		
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 12. Number of parallel threads
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
 		int nThreads = atoi(cparam);
 		printf("\nNumber of parallel threads = %d", nThreads);
@@ -446,45 +453,50 @@ int main()
 					printf("\n\n*** Saving the reconstructed 3D object into output files ...");
 					K3Out /= double(nangles);
 
-					//allocate space for FFT transform and create FFTW plans
-					Fftwd3drc fftf((int)noutdefocus, (int)ny, (int)nx);
-
-					// FFT of test array
-					printf("\nInverse Laplace filtering 3D reconstructed object ...");
-
-					fftf.SetRealXArray3D(K3Out);
-					fftf.ForwardFFT();
-
-					/// multiply FFT of K3Out arrays by the FFT version of regularized inverse 3D Laplacian
-					double fact = 1.0 / (4.0 * PI * PI);
-					double dksi2 = fact / ((xhi - xlo) * (xhi - xlo));
-					double deta2 = fact / ((yhi - ylo) * (yhi - ylo));
-					double dzeta2 = fact / ((zhi - zlo) * (zhi - zlo));
-					alpha *= (dksi2 + deta2 + dzeta2) / 3.0; // normalize the regularization parameter with respect to dksi^2
-					double dtemp, dtemp1, k2, jk2;
-
-					fftw_complex* pout = fftf.GetComplex();
-					int m = 0, nc2 = fftf.GetNx2();
-					for (index_t k = 0; k < noutdefocus; k++)
+					// regularized inverse 3D Laplacian filter
+					if (alpha >= 0)
 					{
-						k2 = k * k * dzeta2  + alpha;
-						for (index_t j = 0; j < ny; j++)
+						printf("\nInverse Laplace filtering 3D reconstructed object ...");
+						//allocate space for FFT transform and create FFTW plans
+						Fftwd3drc fftf((int)noutdefocus, (int)ny, (int)nx);
+
+						// FFT of test array
+						fftf.SetRealXArray3D(K3Out);
+						fftf.ForwardFFT();
+
+						/// multiply FFT of K3Out arrays by the FFT version of regularized inverse 3D Laplacian
+						double fact = 2.0 * PI * wl * (dzextra * 2.0);
+						double dksi2 = fact / ((xhi - xlo) * (xhi - xlo));
+						double deta2 = fact / ((yhi - ylo) * (yhi - ylo));
+						double dzeta2 = fact / ((zhi - zlo) * (zhi - zlo));
+						double dtemp, dtemp1, dk2, djk2;
+
+						fftw_complex* pout = fftf.GetComplex();
+						int m = 0, nc2 = fftf.GetNx2();
+						index_t k1, j1, nyd2 = ny / 2, nzd2 = noutdefocus / 2;
+						for (index_t k = 0; k < noutdefocus; k++)
 						{
-							jk2 = j * j * deta2 + k2;
-							for (index_t i = 0; i < nc2; i++)
+							k <= nzd2 ? k1 = k : k1 = noutdefocus - k;
+							dk2 = k1 * k1 * dzeta2 + alpha;
+							for (index_t j = 0; j < ny; j++)
 							{
-								dtemp = i * i * dksi2 + jk2;
-								dtemp != 0 ? dtemp1 = 1.0 / dtemp : dtemp1 = 0.0; // protection against division by zero
-								pout[m][0] *= dtemp1;
-								pout[m][1] *= dtemp1;
-								m++;
+								j <= nyd2 ? j1 = j : j1 = ny - j;
+								djk2 = j1 * j1 * deta2 + dk2;
+								for (index_t i = 0; i < nc2; i++)
+								{
+									dtemp = sin(i * i * dksi2 + djk2);
+									dtemp != 0 ? dtemp1 = 1.0 / dtemp : dtemp1 = 0.0; // protection against division by zero
+									pout[m][0] *= dtemp1;
+									pout[m][1] *= dtemp1;
+									m++;
+								}
 							}
 						}
-					}
 
-					// inverse FFT of the product
-					fftf.InverseFFT();
-					fftf.GetRealXArray3D(K3Out);
+						// inverse FFT of the product
+						fftf.InverseFFT();
+						fftf.GetRealXArray3D(K3Out);
+					}
 
 					// output the 3D array
 					#pragma omp parallel for shared(K3Out)
