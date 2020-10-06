@@ -210,6 +210,7 @@ int main()
 			vector<double> vint0_L1(ndefocus); // L1 norms of the initial defocused intensities
 
 			// start point of IWFR iterations
+			bool bAbort(false);
 			for (int k = 0; k < kmax; k++)
 			{
 				// apply initial or newly reconstructed phases (the second case is equal to restoring the original moduli)
@@ -253,9 +254,10 @@ int main()
 					catch (std::exception& E)
 					{
 						printf("\n\n!!!Exception: %s\n", E.what());
-						throw;
+						bAbort = true;
 					}
 				}
+				if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
 
 				// average complex amplitudes in the middle plane
 				campOut = vcamp[0];
@@ -278,9 +280,10 @@ int main()
 					catch (std::exception& E)
 					{
 						printf("\n\n!!!Exception: %s\n", E.what());
-						throw;
+						bAbort = true;
 					}
 				}
+				if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
 
 				// calculate the current reconstruction error and
 				// if the difference with the previous error is smaller than the defined minimum
@@ -342,9 +345,10 @@ int main()
 				catch (std::exception& E)
 				{
 					printf("\n\n!!!Exception: %s\n", E.what());
-					throw;
+					bAbort = true;
 				}
 			}
+			if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
 
 
 			if (noutformat == 3) // add the output defocused data obtained at the current rotational angle to the 3D object that is being reconstructed
@@ -518,9 +522,10 @@ int main()
 						catch (std::exception& E)
 						{
 							printf("\n\n!!!Exception: %s\n", E.what());
-							throw;
+							bAbort = true;
 						}
 					}
+					if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
 				}
 			}
 
@@ -531,7 +536,7 @@ int main()
 		printf("\n\n!!!Exception: %s\n", E.what());
 	}
 
-	std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();
+    std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();
 	printf("\n\nMain program finished. Execution time = %I64d s.", std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count());
 
 	printf("\nPress any key to exit..."); getchar();
