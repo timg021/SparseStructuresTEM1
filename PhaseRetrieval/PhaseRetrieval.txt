@@ -8,9 +8,10 @@
 7.Minimal_phase_reconstruction_error: 1.e-8
 8.Output_defocus_distances_min_max_and_step_in_Angstroms: -10.0 0.0390625 0.0
 9.Extra_defocus_for_3D_reconstruction_in_Angstroms: 1.0
-10.Regularization_parameter_for_inverse_3D_Laplacian_filter_(negative=no_filter): -1.e-4
-11.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 2
-12.Output_GRD/GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\campOut.grc
-13.Number_of_parallel_threads: 10
+10.3D_Laplacian_filter_mode:_not_apply(0)_apply(1)_apply_filter_only(2): 2
+11.Regularization_parameter_for_inverse_3D_Laplacian_filter: 1.e-4
+12.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 2
+13.Output_GRD/GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\campOut.grc
+14.Number_of_parallel_threads: 10
 //*****
 //*****!!!Don't forget to save this file after editing the parameters
