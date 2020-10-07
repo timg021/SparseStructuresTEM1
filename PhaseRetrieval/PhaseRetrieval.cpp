@@ -210,6 +210,7 @@ int main()
 		//************************************ end reading input parameters from file
 
 		bool bAbort(false);
+		index_t nx, ny;
 		double xlo, xhi, xst;
 		double ylo, yhi, yst;
 		XArray2D<double> aaa;
@@ -395,8 +396,8 @@ int main()
 				if (noutformat == 3) // add the output defocused data obtained at the current rotational angle to the 3D object that is being reconstructed
 				{
 					printf("\nUpdating 3D reconstructed object ...");
-					index_t ny = vcamp[0].GetDim1();
-					index_t nx = vcamp[0].GetDim2();
+					ny = vcamp[0].GetDim1();
+					nx = vcamp[0].GetDim2();
 
 					double xc = (xhi + xlo) / 2.0; // x-coordinate of the centre of rotation
 					double yc = (yhi + ylo) / 2.0; // y-coordinate of the centre of rotation
@@ -501,27 +502,29 @@ int main()
 		else
 		{
 			// read input 2D slices
-			vector<XArray2D<double>> vint(noutdefocus); // input K3 slices
+			XArray2D<double> ipIn;
 			for (int n = 0; n < noutdefocus; n++)
-				XArData::ReadFileGRD(vint[n], vinfilenamesTot[n].c_str(), wl); //	read input GRD files
-			IXAHWave2D* ph2 = GetIXAHWave2D(vint[0]);
-			xlo = ph2->GetXlo();
-			xhi = ph2->GetXhi();
-			xst = (xhi - xlo) / vint[0].GetDim2();
-			ylo = ph2->GetYlo();
-			yhi = ph2->GetYhi();
-			yst = (yhi - ylo) / vint[n].GetDim1();
-			if (xst != yst || xst != zst)	throw std::exception("Error: the input 3D object is supposed to have qubic voxels");
-			pHead = vint[0].GetHeadPtr();
-
-			// fill the input 3D object
-			index_t ny = vint[0].GetDim1();
-			index_t nx = vint[0].GetDim2();
-			K3Out.Resize(noutdefocus, ny, nx, 0.0);
-			for (index_t n = 0; n < noutdefocus; n++)
+			{
+				XArData::ReadFileGRD(ipIn, vinfilenamesTot[n].c_str(), wl); //	read input GRD files
+				if (n == 0)
+				{
+					IXAHWave2D* ph2 = GetIXAHWave2D(ipIn);
+					xlo = ph2->GetXlo();
+					xhi = ph2->GetXhi();
+					xst = (xhi - xlo) / ipIn.GetDim2();
+					ylo = ph2->GetYlo();
+					yhi = ph2->GetYhi();
+					yst = (yhi - ylo) / ipIn.GetDim1();
+					if (xst != yst || xst != zst)	throw std::exception("Error: the input 3D object is supposed to have qubic voxels");
+					pHead = ipIn.GetHeadPtr();
+					ny = ipIn.GetDim1();
+					nx = ipIn.GetDim2();
+					K3Out.Resize(noutdefocus, ny, nx, 0.0);
+				}
 				for (index_t j = 0; j < ny; j++)
 					for (index_t i = 0; i < nx; i++)
-						K3Out[n][j][i] = vint[n][j][i];
+						K3Out[n][j][i] = ipIn[j][i];
+			}
 		}
 
 		// apply inverse 3D Laplace filter to the reconstructed 3D array
@@ -581,11 +584,11 @@ int main()
 			{
 				try
 				{
-					XArray2D<double> ipOut(K3Out.GetDim2(), K3Out.GetDim3());
+					XArray2D<double> ipOut(ny, nx);
 					ipOut.SetHeadPtr(pHead ? pHead->Clone() : 0);
 
-					for (index_t j = 0; j < K3Out.GetDim2(); j++)
-						for (index_t i = 0; i < K3Out.GetDim3(); i++)
+					for (index_t j = 0; j < ny; j++)
+						for (index_t i = 0; i < nx; i++)
 							ipOut[j][i] = K3Out[n][j][i];
 
 					printf("\nOutput defocus slice no. = %d; output file = %s", n, voutfilenamesTot[n].c_str());
