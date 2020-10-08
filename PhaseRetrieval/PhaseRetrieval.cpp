@@ -506,8 +506,10 @@ int main()
 						}
 					}
 				}
-
 			} // end of cycle over rotation angles
+			
+			if (noutformat == 3) K3Out /= double(nangles); // normalize by the number of rotations positions
+		
 		} // end of case if imode3Dfilter != 2
 		else
 		{
@@ -536,16 +538,15 @@ int main()
 						K3Out[n][j][i] = ipIn[j][i];
 			}
 		}
-
-		// apply inverse 3D Laplace filter to the reconstructed 3D array
+		 
 		if (noutformat == 3)
 		{
-			K3Out /= double(nangles);
-
 			// regularized inverse 3D Laplacian filter
 			if (imode3Dfilter == 1 || imode3Dfilter == 2)
 			{
 				printf("\n\nInverse Laplace filtering 3D reconstructed object ...");
+				double dnorm1 = K3Out.Norm(eNormL1);
+				
 				//allocate space for FFT transform and create FFTW plans
 				Fftwd3drc fftf((int)noutdefocus, (int)ny, (int)nx);
 
@@ -554,7 +555,7 @@ int main()
 				fftf.ForwardFFT();
 
 				/// multiply FFT of K3Out arrays by the FFT version of regularized inverse 3D Laplacian
-				double fact = 2.0 * PI * wl * (abs(dzextra) * 2.0);
+				double fact = 4.0 * PI * PI * wl * (abs(dzextra) * 2.0);
 				double dksi2 = fact / ((xhi - xlo) * (xhi - xlo));
 				double deta2 = fact / ((yhi - ylo) * (yhi - ylo));
 				double dzeta2 = fact / ((zhi - zlo) * (zhi - zlo));
@@ -574,7 +575,7 @@ int main()
 						for (index_t i = 0; i < nc2; i++)
 						{
 							dtemp = i * i * dksi2 + djk2;
-							dtemp != 0 ? dtemp1 = 1.0 / dtemp : dtemp1 = 0.0; // protection against division by zero
+							dtemp != 0 ? dtemp1 = alpha / dtemp : dtemp1 = 0.0; // protection against division by zero
 							pout[m][0] *= dtemp1;
 							pout[m][1] *= dtemp1;
 							m++;
@@ -585,6 +586,9 @@ int main()
 				// inverse FFT of the product
 				fftf.InverseFFT();
 				fftf.GetRealXArray3D(K3Out);
+
+				// restore L1 norm
+				K3Out *= dnorm1 / K3Out.Norm(eNormL1); 
 			}
 
 			// output the 3D array
