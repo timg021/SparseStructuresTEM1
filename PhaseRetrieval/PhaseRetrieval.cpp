@@ -49,7 +49,7 @@ int main()
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
-		printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());
+		//printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());  -this has to be delayed until the 3D Laplacian filter mode is known
 		vector<string> vinfilenamesTot;
 		// FileNames2(vndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames - this has to be delayed until the 3D Laplacian filter mode is known
 		
@@ -117,7 +117,7 @@ int main()
 			printf("%g ", voutdefocus[n]);
 		}
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. Regularization parameter for inverse 3D Laplacian
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 10. 3D Laplacian filter mode
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading 3D Laplacian filter mode from input parameter file.");
 		int imode3Dfilter = atoi(cparam);
 		switch (imode3Dfilter)
@@ -151,7 +151,20 @@ int main()
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 13. Output file name base in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading output file name base from input parameter file.");
 		string filenamebaseOut = cparam;
-		printf("\nOutput file name base = %s", filenamebaseOut.c_str());
+		string filenamebaseOutNew("BAD_STRING"); // don't use it, unless it is redefined later
+		if (imode3Dfilter == 2) // only read "output" files, filter them and write in different files
+		{
+			filenamebaseOutNew = filenamebaseOut;
+			filenamebaseOutNew.insert(filenamebaseOut.find_last_of("."), "L");
+			printf("\nInput file name base = %s", filenamebaseOut.c_str());
+			printf("\nOutput file name base = %s", filenamebaseOutNew.c_str());
+		}
+		else
+		{
+			printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());
+			printf("\nOutput file name base = %s", filenamebaseOut.c_str());
+		}
+		
 		switch (noutformat)
 		{
 		case 0:
@@ -188,7 +201,6 @@ int main()
 			if (imode3Dfilter == 2) // only read "output" files, filter them and write in different files
 			{
 				FileNames(1, noutdefocus, filenamebaseOut, vinfilenamesTot); // create 1D array of input filenames to read the input 2D slices of a previously reconstructed 3D object
-				string filenamebaseOutNew = filenamebaseOut.insert(filenamebaseOut.find_last_of("."), "L");
 				FileNames(1, noutdefocus, filenamebaseOutNew, voutfilenamesTot); // create 1D array of output filenames to save 2D slices of the filtered 3D object
 			}
 			else
@@ -213,8 +225,7 @@ int main()
 		index_t nx, ny;
 		double xlo, xhi, xst;
 		double ylo, yhi, yst;
-		XArray2D<double> aaa;
-		IXAHead* pHead(0);
+		std::unique_ptr<IXAHead> pHead(nullptr);
 		XArray3D<double> K3Out; // big 3D reconstructed array (needs to fit into RAM alongside with with everything else)
 
 		if (imode3Dfilter != 2) // do phase retrieval and backpropagation prior to 3D filtering and output
@@ -269,12 +280,14 @@ int main()
 								if (noutformat == 3)
 								{
 									IXAHWave2D* ph2 = GetIXAHWave2D(vint0[n]);
+									ny = vint0[n].GetDim1();
+									nx = vint0[n].GetDim2();
 									xlo = ph2->GetXlo();
 									xhi = ph2->GetXhi();
-									xst = (xhi - xlo) / vint0[n].GetDim2();
+									xst = ph2->GetXStep(nx);
 									ylo = ph2->GetYlo();
 									yhi = ph2->GetYhi();
-									yst = (yhi - ylo) / vint0[n].GetDim1();
+									yst = ph2->GetYStep(ny);
 									if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
 								}
 								vint0_L1[n] = vint0[n].Norm(eNormL1);
@@ -396,9 +409,6 @@ int main()
 				if (noutformat == 3) // add the output defocused data obtained at the current rotational angle to the 3D object that is being reconstructed
 				{
 					printf("\nUpdating 3D reconstructed object ...");
-					ny = vcamp[0].GetDim1();
-					nx = vcamp[0].GetDim2();
-
 					double xc = (xhi + xlo) / 2.0; // x-coordinate of the centre of rotation
 					double yc = (yhi + ylo) / 2.0; // y-coordinate of the centre of rotation
 					double zc = (zhi + zlo) / 2.0; // z-coordinate of the centre of rotation
@@ -432,8 +442,8 @@ int main()
 					// allocate the large 3D output array
 					if (na == 0)
 					{
+						pHead.reset(vint0[0].GetHeadPtr()->Clone());
 						K3Out.Resize(noutdefocus, ny, nx, 0.0);
-						pHead = vint0[0].GetHeadPtr();
 					}
 
 					// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
@@ -509,16 +519,16 @@ int main()
 				if (n == 0)
 				{
 					IXAHWave2D* ph2 = GetIXAHWave2D(ipIn);
-					xlo = ph2->GetXlo();
-					xhi = ph2->GetXhi();
-					xst = (xhi - xlo) / ipIn.GetDim2();
-					ylo = ph2->GetYlo();
-					yhi = ph2->GetYhi();
-					yst = (yhi - ylo) / ipIn.GetDim1();
-					if (xst != yst || xst != zst)	throw std::exception("Error: the input 3D object is supposed to have qubic voxels");
-					pHead = ipIn.GetHeadPtr();
 					ny = ipIn.GetDim1();
 					nx = ipIn.GetDim2();
+					xlo = ph2->GetXlo();
+					xhi = ph2->GetXhi();
+					xst = ph2->GetXStep(nx);
+					ylo = ph2->GetYlo();
+					yhi = ph2->GetYhi();
+					yst = ph2->GetYStep(ny);
+					if (xst != yst || xst != zst)	throw std::exception("Error: the input 3D object is supposed to have qubic voxels");
+					pHead.reset(ipIn.GetHeadPtr()->Clone());
 					K3Out.Resize(noutdefocus, ny, nx, 0.0);
 				}
 				for (index_t j = 0; j < ny; j++)
@@ -530,13 +540,12 @@ int main()
 		// apply inverse 3D Laplace filter to the reconstructed 3D array
 		if (noutformat == 3)
 		{
-			printf("\n\n*** Saving the reconstructed 3D object into output files ...");
 			K3Out /= double(nangles);
 
 			// regularized inverse 3D Laplacian filter
 			if (imode3Dfilter == 1 || imode3Dfilter == 2)
 			{
-				printf("\nInverse Laplace filtering 3D reconstructed object ...");
+				printf("\n\nInverse Laplace filtering 3D reconstructed object ...");
 				//allocate space for FFT transform and create FFTW plans
 				Fftwd3drc fftf((int)noutdefocus, (int)ny, (int)nx);
 
@@ -545,7 +554,7 @@ int main()
 				fftf.ForwardFFT();
 
 				/// multiply FFT of K3Out arrays by the FFT version of regularized inverse 3D Laplacian
-				double fact = 2.0 * PI * wl * (dzextra * 2.0);
+				double fact = 2.0 * PI * wl * (abs(dzextra) * 2.0);
 				double dksi2 = fact / ((xhi - xlo) * (xhi - xlo));
 				double deta2 = fact / ((yhi - ylo) * (yhi - ylo));
 				double dzeta2 = fact / ((zhi - zlo) * (zhi - zlo));
@@ -564,7 +573,7 @@ int main()
 						djk2 = j1 * j1 * deta2 + dk2;
 						for (index_t i = 0; i < nc2; i++)
 						{
-							dtemp = sin(i * i * dksi2 + djk2);
+							dtemp = i * i * dksi2 + djk2;
 							dtemp != 0 ? dtemp1 = 1.0 / dtemp : dtemp1 = 0.0; // protection against division by zero
 							pout[m][0] *= dtemp1;
 							pout[m][1] *= dtemp1;
@@ -579,6 +588,7 @@ int main()
 			}
 
 			// output the 3D array
+			printf("\n\n*** Saving the reconstructed 3D object into output files ...");
 			#pragma omp parallel for shared(K3Out)
 			for (int n = 0; n < noutdefocus; n++)
 			{
