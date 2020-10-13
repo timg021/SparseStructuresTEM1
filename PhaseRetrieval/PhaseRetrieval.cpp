@@ -455,56 +455,66 @@ int main()
 #else
 					index_t nx1 = nx - 1, ny1 = ny - 1, noutdefocus1 = noutdefocus - 1;
 #endif
+					#pragma omp parallel for shared (K3Out) private(yyy, zz, xxx, zzz, dx1, dy1, dz1, ii, jj, nn, dK, dz0K, dz1K)
 					for (int n = 0; n < noutdefocus; n++)
 					{
-						for (index_t j = 0; j < ny; j++)
+						try
 						{
-							// inverse rotation around X' axis
-							yyy = yc + y_cosangleX[j] - z_sinangleX[n]; // y coordinate with respect to the rotated 3D sample
-							zz = y_sinangleX[j] + z_cosangleX[n];
-							for (index_t i = 0; i < nx; i++)
+							for (index_t j = 0; j < ny; j++)
 							{
-								// inverse rotation around Y axis
-								xxx = xc + x_cosangleY[i] - zz * sinangleY; // x coordinate with respect to the rotated 3D sample
-								zzz = zc + x_sinangleY[i] + zz * cosangleY; // z coordinate with respect to the rotated 3D sample
+								// inverse rotation around X' axis
+								yyy = yc + y_cosangleX[j] - z_sinangleX[n]; // y coordinate with respect to the rotated 3D sample
+								zz = y_sinangleX[j] + z_cosangleX[n];
+								for (index_t i = 0; i < nx; i++)
+								{
+									// inverse rotation around Y axis
+									xxx = xc + x_cosangleY[i] - zz * sinangleY; // x coordinate with respect to the rotated 3D sample
+									zzz = zc + x_sinangleY[i] + zz * cosangleY; // z coordinate with respect to the rotated 3D sample
 #if defined(TRILINEAR_INTERPOLATION)
-								dx1 = abs(xxx - xlo) / xst; ii = (index_t)dx1;
-								dy1 = abs(yyy - ylo) / yst; jj = (index_t)dy1;
-								dz1 = abs(zzz - zlo) / zst; nn = (index_t)dz1;
-								if (ii > nx2 || jj > ny2 || nn > noutdefocus2) continue;
-								dx1 -= ii; dx0 = 1.0 - dx1;
-								dy1 -= jj; dy0 = 1.0 - dy1;
-								dz1 -= nn; dz0 = 1.0 - dz1;
+									dx1 = abs(xxx - xlo) / xst; ii = (index_t)dx1;
+									dy1 = abs(yyy - ylo) / yst; jj = (index_t)dy1;
+									dz1 = abs(zzz - zlo) / zst; nn = (index_t)dz1;
+									if (ii > nx2 || jj > ny2 || nn > noutdefocus2) continue;
+									dx1 -= ii; dx0 = 1.0 - dx1;
+									dy1 -= jj; dy0 = 1.0 - dy1;
+									dz1 -= nn; dz0 = 1.0 - dz1;
 #else
-								if (xxx < xlo) xxx = xlo;
-								if (yyy < ylo) yyy = ylo;
-								if (zzz < zlo) zzz = zlo;
-								ii = (index_t)((xxx - xlo) / xst + 0.5); // nearest neighbour interpolation variant
-								jj = (index_t)((yyy - ylo) / yst + 0.5); // nearest neighbour interpolation variant
-								nn = (index_t)((zzz - zlo) / zst + 0.5); // nearest neighbour interpolation variant
-								if (ii > nx1) ii = nx1;
-								if (jj > ny1) jj = ny1;
-								if (nn > noutdefocus1) nn = noutdefocus1;
+									if (xxx < xlo) xxx = xlo;
+									if (yyy < ylo) yyy = ylo;
+									if (zzz < zlo) zzz = zlo;
+									ii = (index_t)((xxx - xlo) / xst + 0.5); // nearest neighbour interpolation variant
+									jj = (index_t)((yyy - ylo) / yst + 0.5); // nearest neighbour interpolation variant
+									nn = (index_t)((zzz - zlo) / zst + 0.5); // nearest neighbour interpolation variant
+									if (ii > nx1) ii = nx1;
+									if (jj > ny1) jj = ny1;
+									if (nn > noutdefocus1) nn = noutdefocus1;
 #endif
 #if defined(TRILINEAR_INTERPOLATION)
-								dK = 1.0 - std::norm(vcamp[n][j][i]);
-								dz0K = dz0 * dK;
-								dz1K = dz1 * dK;
-								K3Out[nn][jj][ii] += dx0 * dy0 * dz0K;
-								K3Out[nn][jj][ii + 1] += dx1 * dy0 * dz0K;
-								K3Out[nn + 1][jj][ii] += dx0 * dy0 * dz1K;
-								K3Out[nn + 1][jj][ii + 1] += dx1 * dy0 * dz1K;
-								K3Out[nn][jj + 1][ii] += dx0 * dy1 * dz0K;
-								K3Out[nn][jj + 1][ii + 1] += dx1 * dy1 * dz0K;
-								K3Out[nn + 1][jj + 1][ii] += dx0 * dy1 * dz1K;
-								K3Out[nn + 1][jj + 1][ii + 1] += dx1 * dy1 * dz1K;
+									dK = 1.0 - std::norm(vcamp[n][j][i]);
+									dz0K = dz0 * dK;
+									dz1K = dz1 * dK;
+									K3Out[nn][jj][ii] += dx0 * dy0 * dz0K;
+									K3Out[nn][jj][ii + 1] += dx1 * dy0 * dz0K;
+									K3Out[nn + 1][jj][ii] += dx0 * dy0 * dz1K;
+									K3Out[nn + 1][jj][ii + 1] += dx1 * dy0 * dz1K;
+									K3Out[nn][jj + 1][ii] += dx0 * dy1 * dz0K;
+									K3Out[nn][jj + 1][ii + 1] += dx1 * dy1 * dz0K;
+									K3Out[nn + 1][jj + 1][ii] += dx0 * dy1 * dz1K;
+									K3Out[nn + 1][jj + 1][ii + 1] += dx1 * dy1 * dz1K;
 #else
-								K3Out[nn][jj][ii] += 1.0 - std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant
-								//K3Out[nn][jj][ii] += std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant @@@@@ temporary
+									K3Out[nn][jj][ii] += 1.0 - std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant
+									//K3Out[nn][jj][ii] += std::norm(vcamp[n][j][i]); // nearest neigbour interpolation variant @@@@@ temporary
 #endif
+								}
 							}
 						}
+						catch (std::exception& E)
+						{
+							printf("\n\n!!!Exception: %s\n", E.what());
+							bAbort = true;
+						}
 					}
+					if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
 				}
 			} // end of cycle over rotation angles
 			
