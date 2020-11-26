@@ -1,7 +1,7 @@
 // PhaseRetrieval.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 // The IWFR algorithm is implemented here according to the description in the paper
-// L. Allen, "Electron Microscope Cs Correction Using Iterative Wave - Function Reconstruction", Microscopy and Analysis 20(4):15-17 (UK), 2006
+// L. Allen, "Electron Microscope Cs Correction Using Iterative Wave-Function Reconstruction", Microscopy and Analysis 20(4):15-17 (UK), 2006
 
 #include <complex.h>
 #include <chrono>
@@ -39,17 +39,26 @@ int main()
 		if (!ff0) throw std::exception("Error: cannot open parameter file PhaseRetrieval.txt.");
 		fgets(cline, 1024, ff0); // 1st line - comment
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input_file_with_rotation_angles_and_defocus_distances
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 1. Input file with rotation angles and defocus distances
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
 		ReadDefocusParamsFile(cparam, v2angles, vvdefocus);
 		index_t nangles = v2angles.size(); // number of rotation steps 
 		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
 		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
 
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input_filename_base_of_defocus_series_of_the_sample_in_GRD_format
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input filename base of defocus series of the sample in GRD or GRC format
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading defocus series file name base from input parameter file.");
 		string filenamebaseIn = cparam;
-		//printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());  -this has to be delayed until the 3D Laplacian filter mode is known
+		if (GetFileExtension(filenamebaseIn) != string(".GRD") && GetFileExtension(filenamebaseIn) != string(".GRC"))
+			throw std::exception("Error: input filename extension must be GRD or GRC.");
+		if (GetFileExtension(filenamebaseIn) == string(".GRC")) // check that there is only one input defocused complex amplitude file per each rotation angle
+		{
+			for (index_t i = 0; i < nangles; i++)
+				if (vndefocus[i] != 1)
+					throw std::exception("Error: only one input defocused complex amplitude file per each rotation angle is allowed.");
+		}
+
+		//printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());  - this has to be delayed until the 3D Laplacian filter mode is known
 		vector<string> vinfilenamesTot;
 		// FileNames2(vndefocus, filenamebaseIn, vinfilenamesTot); // create "total 2D array" of input filenames - this has to be delayed until the 3D Laplacian filter mode is known
 		
@@ -256,107 +265,131 @@ int main()
 					for (index_t n = 0; n < noutdefocus; n++) voutfilenames[n] = voutfilenamesTot[na * noutdefocus + n];
 
 				// define main work objects
-				double dtemp; // auxilliary variable
-				double ssej(0.0), ssejm1(0.0); // current and previous average reconstruction errors
-				vector<double> verr(ndefocus); // reconstruction errors in individual defocus planes
-				vector<XArray2D<double>> vint0(ndefocus), vint(ndefocus); // initial and iterated defocused intensities
-				vector<XArray2D<dcomplex>> vcamp(ndefocus); // defocused complex amplitudes
-				XArray2D<dcomplex> campOut; // complex amplitude in the plane z=0
-				vector<double> vint0_L1(ndefocus); // L1 norms of the initial defocused intensities
+				XArray2D<dcomplex> campOut; // complex amplitude in the "middle" defocus plane
+				vector<XArray2D<dcomplex>> vcamp; // defocused complex amplitudes
 
-				// start point of IWFR iterations
-				for (int k = 0; k < kmax; k++)
+				if (GetFileExtension(vinfilenames[0]) == string(".GRC"))
 				{
-					// apply initial or newly reconstructed phases (the second case is equal to restoring the original moduli)
-					// and propagate each defocused amplitude to the "middle" plane z = zmiddle
-					#pragma omp parallel for
-					for (int n = 0; n < ndefocus; n++)
+					XArData::ReadFileGRC(campOut, vinfilenames[0].c_str()); //	read the only one (!) input GRC file
+					pHead.reset(campOut.GetHeadPtr()->Clone());
+					if (noutformat == 3)
 					{
-						try
-						{
-							if (k == 0) // read input defocused intensity and create initial defocused complex amplitude
-							{
-								XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
-								if (noutformat == 3)
-								{
-									IXAHWave2D* ph2 = GetIXAHWave2D(vint0[n]);
-									ny = vint0[n].GetDim1();
-									nx = vint0[n].GetDim2();
-									xlo = ph2->GetXlo();
-									xhi = ph2->GetXhi();
-									xst = ph2->GetXStep(nx);
-									ylo = ph2->GetYlo();
-									yhi = ph2->GetYhi();
-									yst = ph2->GetYStep(ny);
-									if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
-								}
-								vint0_L1[n] = vint0[n].Norm(eNormL1);
-								printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
-								if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
-								vint0[n] ^= 0.5; // intensity --> real amplitude
-								MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
-							}
-							else // apply phases obtained on the previous iteration
-								for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
-									for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
-									{
-										dtemp = abs(vcamp[n][j][i]);
-										if (dtemp) vcamp[n][j][i] *= vint0[n][j][i] / dtemp;
-										else vcamp[n][j][i] = std::polar(vint0[n][j][i], 0.0);
-									}
-							xar::XArray2DFFT<double> xafft(vcamp[n]);
-							xafft.Fresnel(zmiddle - vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
-						}
-						catch (std::exception& E)
-						{
-							printf("\n\n!!!Exception: %s\n", E.what());
-							bAbort = true;
-						}
+						IXAHWave2D* ph2 = GetIXAHWave2D(campOut);
+						ny = campOut.GetDim1();
+						nx = campOut.GetDim2();
+						xlo = ph2->GetXlo();
+						xhi = ph2->GetXhi();
+						xst = ph2->GetXStep(nx);
+						ylo = ph2->GetYlo();
+						yhi = ph2->GetYhi();
+						yst = ph2->GetYStep(ny);
+						if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
 					}
-					if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
-
-					// average complex amplitudes in the middle plane
-					campOut = vcamp[0];
-					for (index_t n = 1; n < ndefocus; n++) campOut += vcamp[n];
-					campOut /= double(ndefocus);
-
-					// propagate the averaged complex amplitude from the middle plane to the individual defocus planes
-					#pragma omp parallel for shared(campOut)
-					for (int n = 0; n < ndefocus; n++)
-					{
-						try
-						{
-							vcamp[n] = campOut;
-							xar::XArray2DFFT<double> xafft(vcamp[n]);
-							xafft.Fresnel(vdefocus[n] - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
-							Abs(vcamp[n], vint[n]);
-							vint[n] -= vint0[n];
-							verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
-						}
-						catch (std::exception& E)
-						{
-							printf("\n\n!!!Exception: %s\n", E.what());
-							bAbort = true;
-						}
-					}
-					if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
-
-					// calculate the current reconstruction error and
-					// if the difference with the previous error is smaller than the defined minimum
-					// or, if the error started to increase, interrupt the iterations
-					ssej = 0.0;
-					for (index_t n = 0; n < ndefocus; n++) ssej += verr[n];
-					ssej /= double(ndefocus);
-
-					if (k == 0) printf("\nIteration number %d; SSE_aver error at 0th iteration = %g\n", k, ssej);
-					else printf("\nIteration number %d; SSE_aver error difference with previous iteration = %g\n", k, ssejm1 - ssej);
-
-					for (index_t n = 0; n < ndefocus; n++) printf("SSE(%zd) = %g ", n, verr[n]);
-
-					if (k > 0 && (ssejm1 - ssej) < epsilon) break;
-					else ssejm1 = ssej;
 				}
-				// end point of IWFR iterations
+				else
+				{
+					double dtemp; // auxilliary variable
+					double ssej(0.0), ssejm1(0.0); // current and previous average reconstruction errors
+					vector<double> verr(ndefocus); // reconstruction errors in individual defocus planes
+					vector<double> vint0_L1(ndefocus); // L1 norms of the initial defocused intensities
+					vector<XArray2D<double>> vint0(ndefocus), vint(ndefocus); // initial and iterated defocused intensities
+					vcamp.resize(ndefocus); // defocused complex amplitudes
+
+					// start point of IWFR iterations
+					for (int k = 0; k < kmax; k++)
+					{
+						// apply initial or newly reconstructed phases (the second case is equal to restoring the original moduli)
+						// and propagate each defocused amplitude to the "middle" plane z = zmiddle
+						#pragma omp parallel for
+						for (int n = 0; n < ndefocus; n++)
+						{
+							try
+							{
+								if (k == 0) // read input defocused intensity and create initial defocused complex amplitude
+								{
+									XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
+									if (n == 0) pHead.reset(vint0[0].GetHeadPtr()->Clone());
+									if (noutformat == 3)
+									{
+										IXAHWave2D* ph2 = GetIXAHWave2D(vint0[n]);
+										ny = vint0[n].GetDim1();
+										nx = vint0[n].GetDim2();
+										xlo = ph2->GetXlo();
+										xhi = ph2->GetXhi();
+										xst = ph2->GetXStep(nx);
+										ylo = ph2->GetYlo();
+										yhi = ph2->GetYhi();
+										yst = ph2->GetYStep(ny);
+										if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
+									}
+									vint0_L1[n] = vint0[n].Norm(eNormL1);
+									printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
+									if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
+									vint0[n] ^= 0.5; // intensity --> real amplitude
+									MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
+								}
+								else // apply phases obtained on the previous iteration
+									for (index_t j = 0; j < vcamp[n].GetDim1(); j++)
+										for (index_t i = 0; i < vcamp[n].GetDim2(); i++)
+										{
+											dtemp = abs(vcamp[n][j][i]);
+											if (dtemp) vcamp[n][j][i] *= vint0[n][j][i] / dtemp;
+											else vcamp[n][j][i] = std::polar(vint0[n][j][i], 0.0);
+										}
+								xar::XArray2DFFT<double> xafft(vcamp[n]);
+								xafft.Fresnel(zmiddle - vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
+							}
+							catch (std::exception& E)
+							{
+								printf("\n\n!!!Exception: %s\n", E.what());
+								bAbort = true;
+							}
+						}
+						if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
+
+						// average complex amplitudes in the middle plane
+						campOut = vcamp[0];
+						for (index_t n = 1; n < ndefocus; n++) campOut += vcamp[n];
+						campOut /= double(ndefocus);
+
+						// propagate the averaged complex amplitude from the middle plane to the individual defocus planes
+						#pragma omp parallel for shared(campOut)
+						for (int n = 0; n < ndefocus; n++)
+						{
+							try
+							{
+								vcamp[n] = campOut;
+								xar::XArray2DFFT<double> xafft(vcamp[n]);
+								xafft.Fresnel(vdefocus[n] - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
+								Abs(vcamp[n], vint[n]);
+								vint[n] -= vint0[n];
+								verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
+							}
+							catch (std::exception& E)
+							{
+								printf("\n\n!!!Exception: %s\n", E.what());
+								bAbort = true;
+							}
+						}
+						if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
+
+						// calculate the current reconstruction error and
+						// if the difference with the previous error is smaller than the defined minimum
+						// or, if the error started to increase, interrupt the iterations
+						ssej = 0.0;
+						for (index_t n = 0; n < ndefocus; n++) ssej += verr[n];
+						ssej /= double(ndefocus);
+
+						if (k == 0) printf("\nIteration number %d; SSE_aver error at 0th iteration = %g\n", k, ssej);
+						else printf("\nIteration number %d; SSE_aver error difference with previous iteration = %g\n", k, ssejm1 - ssej);
+
+						for (index_t n = 0; n < ndefocus; n++) printf("SSE(%zd) = %g ", n, verr[n]);
+
+						if (k > 0 && (ssejm1 - ssej) < epsilon) break;
+						else ssejm1 = ssej;
+					}
+					// end point of IWFR iterations
+				}
 
 				// now start calculations of the output defocused images
 				printf("\nPropagating to output defocus planes ...");
@@ -440,11 +473,7 @@ int main()
 					}
 
 					// allocate the large 3D output array
-					if (na == 0)
-					{
-						pHead.reset(vint0[0].GetHeadPtr()->Clone());
-						K3Out.Resize(noutdefocus, ny, nx, 0.0);
-					}
+					if (na == 0) K3Out.Resize(noutdefocus, ny, nx, 0.0);
 
 					// rotate the defocus plane around the "vertical" y axis by -angle, instead of rotating the 3D object by the angle
 					index_t ii, jj, nn;
