@@ -131,6 +131,9 @@
     <ClInclude Include="..\..\XArrayLibrary\fftw3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\XArrayLibrary\XA_spln2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="MsctKirkland.txt">

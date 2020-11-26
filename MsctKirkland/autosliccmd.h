@@ -1,6 +1,7 @@
 //@@@@@@ start TEG code
 #include <string>
 #include <vector>
+#include "XA_file.h"
 
 #define TEG_MULTITHREADED 1 //if defined, multithreaded execution is used
 
@@ -18,7 +19,7 @@ public:
 	void SetTerminate() { counter = -100000; }
 };
 
-int autosliccmd(std::vector<std::string> params, std::vector<double> defocus, std::vector<std::string> fileout);
+int autosliccmd(std::vector<std::string> params, std::vector<xar::Pair> defocus, std::vector<std::string> fileout);
 int autosliccmd1(std::vector<std::string> params);
 //@@@@@ end TEG code
 

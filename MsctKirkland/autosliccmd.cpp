@@ -145,6 +145,7 @@ ANY OTHER PROGRAM).
 #include "XArray2D.h"
 #include "XA_data.h"
 #include "XA_fft2.h"
+#include "XA_spln2.h"
 
 using namespace std;
 
@@ -168,7 +169,7 @@ const int NSMAX= 1000;   // max number of slices
 const int NCMAX= 1024;   // max characters in file names
 const int NZMAX= 103;    // max atomic number Z
 
-int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fileout)
+int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string> fileout)
 {
 	Counter_Obj thread_counter; // increments the thread counter on construction and decrements it on destruction
 	try
@@ -756,17 +757,32 @@ int autosliccmd(vector<string> params, vector<double> defocus, vector<string> fi
 			double C3 = double(Cs3 * 1.e+7); // mm --> Angstroms
 			double C5 = double(Cs5 * 1.e+7); // mm --> Angstroms
 
+			// prepare the real and imaginary parts of the transmitted amplitude which will be rotated around Z" and propagated to different defocus distances
+			double dblYCentre = 0.5 * (ymax - ymin), dblXCentre = 0.5 * (xmax - xmin);
+			xar::XArray2D<float> ampRe0(ny, nx), ampIm0(ny, nx), ampRe(ny, nx), ampIm(ny, nx);
+			xar::XArray2DSpln<float> xaSplnRe(ampRe0), xaSplnIm(ampIm0);
+
 			for (size_t j = 0; j < defocus.size(); j++)
 			{
-				printf("\n  Defocus = %g (A)", defocus[j]);
+				printf("\n Z'' rotation angle = %g (deg), Defocus = %g (A)", defocus[j].a, defocus[j].b);
+				
+				// (re)define the transmitted complex amplitude
 				for (ix = 0; ix < nx; ix++)
 					for (iy = 0; iy < ny; iy++)
 						camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
 
-				if (defocus[j] == 0 && (k2maxo != 0 || C3 != 0 || C5 != 0)) 
+				// propagate
+				xar::MakeComplex(ampRe0, ampIm0, camp, false);
+				if (defocus[j].b == 0 && (k2maxo != 0 || C3 != 0 || C5 != 0)) 
 					xafft.Fresnel(double(wavlen), false, double(k2maxo), C3, C5); // fake propagation is needed in order to enforce the spatial Fourier frequency cutoff or aberrations
 				else 
-					xafft.Fresnel(defocus[j], false, double(k2maxo), C3, C5); // propagate to the current defocus distance
+					xafft.Fresnel(defocus[j].b, false, double(k2maxo), C3, C5); // propagate to the current defocus distance
+
+				// rotate around Z"
+				xar::Re(camp, ampRe0); xar::Im(camp, ampIm0);
+				xaSplnRe.Rotate(ampRe, defocus[j].a, dblYCentre, dblXCentre, 1.0f); // expecting uniform background with unit amplitude
+				xaSplnIm.Rotate(ampIm, defocus[j].a, dblYCentre, dblXCentre, 0.0f); // expecting uniform background with unit amplitude
+				xar::MakeComplex(ampRe, ampIm, camp, false);
 
 				//GRD/GRC file output
 				switch (noutput)

@@ -30,7 +30,7 @@ int main()
 	{
 		printf("\nStarting IWFR PhaseRetrieval program ...");
 		vector<Pair> v2angles;
-		vector<vector <double> > vvdefocus;
+		vector<vector <Pair> > vvdefocus;
 
 		//************************************ read input parameters from file
 		// read input parameter file
@@ -252,9 +252,9 @@ int main()
 				printf("\n\n*** Rotation angle[%zd] = (%g, %g) (degrees)", na, angleY / PI180, angleX / PI180);
 
 				index_t ndefocus = vndefocus[na]; // number of defocus planes at the current rotation angle
-				vector<double> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle
+				vector<Pair> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle
 				double zmiddle(0.0); // "middle z plane" position
-				for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j];
+				for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j].b;
 				zmiddle /= double(ndefocus);
 				// The vector of output defocus distances, voutdefocus[], is assumed to be the same for all angles.
 				// Filenames for the input and output defocus images are different for each angle, and so they need to be adjusted here.
@@ -337,7 +337,7 @@ int main()
 											else vcamp[n][j][i] = std::polar(vint0[n][j][i], 0.0);
 										}
 								xar::XArray2DFFT<double> xafft(vcamp[n]);
-								xafft.Fresnel(zmiddle - vdefocus[n], false, k2maxo, Cs3, Cs5); // propagate to z = 0
+								xafft.Fresnel(zmiddle - vdefocus[n].b, false, k2maxo, Cs3, Cs5); // propagate to z = 0
 							}
 							catch (std::exception& E)
 							{

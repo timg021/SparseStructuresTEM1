@@ -73,7 +73,7 @@ int main(void)
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15th line: Text_file_with_output_rotation_angles_in_degrees_and_defocus_distances_in_Angstroms
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading line 16 of input parameter file.");
 		vector<Pair> v2angles;
-		vector<vector <double> > vvdefocus;
+		vector<vector <Pair> > vvdefocus;
 		ReadDefocusParamsFile(string(cparam), v2angles, vvdefocus);
 		index_t nangles = v2angles.size(); // number of rotation steps 
 		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
@@ -169,13 +169,13 @@ int main(void)
 		for (size_t i = 0; i < nangles; i++)
 		{
 			Pair angle = v2angles[i];
-			printf("\nRotation angle: y = %g, x = %g (degrees)", angle.y, angle.x);
-			sprintf(bufangle, "%f %f", angle.y * PI180, angle.x * PI180); 
-			autoslictxt[24] = "25.Sample_Y_and_X_rotation_angles_in_radians: " + string(bufangle);
+			printf("\nIllumination angle: y = %g, x' = %g (degrees)", angle.a, angle.b);
+			sprintf(bufangle, "%f %f", angle.a * PI180, angle.b * PI180);
+			autoslictxt[24] = "25.Sample_Y_and_X'_rotation_angles_in_radians: " + string(bufangle);
 
 			// start the cycle over defocus distances (we only create output file names in this inner cycle)
 			index_t ndefocus = vndefocus[i]; // number of defocus planes at the current rotation angle
-			vector<double> vdefocus = vvdefocus[i]; // vector of defocus planes at the current defocus angle
+			vector<Pair> vdefocus = vvdefocus[i]; // vector of defocus planes at the current defocus angle
 			vector<string> vstrfileout(ndefocus); // vector of output filenames at the current rotation angle
 			for (index_t n = 0; n < ndefocus; n++) vstrfileout[n] = voutfilenamesTot[ndefcurrent++];
 
