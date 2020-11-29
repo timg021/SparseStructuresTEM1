@@ -174,9 +174,10 @@ int main(void)
 			autoslictxt[24] = "25.Sample_Y_and_X'_rotation_angles_in_radians: " + string(bufangle);
 
 			// start the cycle over defocus distances (we only create output file names in this inner cycle)
-			index_t ndefocus = vndefocus[i]; // number of defocus planes at the current rotation angle
-			vector<Pair> vdefocus = vvdefocus[i]; // vector of defocus planes at the current defocus angle
-			vector<string> vstrfileout(ndefocus); // vector of output filenames at the current rotation angle
+			index_t ndefocus = vndefocus[i]; // number of defocus planes at the current illumination angle
+			vector<Pair> vdefocus = vvdefocus[i]; // vector of Z" angles and defocus distances at the current illumination angle
+			// Note that vdefocus[n].a should contain Z" angle in degrees, because xar::XArray2DSpln<T>::Rotate function expects the rotation angle in degrees
+			vector<string> vstrfileout(ndefocus); // vector of output filenames at the current illumination angle
 			for (index_t n = 0; n < ndefocus; n++) vstrfileout[n] = voutfilenamesTot[ndefcurrent++];
 
 

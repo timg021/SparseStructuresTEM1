@@ -14,6 +14,7 @@
 #include "XA_file.h"
 #include "XA_fft2.h"
 #include "fftwd3drc.h"
+#include "XA_spln2.h"
 
 using namespace xar;
 
@@ -23,6 +24,8 @@ using namespace xar;
 
 int main()
 {
+	bool bVerboseOutput = false; // if this is TRUE, additional information is printed during execution
+
 	// start the execution timer
 	std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
 
@@ -43,7 +46,7 @@ int main()
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading file name with rotation angles and defocus distances from input parameter file.");
 		ReadDefocusParamsFile(cparam, v2angles, vvdefocus);
 		index_t nangles = v2angles.size(); // number of rotation steps 
-		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different rotation angles
+		vector<index_t> vndefocus(nangles); // vector of numbers of defocus planes at different illumination angles
 		for (index_t i = 0; i < nangles; i++) vndefocus[i] = vvdefocus[i].size();
 
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 2. Input filename base of defocus series of the sample in GRD or GRC format
@@ -51,11 +54,11 @@ int main()
 		string filenamebaseIn = cparam;
 		if (GetFileExtension(filenamebaseIn) != string(".GRD") && GetFileExtension(filenamebaseIn) != string(".GRC"))
 			throw std::exception("Error: input filename extension must be GRD or GRC.");
-		if (GetFileExtension(filenamebaseIn) == string(".GRC")) // check that there is only one input defocused complex amplitude file per each rotation angle
+		if (GetFileExtension(filenamebaseIn) == string(".GRC")) // check that there is only one input defocused complex amplitude file per each illumination angle
 		{
 			for (index_t i = 0; i < nangles; i++)
 				if (vndefocus[i] != 1)
-					throw std::exception("Error: only one input defocused complex amplitude file per each rotation angle is allowed.");
+					throw std::exception("Error: only one input defocused complex amplitude file per each illumination angle is allowed.");
 		}
 
 		//printf("\nInput defocus series file name base = %s", filenamebaseIn.c_str());  - this has to be delayed until the 3D Laplacian filter mode is known
@@ -215,8 +218,8 @@ int main()
 			else
 				FileNames(1, noutdefocus, filenamebaseOut, voutfilenamesTot); // create 1D array of output filenames to save 2D slices of the reconstructed 3D object
 		else
-			// note that the number of output defocus distances is assumed to be the same at all rotation angles
-			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create total 2D array of output filenames to save output 2D defocused images at different rotation angles and output defocus distances
+			// note that the number of output defocus distances is assumed to be the same at all illumination angles
+			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create total 2D array of output filenames to save output 2D defocused images at different illumination angles and output defocus distances
 		
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
@@ -239,20 +242,20 @@ int main()
 
 		if (imode3Dfilter != 2) // do phase retrieval and backpropagation prior to 3D filtering and output
 		{
-			// start of cycle over rotation angles
+			// start of cycle over illumination angles
 			index_t ndefcurrent(0);
 			for (index_t na = 0; na < nangles; na++)
 			{
-				double angleY = v2angles[na].y * PI180;
-				double angleX = v2angles[na].x * PI180;
+				double angleY = v2angles[na].a * PI180;
+				double angleX = v2angles[na].b * PI180;
 				double cosangleY = cos(angleY);
 				double sinangleY = sin(angleY);
 				double cosangleX = cos(angleX);
 				double sinangleX = sin(angleX);
-				printf("\n\n*** Rotation angle[%zd] = (%g, %g) (degrees)", na, angleY / PI180, angleX / PI180);
+				printf("\n\n*** Illumination angle[%zd] = (%g, %g) (degrees)", na, angleY / PI180, angleX / PI180);
 
-				index_t ndefocus = vndefocus[na]; // number of defocus planes at the current rotation angle
-				vector<Pair> vdefocus = vvdefocus[na]; // vector of input defocus positions at the current defocus angle
+				index_t ndefocus = vndefocus[na]; // number of defocus planes at the current illumination angle
+				vector<Pair> vdefocus = vvdefocus[na]; // vector of input Z" rotation angles and defocus positions at the current illumination angle
 				double zmiddle(0.0); // "middle z plane" position
 				for (size_t j = 0; j < ndefocus; j++) zmiddle += vdefocus[j].b;
 				zmiddle /= double(ndefocus);
@@ -270,6 +273,8 @@ int main()
 
 				if (GetFileExtension(vinfilenames[0]) == string(".GRC"))
 				{
+					printf("\nz'' rotation angle = %g (degrees), defocus distance = %g (Angstroms)", vdefocus[0].a, vdefocus[0].b);
+					printf("\nReading input file %s ...", vinfilenames[0].c_str());
 					XArData::ReadFileGRC(campOut, vinfilenames[0].c_str()); //	read the only one (!) input GRC file
 					pHead.reset(campOut.GetHeadPtr()->Clone());
 					if (noutformat == 3)
@@ -285,6 +290,13 @@ int main()
 						yst = ph2->GetYStep(ny);
 						if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
 					}
+					// rotate input defocused complex amplitude around Z" back to zero angle
+					XArray2D<double> ampRe0, ampIm0, ampRe, ampIm;
+					Re(campOut, ampRe0); Im(campOut, ampIm0);
+					XArray2DSpln<double> xaSplnRe(ampRe0), xaSplnIm(ampIm0);
+					xaSplnRe.Rotate(ampRe, -vdefocus[0].a, 0.5 * (yhi - ylo), 0.5 * (xhi - xlo), 1.0f); // expecting uniform background with unit amplitude
+					xaSplnIm.Rotate(ampIm, -vdefocus[0].a, 0.5 * (yhi - ylo), 0.5 * (xhi - xlo), 0.0f); // expecting uniform background with unit amplitude
+					MakeComplex(ampRe, ampIm, campOut, false);
 				}
 				else
 				{
@@ -307,23 +319,28 @@ int main()
 							{
 								if (k == 0) // read input defocused intensity and create initial defocused complex amplitude
 								{
+									printf("\nz'' rotation angle = %g (degrees), defocus distance = %g (Angstroms)", vdefocus[n].a, vdefocus[n].b);
+									printf("\nReading input file %s ...", vinfilenames[n].c_str());
 									XArData::ReadFileGRD(vint0[n], vinfilenames[n].c_str(), wl); //	read input GRD files
 									if (n == 0) pHead.reset(vint0[0].GetHeadPtr()->Clone());
-									if (noutformat == 3)
-									{
-										IXAHWave2D* ph2 = GetIXAHWave2D(vint0[n]);
-										ny = vint0[n].GetDim1();
-										nx = vint0[n].GetDim2();
-										xlo = ph2->GetXlo();
-										xhi = ph2->GetXhi();
-										xst = ph2->GetXStep(nx);
-										ylo = ph2->GetYlo();
-										yhi = ph2->GetYhi();
-										yst = ph2->GetYStep(ny);
-										if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
-									}
+									IXAHWave2D* ph2 = GetIXAHWave2D(vint0[n]);
+									ny = vint0[n].GetDim1();
+									nx = vint0[n].GetDim2();
+									xlo = ph2->GetXlo();
+									xhi = ph2->GetXhi();
+									xst = ph2->GetXStep(nx);
+									ylo = ph2->GetYlo();
+									yhi = ph2->GetYhi();
+									yst = ph2->GetYStep(ny);
+									if (xst != yst || xst != zst)	throw std::exception("Error: the 3D reconstructed object is supposed to have qubic voxels");
+
+									// rotate input defocused image around Z" back to zero angle
+									XArray2D<double> vintTemp(vint0[n]);
+									XArray2DSpln<double> xaSpln(vintTemp);
+									xaSpln.Rotate(vint0[n], -vdefocus[n].a, 0.5 * (yhi - ylo), 0.5 * (xhi - xlo), 1.0f); // expecting uniform background with unit amplitude
+
 									vint0_L1[n] = vint0[n].Norm(eNormL1);
-									printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
+									if (bVerboseOutput) printf("\nL1 norm of input defocused intensity no. %d = %g", n, vint0_L1[n]);
 									if (vint0_L1[n] == 0) throw std::exception("Error: input intensity file is empty");
 									vint0[n] ^= 0.5; // intensity --> real amplitude
 									MakeComplex(vint0[n], 0.0, vcamp[n], true); // apply initial zero phases
@@ -360,7 +377,7 @@ int main()
 							{
 								vcamp[n] = campOut;
 								xar::XArray2DFFT<double> xafft(vcamp[n]);
-								xafft.Fresnel(vdefocus[n] - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
+								xafft.Fresnel(vdefocus[n].b - zmiddle, false, k2maxo, Cs3, Cs5); // propagate to z = z[n]
 								Abs(vcamp[n], vint[n]);
 								vint[n] -= vint0[n];
 								verr[n] = pow(vint[n].Norm(eNormL2), 2.0) / vint0_L1[n];
@@ -380,10 +397,13 @@ int main()
 						for (index_t n = 0; n < ndefocus; n++) ssej += verr[n];
 						ssej /= double(ndefocus);
 
-						if (k == 0) printf("\nIteration number %d; SSE_aver error at 0th iteration = %g\n", k, ssej);
-						else printf("\nIteration number %d; SSE_aver error difference with previous iteration = %g\n", k, ssejm1 - ssej);
+						if (bVerboseOutput)
+						{
+							if (k == 0) printf("\nIteration number %d; SSE_aver error at 0th iteration = %g\n", k, ssej);
+							else printf("\nIteration number %d; SSE_aver error difference with previous iteration = %g\n", k, ssejm1 - ssej);
 
-						for (index_t n = 0; n < ndefocus; n++) printf("SSE(%zd) = %g ", n, verr[n]);
+							for (index_t n = 0; n < ndefocus; n++) printf("SSE(%zd) = %g ", n, verr[n]);
+						}
 
 						if (k > 0 && (ssejm1 - ssej) < epsilon) break;
 						else ssejm1 = ssej;
@@ -425,7 +445,7 @@ int main()
 							XArData::WriteFileGRC(vcamp[n], voutfilenames[n].c_str(), eGRCBIN);
 							break;
 						case 3: // 3D output of the contrast function
-							// in this case the output takes place only once, at the last rotation angle
+							// in this case the output takes place only once, at the last illumination angle
 							break;
 						default:
 							throw std::exception("Error: unknown output format");
@@ -446,7 +466,7 @@ int main()
 					double yc = (yhi + ylo) / 2.0; // y-coordinate of the centre of rotation
 					double zc = (zhi + zlo) / 2.0; // z-coordinate of the centre of rotation
 
-					// calculate the coordinate rotation angle parameters
+					// calculate the coordinate illumination angle parameters
 					double xxx;
 					vector<double> x_sinangleY(nx), x_cosangleY(nx);
 					for (index_t i = 0; i < nx; i++)
@@ -545,7 +565,7 @@ int main()
 					}
 					if (bAbort) throw std::runtime_error("at least one thread has thrown an exception.");
 				}
-			} // end of cycle over rotation angles
+			} // end of cycle over illumination angles
 			
 			if (noutformat == 3) K3Out /= double(nangles); // normalize by the number of rotations positions
 		

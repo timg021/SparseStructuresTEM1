@@ -109,5 +109,8 @@
     <ClInclude Include="..\..\XArrayLibrary\XA_fft2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\XArrayLibrary\XA_spln2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

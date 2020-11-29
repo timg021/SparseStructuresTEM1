@@ -1,17 +1,17 @@
 //*****Input parameter file for PhaseRetrieval.exe program*****
-1.Input_file_with_rotation_angles_and_defocus_distances: C:\Users\tgureyev\Downloads\Temp\DefocusInput.txt
-2.Input_filename_base_of_defocus_series_in_GRD_or_GRC_format: C:\Users\tgureyev\Downloads\Temp\asp.grd
+1.Input_file_with_rotation_angles_and_defocus_distances: DefocusRand36_NEW.txt
+2.Input_filename_base_of_defocus_series_in_GRD_or_GRC_format: C:\Users\tgureyev\Downloads\Temp\in.grd
 3.Wavelength_in_Angstroms: 0.025
 4.Objective_aperture_in_mrad: 0.0
 5.Spherical_aberration_Cs3,_Cs5_in_mm: 0 0
-6.Maximal_number_of_iterations: 100
+6.Maximal_number_of_iterations: 200
 7.Minimal_phase_reconstruction_error: 1.e-8
-8.Output_defocus_distances_min_max_and_step_in_Angstroms: -10.0 0.0390625 0.0
+8.Output_defocus_distances_min_max_and_step_in_Angstroms: -10.0 0.0 0.0390625
 9.Extra_defocus_for_3D_reconstruction_in_Angstroms: 1.0
 10.3D_Laplacian_filter_mode:_not_apply(0)_apply(1)_apply_filter_only(2): 0
-11.Regularization_parameter_for_inverse_3D_Laplacian_filter: 1.e-4
-12.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 2
-13.Output_GRD_or_GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\campOut.grc
-14.Number_of_parallel_threads: 10
+11.Regularization_parameter_for_inverse_3D_Laplacian_filter: 0.01
+12.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 3
+13.Output_GRD_or_GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\zzz.grd
+14.Number_of_parallel_threads: 20
 //*****
 //*****!!!Don't forget to save this file after editing the parameters
