@@ -833,7 +833,8 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 				case 0: // intensity out
 				{
 					xar::XArray2D<float> inten;
-					xar::Abs2(camp, inten);
+					if (nmode != 3) xar::Abs2(camp, inten);
+					else xar::Abs(camp, inten);
 					if (iwobble > 0)
 					{
 						xar::XArray2D<float> inten1;
