@@ -2,7 +2,7 @@
 1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: ASP_NEW_Kirck_DW.xyz
 3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\Temp\in.grd
 28.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0
-26.Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation: 0
+26.Use_multislice(0),_projection(1),_1st_Born(2)_approximation_or_output_V(x,y,z)(3): 3
 11.Incident__electron_beam_energy_in_keV: 200.0
 12.Wavefunction_size_in_pixels,_Nx,Ny: 256 256
 14.Slice_thickness_in_Angstroms: 0.1375

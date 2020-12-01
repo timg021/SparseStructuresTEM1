@@ -207,7 +207,7 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		double timer, deltaz, vz;
 
 		//@@@@@ start TEG code
-		int nmode; // the switch between multislice(0), projection(1) and 1st Born(2) approximations
+		int nmode; // the switch between multislice(0), projection(1), 1st Born(2) approximations or direct output of electrostatic potential V(x,y,z)(3)
 		int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
 		int nfftwinit; // the switch between copying(0) or initializing from new (1) the FFTW plan in autoslic
 		float angleY(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
@@ -695,8 +695,9 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			if (lwobble == 1)
 				printf("\nThermal configuration no. %zd, iseed2 = %d", iwobble, iseed2);
 
-			aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed2,
-				Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
+			if (nmode != 3) // calculate multislice propagation through the molecule
+				aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed2,
+					Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
 			//@@@@@ end TEG code
 
 			if (lpartl == 1) {         //    with partial coherence
@@ -751,37 +752,80 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			xar::XArray2D<xar::fcomplex> camp(ny, nx);
 			camp.SetHeadPtr(ph2new);
 			xar::XArray2DFFT<float> xafft(camp);
+			float xst = (float)GetXStep(camp);
+			float yst = (float)GetYStep(camp);
+			xar::XArray2D<double> Xr2, Yr2, Zr2;
+
+			// precalculate arrays of squares of coordinate differences for subsequent evaluation of the electrostatic potential
+			if (nmode == 3)
+			{
+				Yr2.Resize(ny, natom, 0.0); Xr2.Resize(nx, natom, 0.0); Zr2.Resize(defocus.size(), natom, 0.0);
+				for (iy = 0; iy < ny; iy++)
+				{
+					yyy = ymin + yst * iy;
+					for (size_t k = 0; k < natom; k++)
+						Yr2[iy][k] = (y[k] - yyy) * (y[k] - yyy);
+				}
+				for (ix = 0; ix < nx; ix++)
+				{
+					xxx = xmin + xst * ix;
+					for (size_t k = 0; k < natom; k++)
+						Xr2[ix][k] = (x[k] - xxx) * (x[k] - xxx);
+				}
+				for (size_t j = 0; j < defocus.size(); j++)
+				{
+					zzz = zmax + (float)defocus[j].b;
+					for (size_t k = 0; k < natom; k++)
+						Zr2[j][k] = (z[k] - zzz) * (z[k] - zzz);
+				}
+			}
 
 			float k2maxo = aobj / wavlen;
 			k2maxo = k2maxo * k2maxo;
 			double C3 = double(Cs3 * 1.e+7); // mm --> Angstroms
 			double C5 = double(Cs5 * 1.e+7); // mm --> Angstroms
-
-			// prepare the real and imaginary parts of the transmitted amplitude which will be rotated around Z" and propagated to different defocus distances
-			double dblYCentre = 0.5 * (ymax - ymin), dblXCentre = 0.5 * (xmax - xmin);
+			double dblYCentre = 0.5 * (ymax - ymin), dblXCentre = 0.5 * (xmax - xmin); // centre of rotation
 			xar::XArray2D<float> ampRe0(ny, nx), ampIm0(ny, nx), ampRe(ny, nx), ampIm(ny, nx);
+			ampRe.SetHeadPtr(ph2new->Clone()); ampIm.SetHeadPtr(ph2new->Clone());
 
+			// propagate in free space or evaluate the electrostatic potential
 			for (size_t j = 0; j < defocus.size(); j++)
 			{
 				printf("\n z'' rotation angle = %g (deg), defocus = %g (A)", defocus[j].a, defocus[j].b);
 				
-				// (re)define the transmitted complex amplitude
-				for (ix = 0; ix < nx; ix++)
+				if (nmode != 3) // propagate in free space
+				{
+					// (re)define the transmitted complex amplitude
+					for (ix = 0; ix < nx; ix++)
+						for (iy = 0; iy < ny; iy++)
+							camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
+
+					// propagate
+					if (defocus[j].b == 0 && (k2maxo != 0 || C3 != 0 || C5 != 0))
+						xafft.Fresnel(double(wavlen), false, double(k2maxo), C3, C5); // fake propagation is needed in order to enforce the spatial Fourier frequency cutoff or aberrations
+					else
+						xafft.Fresnel(defocus[j].b, false, double(k2maxo), C3, C5); // propagate to the current defocus distance
+
+				}
+				else // evaluate electrostatic potential
+				{
 					for (iy = 0; iy < ny; iy++)
-						camp[iy][ix] = xar::fcomplex(pix.re(ix, iy), pix.im(ix, iy));
+						for (ix = 0; ix < nx; ix++)
+							for (size_t k = 0; k < natom; k++)
+								ampRe[iy][ix] += (float)vatom(Znum[k], sqrt(Xr2[ix][k] + Yr2[iy][k] + Zr2[j][k])); // add up potential contributions from all atoms in the molecule
 
-				// propagate
-				if (defocus[j].b == 0 && (k2maxo != 0 || C3 != 0 || C5 != 0)) 
-					xafft.Fresnel(double(wavlen), false, double(k2maxo), C3, C5); // fake propagation is needed in order to enforce the spatial Fourier frequency cutoff or aberrations
-				else 
-					xafft.Fresnel(defocus[j].b, false, double(k2maxo), C3, C5); // propagate to the current defocus distance
+					// NOTE: we provide for a future option of having a complex electrostatic potential (to account for effective absorption of electrons)
+					xar::MakeComplex(ampRe, ampIm, camp, false);
+				}
 
-				// rotate around Z"
-				xar::Re(camp, ampRe0); xar::Im(camp, ampIm0);
-				xar::XArray2DSpln<float> xaSplnRe(ampRe0), xaSplnIm(ampIm0);
-				xaSplnRe.Rotate(ampRe, defocus[j].a, dblYCentre, dblXCentre, 1.0f); // expecting uniform background with unit amplitude
-				xaSplnIm.Rotate(ampIm, defocus[j].a, dblYCentre, dblXCentre, 0.0f); // expecting uniform background with unit amplitude
-				xar::MakeComplex(ampRe, ampIm, camp, false);
+				if (defocus[j].a != 0) // rotate around Z"
+				{
+					xar::Re(camp, ampRe0); xar::Im(camp, ampIm0);
+					xar::XArray2DSpln<float> xaSplnRe(ampRe0), xaSplnIm(ampIm0);
+					xaSplnRe.Rotate(ampRe, defocus[j].a, dblYCentre, dblXCentre, 1.0f); // expecting uniform background with unit amplitude
+					xaSplnIm.Rotate(ampIm, defocus[j].a, dblYCentre, dblXCentre, 0.0f); // expecting uniform background with unit amplitude
+					xar::MakeComplex(ampRe, ampIm, camp, false);
+				}
 
 				//GRD/GRC file output
 				switch (noutput)

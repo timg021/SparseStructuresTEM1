@@ -40,7 +40,7 @@ int main(void)
 		string outfilename(cparam); // output filename stub
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 4th line: Output_intensity(0),_phase(1)_or_complex_amplitude(2)
 		autoslictxt[27] = cline;
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5th line: Use_multislice(0),_projection(1)_or_1st_Born(2)_approximation
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 5th line: Use_multislice(0),_projection(1),_1st_Born(2)_approximation_or_output_V(x,y,z)(3)
 		autoslictxt[25] = cline;
 		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 6th line: Incident__electron_beam_energy_in_keV
 		autoslictxt[10] = cline;
