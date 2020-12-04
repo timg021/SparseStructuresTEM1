@@ -12,6 +12,7 @@
 11.Regularization_parameter_for_inverse_3D_Laplacian_filter: 0.01
 12.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 3
 13.Output_GRD_or_GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\zzz.grd
-14.Number_of_parallel_threads: 20
+14.Verbose_output_during_execution_Yes(1)_or_No(0): 1
+15.Number_of_parallel_threads: 20
 //*****
 //*****!!!Don't forget to save this file after editing the parameters

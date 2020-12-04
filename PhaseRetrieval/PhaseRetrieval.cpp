@@ -24,8 +24,6 @@ using namespace xar;
 
 int main()
 {
-	bool bVerboseOutput = false; // if this is TRUE, additional information is printed during execution
-
 	// start the execution timer
 	std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
 
@@ -220,8 +218,13 @@ int main()
 		else
 			// note that the number of output defocus distances is assumed to be the same at all illumination angles
 			FileNames(nangles, noutdefocus, filenamebaseOut, voutfilenamesTot); // create total 2D array of output filenames to save output 2D defocused images at different illumination angles and output defocus distances
+
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14. Verbose output during execution? Yes = 1, No = 0
+		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading verbose output parameter from input parameter file.");
+		bool bVerboseOutput(true); // if this is TRUE, additional information is printed during execution
+		(atoi(cparam) == 0 || atoi(cparam) == 1) ? bVerboseOutput = (bool)atoi(cparam) : throw std::exception("Error: verbose output parameter must be 0 or 1 in input parameter file.");
 		
-		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 14. Number of parallel threads
+		fgets(cline, 1024, ff0); strtok(cline, "\n"); // 15. Number of parallel threads
 		if (sscanf(cline, "%s %s", ctitle, cparam) != 2) throw std::exception("Error reading number of parallel threads from input parameter file.");
 		int nThreads = atoi(cparam);
 		printf("\nNumber of parallel threads = %d", nThreads);
