@@ -30,9 +30,6 @@
     <ClCompile Include="floatTIFF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Multislice\MultisliceK.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_dbl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -58,6 +55,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultisliceK.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

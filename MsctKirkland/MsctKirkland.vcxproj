@@ -140,11 +140,11 @@
     <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\XA_file.cpp" />
     <ClCompile Include="..\..\XArrayLibrary\XA_ini.cpp" />
-    <ClCompile Include="..\Multislice\MultisliceK.cpp" />
     <ClCompile Include="autoslic.cpp" />
     <ClCompile Include="autosliccmd.cpp" />
     <ClCompile Include="cfpix.cpp" />
     <ClCompile Include="floatTIFF.cpp" />
+    <ClCompile Include="MultisliceK.cpp" />
     <ClCompile Include="slicelib.cpp" />
   </ItemGroup>
   <ItemGroup>
