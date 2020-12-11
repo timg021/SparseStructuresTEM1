@@ -30,34 +30,31 @@
     <ClCompile Include="floatTIFF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_dbl.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg_flt.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_dbl.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\Ooura_fftsg2d_flt.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\IXAHWave.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\XA_file.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\XA_ini.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\XArrayLibrary\XAHWave.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MultisliceK.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\Ooura_fftsg_dbl.c">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\IXAHWave.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\Ooura_fftsg_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\Ooura_fftsg2d_dbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\Ooura_fftsg2d_flt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\XA_file.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\XA_ini.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XArrayLibrary\XAHWave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -77,61 +74,61 @@
     <ClInclude Include="autosliccmd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\IXAHead.h">
+    <ClInclude Include="..\XArrayLibrary\fftw3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\IXAHWave.h">
+    <ClInclude Include="..\XArrayLibrary\IXAHead.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\OouraFft.h">
+    <ClInclude Include="..\XArrayLibrary\IXAHWave.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\stdafx.h">
+    <ClInclude Include="..\XArrayLibrary\OouraFft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_data.h">
+    <ClInclude Include="..\XArrayLibrary\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_fft2.h">
+    <ClInclude Include="..\XArrayLibrary\XA_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_file.h">
+    <ClInclude Include="..\XArrayLibrary\XA_fft2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_head1.h">
+    <ClInclude Include="..\XArrayLibrary\XA_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_head2.h">
+    <ClInclude Include="..\XArrayLibrary\XA_head1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_ini.h">
+    <ClInclude Include="..\XArrayLibrary\XA_head2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_nrrand.h">
+    <ClInclude Include="..\XArrayLibrary\XA_ini.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XAHWave.h">
+    <ClInclude Include="..\XArrayLibrary\XA_spln2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XArray.h">
+    <ClInclude Include="..\XArrayLibrary\XAHWave.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XArray1D.h">
+    <ClInclude Include="..\XArrayLibrary\XArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XArray2D.h">
+    <ClInclude Include="..\XArrayLibrary\XArray1D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XArray3D.h">
+    <ClInclude Include="..\XArrayLibrary\XArray2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XArrayB.h">
+    <ClInclude Include="..\XArrayLibrary\XArray3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\fftw3.h">
+    <ClInclude Include="..\XArrayLibrary\XArrayB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\XArrayLibrary\XA_spln2.h">
+    <ClInclude Include="..\XArrayLibrary\XA_nrrand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
