@@ -66,6 +66,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdb", "pdb\pdb.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdb-compare", "pdb-compare\pdb-compare.vcxproj", "{D075382E-E0CC-447B-9B71-22E0F9519E9F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DB852C38-7E0B-46BF-A389-E0B5B8C10583}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
