@@ -1,6 +1,6 @@
 //*****Input parameter file for PhaseRetrieval.exe program*****
 1.Input_file_with_rotation_angles_and_defocus_distances: DefocusRand36_NEW.txt
-2.Filename_template_of_defocus_series_in_TIFF,_GRD_or_GRC_format: C:\Users\tgureyev\Downloads\Temp\asp.grd
+2.Filename_template_of_defocus_series_in_TIFF,_GRD_or_GRC_format: C:\Users\Downloads\Temp\asp.grd
 3.Xmin_Xmax_Ymin_Ymax_in_Angstroms_(for_TIFF_input_files_only): 0 10 0 10
 4.Wavelength_in_Angstroms: 0.025
 5.Objective_aperture_in_mrad: 0.0
@@ -16,7 +16,7 @@
 15.Regularization_parameter_for_inverse_3D_Laplacian_filter: 0.01
 16.Reprojection_of_3D_potential:_not_apply(0)_apply(1)_apply_to_imported_potential(2): 1
 17.Slice_thickness_for_multislice_in_Angstroms: 0.1375
-18.File_name_base_of_3D_potential_in_TIFF_or_GRD_format: C:\Users\tgureyev\Downloads\Temp\out.grd
+18.File_name_base_of_3D_potential_in_TIFF_or_GRD_format: C:\Users\Downloads\Temp\out.grd
 19.Verbose_output_during_execution_Yes(1)_or_No(0): 0
 20.Number_of_parallel_threads: 20
 //*****

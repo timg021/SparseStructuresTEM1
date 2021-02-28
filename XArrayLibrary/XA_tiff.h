@@ -1,6 +1,6 @@
 //Header XA_tiff.h
 //
-//	CSIRO MIT
+//
 //
 //	HEADER FILE TITLE:
 //

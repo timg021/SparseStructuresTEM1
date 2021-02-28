@@ -51,7 +51,7 @@ Here is a typical example of a valid MsctKirkland.txt parameter file.
 //*****Input parameter file for MsctKirkland.exe program*****
 1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: ASP_NEW_Kirck_DW.xyz
 2.Output_files_shall_contain_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_potential(3): 0
-3.Output_TIFF/GRD/GRC_filename_template: C:\Users\tgureyev\Downloads\Temp\asp.grd
+3.Output_TIFF/GRD/GRC_filename_template: C:\Users\Downloads\Temp\asp.grd
 4.Use_multislice(0),_projection(1),_or_1st_Born(2)_approximation: 0
 5.Incident__electron_beam_energy_in_keV: 200.0
 6.Wavefunction_size_in_pixels,_Nx,Ny: 256 256
