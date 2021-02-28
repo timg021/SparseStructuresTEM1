@@ -1,33 +1,18 @@
 //*****Input parameter file for MsctKirkland.exe program*****
 1.Input_file_with_atomic_numbers_and_coordinates_in_XYZ_format: ASP_NEW_Kirck_DW.xyz
-3.Output_GRD/GRC_filename: C:\Users\tgureyev\Downloads\Temp\in.grd
-28.Output_intensity(0),_phase(1)_or_complex_amplitude(2): 0
-26.Use_multislice(0),_projection(1),_1st_Born(2)_approximation_or_output_V(x,y,z)(3): 3
-11.Incident__electron_beam_energy_in_keV: 200.0
-12.Wavefunction_size_in_pixels,_Nx,Ny: 256 256
-14.Slice_thickness_in_Angstroms: 0.1375
-8.Objective_aperture_in_mrad: 0.0
-6.Spherical_aberration_Cs3,_Cs5_in_mm: 0 0
-18.Include_thermal_vibrations(1)_or_not(0): 0
-19.____Temperature_in_degrees_K: 300.0
-20.____Number_of_configurations_to_average_over: 64
-21.____Initial_seed_for_random_number_generator: 1
-29.Text_file_with_output_rotation_angles_in_degrees_and_defocus_distances_in_Angstroms: DefocusRand36_NEW.txt
-30.Number_of_worker_threads_to_launch_in_CT_simulation_mode: 20
-//*****
-//*****Parameters below this line have not been tested. If the "default" values are changed, the effect may be unpredictable
-2.Replicate_unit_cell_by_NCELLX,NCELLY,NCELLZ: 1 1 1
-4.Do_you_want_to_include_partial_coherence: 0
-5.____Illumination_angle_min,_max_in_mrad: 0.0 0.0
-7.____Defocus_mean,_standard_deviation,_and_sampling_size_in_Angstroms: 0.0 0.0 0.0
-9.Do_you_want_to_start_from_previous_result: 0
-10.____Name_of_file_to_start_from: 0
-13.Crystal_tilt_x,y_in_mrad: 0.0 0.0
-15.Do_you_want_to_record_the_(real,imag)_value_of_selected_beams_vs._thickness: 0
-16.____Name_of_file_for_beams_info: 0
-17.____Number_of_beams: 0
-22.Do_you_want_to_output_intensity_vs._depth_cross_section: 0
-23.____Type_name_of_file_to_get_depth_profile_image: 0
-24.____Type_y_position_of_depth_cross_section_in_Angstroms: 0.0
+2.Output_files_shall_contain_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_potential(3): 0
+3.Output_TIFF/GRD/GRC_filename_template: C:\Users\tgureyev\Downloads\Temp\asp.tif
+4.Use_multislice(0),_projection(1),_or_1st_Born(2)_approximation: 0
+5.Incident__electron_beam_energy_in_keV: 200.0
+6.Wavefunction_size_in_pixels,_Nx,Ny: 256 256
+7.Slice_thickness_in_Angstroms: 1.25
+8.Objective_aperture_in_mrad: 45.0
+9.Spherical_aberration_Cs3_and_Cs5_in_mm: 0 0
+10.Include_thermal_vibrations(1)_or_not(0): 1
+11.____Temperature_in_degrees_K: 300.0
+12.____Number_of_configurations_to_average_over: 64
+13.Ice_layer_thickness_in_Angstroms: 100
+14.Text_file_with_output_rotation_angles_in_degrees_and_defocus_distances_in_Angstroms: DefocusRand36_1_NEW.txt
+15.Number_of_worker_threads_to_launch: 20
 //*****
 //*****!!!Don't forget to save this file after editing the parameters

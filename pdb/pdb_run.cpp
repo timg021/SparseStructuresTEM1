@@ -2,13 +2,18 @@
 #include <math.h>
 #include <ctype.h>
 #include "pdb.h"
+#include "Seb.h"
 
 // This program reads a PDB, Vesta XYZ or Kirkland XYZ file, 
-// optionally centers the position of the "molecule" within a given "CT qube" [0, ctblength] x [0, ctblength] x [0, ctblength],
+// optionally centers the position of the "molecule" within a given "CT cube" [0, ctblength] x [0, ctblength] x [0, ctblength],
 // optionally rotates the "molecule" by a given angle around the y axis, 
 // optionally removes "duplicate" atomes, and
 // outputs the data in the form of a muSTEM, Vesta XYZ or Kirkland XYZ file, while it also
 // sorts all atoms in descending order with respect to atom weights, and sorts all atoms with the same weight in ascending order with respect to z coordinate
+//
+// This programs uses the "miniball" code written by Martin Kutz <kutz@math.fu-berlin.de> and Kaspar Fischer <kf@iaeth.ch> for finding the minimal ball enclosing the molecule
+// See https://github.com/hbf/miniball for authors, theory and copyright information
+
 
 int main(void)
 {
@@ -21,7 +26,7 @@ int main(void)
 
 
 	// Read input parameter file pdb.txt
-	printf("\nStarting ...\n");
+	printf("\nStarting ...");
 	FILE* ffpar = fopen("pdb.txt", "rt");
 	if (!ffpar)
 	{
@@ -56,22 +61,42 @@ int main(void)
 	}
 
 	// line 3
-	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //3rd line: CT qube side length
+	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //3rd line: make all coordinates positive and centre them, or not 
 	if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
 	{
-		printf("\n!!!Error reading CT qube side length from input parameter file.");
+		printf("\n!!!Error reading 'make all coordinates positive' switch from input parameter file.");
 		return -1;
 	}
-	double ctblength = 0; // CT box length
-	ctblength = atof(cparam);
-	if (ctblength <= 0)
+	int npositive = 0; // 1 - make all output coordinates positive and centre the sample inside the CT sample cube, 0 - do not do this
+	npositive = atoi(cparam);
+	if (npositive != 0 && npositive != 1)
 	{
-		printf("!!!CT cube side length %g is not positive in pdb.txt!!!", ctblength);
+		printf("\n!!!Unknown value of the 'make all output coordinates positive' switch in input parameter file.");
 		return -1;
 	}
 
 	// line 4
-	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //4th line: rotation angle around y
+	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //4th line: CT cube side length
+	if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
+	{
+		printf("\n!!!Error reading CT cube side length from input parameter file.");
+		return -1;
+	}
+	double ctblength = 0; // CT box length
+	ctblength = atof(cparam);
+	if (npositive == 1)
+	{
+		if (ctblength <= 0)
+		{
+			printf("\n!!!CT cube side length %g is not positive in pdb.txt!!!", ctblength);
+			return -1;
+		}
+	}
+	else
+		printf("\n!!!CT cube side length parameter from the input file will be ignored!!!");
+
+	// line 5
+	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //5th line: rotation angle around y
 	if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
 	{
 		printf("\n!!!Error reading rotation angle around y axis from input parameter file.");
@@ -82,8 +107,8 @@ int main(void)
 	double cosangley = cos(angley);
 	double sinangley = sin(angley);
 
-	// line 5
-	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //5th line: rotation angle around x' (i.e. around x axis after the initial rotation around y axis)
+	// line 6
+	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //6th line: rotation angle around x' (i.e. around x axis after the initial rotation around y axis)
 	if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
 	{
 		printf("\n!!!Error reading rotation angle around x axis from input parameter file.");
@@ -105,21 +130,6 @@ int main(void)
 	//anglez = atof(cparam) * 3.141592653589793 / 180.0;
 	//double cosanglez = cos(anglez);
 	//double sinanglez = sin(anglez);
-
-	// line 6
-	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //6th line: make all coordinates positive and centre them, or not 
-	if (sscanf(cline, "%s %s", ctitle, cparam) != 2)
-	{
-		printf("\n!!!Error reading 'make all coordinates positive' switch from input parameter file.");
-		return -1;
-	}
-	int npositive = 0; // 1 - make all output coordinates positive and centre the sample inside the CT sample qube, 0 - do not do this
-	npositive = atoi(cparam);
-	if (npositive != 0 && npositive != 1)
-	{
-		printf("\n!!!Unknown value of the 'make all output coordinates positive' switch in input parameter file.");
-		return -1;
-	}
 
 	// line 7
 	fgets(cline, 1024, ffpar); strtok(cline, "\n");  //7th line: maximum distance to remove duplicates
@@ -187,105 +197,143 @@ int main(void)
 	pdbdata_init(&pd);
 	if (nfiletype == 0)
 	{
-		printf("Reading input file %s in PDB format ...\n", pdbfile);
+		printf("\nReading input file %s in PDB format ...", pdbfile);
 		if (read_pdb(pdbfile, &pd) == -1) return -1; // read PDB file
 	}
 	else if (nfiletype == 1)
 	{
-		printf("Reading input file %s in Vesta export XYZ format ...\n", pdbfile);
+		printf("\nReading input file %s in Vesta export XYZ format ...", pdbfile);
 		if (data_from_VestaXYZfile(pdbfile, &pd) == -1) return -1; // read Vesta export XYZ file
 	}
 	else if (nfiletype == 2)
 	{
-		printf("Reading input file2 %s in Kirkland XYZ format ...\n", pdbfile);
+		printf("\nReading input file2 %s in Kirkland XYZ format ...\n", pdbfile);
 		if (data_from_KirklandXYZfile(pdbfile, &pd) == -1) return -1; // read Kirkland XYZ file
 	}
 
 	//print_pdb_data(&pd);
 
-	double xmin, xmax, ymin, ymax, zmin, zmax, xk, yk, zk;
+	// find the spatial bounds of the molecule
+	double xmin, xmax, ymin, ymax, zmin, zmax, xc0 = 0, yc0 = 0, zc0 = 0;
+	xmin = xmax = pd.adata[0].x;
+	ymin = ymax = pd.adata[0].y;
+	zmin = zmax = pd.adata[0].z;
 
-	if (npositive == 0) // do not shift or centre the atomic coordinates
-	{
-		xmin = ymin = zmin = 0.0;
-		xmax = ymax = zmax = ctblength;
-	}
-	else // shift and centre the output atomic coordinates
-	{
-		xmin = xmax = pd.adata[0].x;
-		ymin = ymax = pd.adata[0].y;
-		zmin = zmax = pd.adata[0].z;
-
-		for (i = 1; i < pd.natoms; i++)
-		{
-			if (pd.adata[i].x < xmin) xmin = pd.adata[i].x;
-			else if (pd.adata[i].x > xmax) xmax = pd.adata[i].x;
-			if (pd.adata[i].y < ymin) ymin = pd.adata[i].y;
-			else if (pd.adata[i].y > ymax) ymax = pd.adata[i].y;
-			if (pd.adata[i].z < zmin) zmin = pd.adata[i].z;
-			else if (pd.adata[i].z > zmax) zmax = pd.adata[i].z;
-		}
-	}
-
-	double xc = 0.5 * ctblength;
-	double yc = 0.5 * ctblength;
-	double zc = 0.5 * ctblength;
-	double x0 = xc - 0.5 * (xmax - xmin);
-	double y0 = yc - 0.5 * (ymax - ymin);
-	double z0 = zc - 0.5 * (zmax - zmin);
-
-	// TEG: we make all coordinates non-negative, as it seems that Kirkland's software expects this,
-	// and we also centre each of XYZ coordinates within the interval [0, ctblength], so that the sample can remain within the cube during rotation
-	// and we rotate the molecule around the y axis by the angley and around the z axis by the anglez set in the input parameter file
-	for (i = 0; i < pd.natoms; i++)
-	{
-		// centering
-		xk = pd.adata[i].x - xmin + x0;
-		yk = pd.adata[i].y - ymin + y0;
-		zk = pd.adata[i].z - zmin + z0;
-
-		//rotation around y axis
-		pd.adata[i].x = xc + (xk - xc) * cosangley + (zk - zc) * sinangley;
-		pd.adata[i].y = yk;
-		pd.adata[i].z = zc + (-xk + xc) * sinangley + (zk - zc) * cosangley;
-
-		//rotation around x axis
-		yk = pd.adata[i].y;
-		zk = pd.adata[i].z;
-		pd.adata[i].y = yc + (yk - yc) * cosanglex + (zk - zc) * sinanglex;
-		pd.adata[i].z = zc + (-yk + yc) * sinanglex + (zk - zc) * cosanglex;
-
-		//rotation around z axis
-		//xk = pd.adata[i].x;
-		//yk = pd.adata[i].y;
-		//pd.adata[i].x = xc + (xk - xc) * cosanglez + (yk - yc) * sinanglez;
-		//pd.adata[i].y = yc + (-xk + xc) * sinanglez + (yk - yc) * cosanglez;
-	}
-
-	// check that all coordinates are non-negative
-	double xmin1 = pd.adata[0].x;
-	double ymin1 = pd.adata[0].y;
-	double zmin1 = pd.adata[0].z;
 	for (i = 1; i < pd.natoms; i++)
 	{
-		if (pd.adata[i].x < xmin1) xmin1 = pd.adata[i].x;
-		if (pd.adata[i].y < ymin1) ymin1 = pd.adata[i].y;
-		if (pd.adata[i].z < zmin1) zmin1 = pd.adata[i].z;
+		if (pd.adata[i].x < xmin) xmin = pd.adata[i].x;
+		else if (pd.adata[i].x > xmax) xmax = pd.adata[i].x;
+		if (pd.adata[i].y < ymin) ymin = pd.adata[i].y;
+		else if (pd.adata[i].y > ymax) ymax = pd.adata[i].y;
+		if (pd.adata[i].z < zmin) zmin = pd.adata[i].z;
+		else if (pd.adata[i].z > zmax) zmax = pd.adata[i].z;
+		xc0 += pd.adata[i].x;
+		yc0 += pd.adata[i].y;
+		zc0 += pd.adata[i].z;
 	}
-	if (npositive == 1)
+	xc0 /= pd.natoms;
+	yc0 /= pd.natoms;
+	zc0 /= pd.natoms;
+	double xsize = xmax - xmin;
+	double ysize = ymax - ymin;
+	double zsize = zmax - zmin;
+	double diam = floor(sqrt(xsize * xsize + ysize * ysize + zsize * zsize)) + 1.0; // we want to round the diameter up and ensure that atoms won't stick out after rotation due to numerical precision
+
+	printf("\nThe x, y and z extent of the molecule in the input file was:");
+	printf("\n  [%g, %g], [%g, %g], and [%g, %g], respectively.", xmin, xmax, ymin, ymax, zmin, zmax);
+	printf("\nThe diagonal of the minimal parallelpiped enclosing the molecule is %g.", diam);
+
+	if (npositive == 1) // if the shift and centring of the output atomic coordinates is required
 	{
-		if (xmin1 < 0 || ymin1 < 0 || zmin1 < 0)
+		double r2;
+		double r2max = (pd.adata[0].x - xc0) * (pd.adata[0].x - xc0) + (pd.adata[0].y - yc0) * (pd.adata[0].y - yc0) + (pd.adata[0].z - zc0) * (pd.adata[0].z - zc0);
+		for (i = 1; i < pd.natoms; i++)
 		{
-			printf("\n!!!Problem: some of sample's x, y or z coordinates are negative after the centering and rotation!!!\n");
-			printf("Note: x, y and z extent of the molecule in the input file was [%g, %g], [%g, %g], and [%g, %g], respectively.\n", xmin, xmax, ymin, ymax, zmin, zmax);
-			printf("Check the input file and increase the CT sample cube side length parameter as required.\n");
-			return -1;
+			r2 = (pd.adata[i].x - xc0) * (pd.adata[i].x - xc0) + (pd.adata[i].y - yc0) * (pd.adata[i].y - yc0) + (pd.adata[i].z - zc0) * (pd.adata[i].z - zc0);
+			if (r2 > r2max) r2max = r2;
+		}
+		diam = floor(2.0* sqrt(r2max)) + 1.0; // we want to round the diameter up and ensure that atoms won't stick out after rotation due to numerical precision
+		printf("\nThe average-coordinate centre of the molecule was located at the point x = %g, y = %g, z = %g.", xc0, yc0, zc0);
+		printf("\nThe minimal diameter of the ball with this centre and enclosing the molecule is %g.", diam);
+
+		// Miniball code
+		// See https://github.com/hbf/miniball for authors, theory and copyright information
+		typedef double FT;
+		typedef Seb::Point<FT> Point;
+		typedef std::vector<Point> PointVector;
+		typedef Seb::Smallest_enclosing_ball<FT> Miniball;
+		PointVector S;
+		std::vector<double> coords(3);
+		for (int i = 0; i < pd.natoms; ++i) 
+		{
+			coords[0] = pd.adata[i].x;
+			coords[1] = pd.adata[i].y;
+			coords[2] = pd.adata[i].z;
+			S.push_back(Point(3, coords.begin()));
+		}
+		Miniball mb(3, S);
+		diam = floor(2.0 * mb.radius()) + 1.0; // we want to round the diameter up and ensure that atoms won't stick out after rotation due to numerical precision
+		Miniball::Coordinate_iterator center_it = mb.center_begin();
+		xc0 = center_it[0];
+		yc0 = center_it[1];
+		zc0 = center_it[2];
+#ifdef _DEBUG
+		mb.verify();
+#endif
+		printf("\nThe centre of the minimal ball enclosing the molecule was located at the point x = %g, y = %g, z = %g.", xc0, yc0, zc0);
+		printf("\nThe diameter of this minimal ball is %g.", diam);
+
+		if (ctblength < diam)
+		{
+			ctblength = diam;
+			printf("\n!!! CT_sample_cube_side_length parameter in the input parameter file was too small and has been replaced with %g.", diam);
+		}
+
+		xsize = ysize = zsize = ctblength;
+
+		double xc = 0.5 * ctblength;
+		double yc = 0.5 * ctblength;
+		double zc = 0.5 * ctblength;
+
+		printf("\nThe molecule will be shifted to the cube with side length %g and positive coordinates.", diam);
+		printf("\nThe new centre of the molecule will be located at the point x = %g, y = %g, z = %g.\n", xc, yc, zc);
+
+		double xshift = xc - xc0;
+		double yshift = yc - yc0;
+		double zshift = zc - zc0;
+
+		// TEG: we make all coordinates non-negative, as it seems that Kirkland's software expects this,
+		// and we also centre each of XYZ coordinates within the interval [0, ctblength], so that the sample can remain within the cube during rotation
+		// and we rotate the molecule around the y axis by the angley and around the z axis by the anglez set in the input parameter file
+		double xk, yk, zk;
+		for (i = 0; i < pd.natoms; i++)
+		{
+			// centering
+			xk = pd.adata[i].x + xshift;
+			yk = pd.adata[i].y + yshift;
+			zk = pd.adata[i].z + zshift;
+
+			//rotation around y axis
+			pd.adata[i].x = xc + (xk - xc) * cosangley + (zk - zc) * sinangley;
+			pd.adata[i].y = yk;
+			pd.adata[i].z = zc + (-xk + xc) * sinangley + (zk - zc) * cosangley;
+
+			//rotation around x axis
+			yk = pd.adata[i].y;
+			zk = pd.adata[i].z;
+			pd.adata[i].y = yc + (yk - yc) * cosanglex + (zk - zc) * sinanglex;
+			pd.adata[i].z = zc + (-yk + yc) * sinanglex + (zk - zc) * cosanglex;
+
+			//rotation around z axis
+			//xk = pd.adata[i].x;
+			//yk = pd.adata[i].y;
+			//pd.adata[i].x = xc + (xk - xc) * cosanglez + (yk - yc) * sinanglez;
+			//pd.adata[i].y = yc + (-xk + xc) * sinanglez + (yk - yc) * cosanglez;
 		}
 	}
 
-
 	//translate element symbols into atomic weights
-	int* ia = malloc(pd.natoms * sizeof(int));
+	int* ia = (int*) malloc(pd.natoms * sizeof(int));
 	if (nfiletype == 2)
 	{
 		for (i = 0; i < pd.natoms; i++) ia[i] = pd.adata[i].serial;
@@ -306,7 +354,7 @@ int main(void)
 		if (ia[i + 1] != ia[i]) natypes++;
 
 	// find the number of atoms for each type
-	int* vtypes = malloc(natypes * sizeof(int));
+	int* vtypes = (int*) malloc(natypes * sizeof(int));
 	j = 0;
 	vtypes[0] = 1;
 	for (i = 0; i < pd.natoms - 1; i++)
@@ -384,7 +432,7 @@ int main(void)
 	pdbdata_init(&pd1);
 	pd1.natoms = natoms1;
 	pdballocate(&pd1);
-	int* ia1 = malloc(pd1.natoms * sizeof(int));
+	int* ia1 = (int*) malloc(pd1.natoms * sizeof(int));
 	j = 0;
 	for (i = 0; i < pd.natoms; i++) 
 		if (pd.adata[i].tempFactor != -777)
@@ -400,7 +448,7 @@ int main(void)
 		if (ia1[i + 1] != ia1[i]) natypes1++;
 
 	// find the number of atoms for each type
-	int* vtypes1 = malloc(natypes1 * sizeof(int));
+	int* vtypes1 = (int*) malloc(natypes1 * sizeof(int));
 	j = 0;
 	vtypes1[0] = 1;
 	for (i = 0; i < pd1.natoms - 1; i++)
@@ -424,10 +472,10 @@ int main(void)
 	FILE* ff = fopen(outfile, "wt");
 	if (noutfiletype == 0) // muSTEM format output
 	{
-		printf("\nWriting output file %s in muSTEM XTL format ...\n", outfile);
+		printf("\nWriting output file %s in muSTEM XTL format ...", outfile);
 
 		fprintf(ff, "%s\n", cfileinfo); // free-form file info line
-		fprintf(ff, "%f %f %f 90.0 90.0 90.0\n", ctblength, ctblength, ctblength); // ctblength is written as the unit cell dimension
+		fprintf(ff, "%f %f %f 90.0 90.0 90.0\n", xsize, ysize, zsize); // if npositive == 1, ctblength is written as the unit cell dimension
 		fprintf(ff, "%f \n", 200.0); // probe energy
 		fprintf(ff, "%d \n", natypes1); // number of atoms types
 
@@ -447,21 +495,23 @@ int main(void)
 	}
 	else if (noutfiletype == 1) // Vesta XYZ output
 	{
-		printf("\nWriting output file %s in Vesta XYZ format ...\n", outfile);
+		printf("\nWriting output file %s in Vesta XYZ format ...", outfile);
 		fprintf(ff, "%d\n", pd1.natoms);
 		fprintf(ff, "%s\n", cfileinfo); // free-form file info line
 		for (i = 0; i < pd1.natoms; i++)
 		{
-				fprintf(ff, "%s %f %f %f %f\n", pd1.adata[i].element, pd1.adata[i].x, pd1.adata[i].y, pd1.adata[i].z, pd1.adata[i].occupancy);
+			if (pd1.adata[i].occupancy <= 0 || pd1.adata[i].occupancy > 1) pd1.adata[i].occupancy = 1.0;
+			fprintf(ff, "%s %f %f %f %f\n", pd1.adata[i].element, pd1.adata[i].x, pd1.adata[i].y, pd1.adata[i].z, pd1.adata[i].occupancy);
 		}
 	}
 	else if (noutfiletype == 2) // Kirkland XYZ output
 	{
-		printf("\nWriting output file %s in Kirkland's XYZ format ...\n", outfile);
+		printf("\nWriting output file %s in Kirkland's XYZ format ...", outfile);
 		fprintf(ff, "%s\n", cfileinfo); // free-form file info line
-		fprintf(ff, "%f %f %f\n", ctblength, ctblength, ctblength); // ctblength is written as the unit cell dimension
+		fprintf(ff, "%f %f %f\n", xsize, ysize, zsize); // if npositive == 1, ctblength is written as the unit cell dimension
 		for (i = 0; i < pd1.natoms; i++)
 		{
+			if (pd1.adata[i].occupancy <= 1.e-7 || pd1.adata[i].occupancy > 1) pd1.adata[i].occupancy = 1.0;
 			fprintf(ff, "%d %f %f %f %f\n", ia1[i], pd1.adata[i].x, pd1.adata[i].y, pd1.adata[i].z, pd1.adata[i].occupancy);
 		}
 		fprintf(ff, "%i\n\n\n", -1);
@@ -470,7 +520,7 @@ int main(void)
 	fclose(ff);
 	free(ia);
 
-	printf("Finished!");
+	printf("\nFinished!\n");
 
 	return 0;
 }

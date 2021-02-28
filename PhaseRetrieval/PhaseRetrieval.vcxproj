@@ -148,8 +148,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="DefocusInput.txt" />
+    <Text Include="DefocusRand36_NEW.txt" />
+    <Text Include="EvInsideAspartate.txt" />
     <Text Include="PhaseRetrieval.txt" />
+    <Text Include="ReadmePhaseRetrieval.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\XArrayLibrary\fftwd3drc.cpp" />
@@ -161,7 +163,7 @@
     <ClCompile Include="..\XArrayLibrary\XAHWave.cpp" />
     <ClCompile Include="..\XArrayLibrary\XA_file.cpp" />
     <ClCompile Include="..\XArrayLibrary\XA_ini.cpp" />
-    <ClCompile Include="PhaseRetrieval.cpp" />
+    <ClCompile Include="DHT.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\XArrayLibrary\fftw3.h" />
@@ -182,6 +184,7 @@
     <ClInclude Include="..\XArrayLibrary\XA_head2.h" />
     <ClInclude Include="..\XArrayLibrary\XA_head3.h" />
     <ClInclude Include="..\XArrayLibrary\XA_ini.h" />
+    <ClInclude Include="..\XArrayLibrary\XA_iwfr.h" />
     <ClInclude Include="..\XArrayLibrary\XA_spln2.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

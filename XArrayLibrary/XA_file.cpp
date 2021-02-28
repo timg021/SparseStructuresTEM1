@@ -523,7 +523,7 @@ index_t xar::ReadSpectrumFile(const string strSpectrumFilename, vector<float>& v
 }
 
 
-void xar::ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<vector<Pair> >& vvdefocus)
+void xar::ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<vector<Pair> >& vvdefocus, bool bVerboseOutput)
 // Reads defocus parameter data from a text file with each line containing two illumination direction angles (around Y and X' axes) in degrees, followed by 
 //			alternating values of molecule rotation angle around Z'' axis and defocus distances at this angle in Angstroms,
 //			with all values separated by a single white space and with the new line symbol at the end of each line
@@ -538,7 +538,6 @@ void xar::ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<ve
 	vector<Pair> vdefocus(0); // vector of defocus distances at a given rotation angle
 	vector<size_t> vwhite(0); // vector of white spaces separating different defocus distances (there should be exactly one white space before each defocus distance and no spaces at the end)
 
-	printf("\nReading defocus parameter file %s ...", difile.c_str());
 	FILE* ff0 = fopen(difile.c_str(), "rt");
 	if (!ff0) throw std::exception((string("Error: cannot open input file ") + difile + string(".")).c_str());
 	//fgets(cline, 1024, ff0); // 1st line - comment
@@ -563,7 +562,7 @@ void xar::ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<ve
 		}
 		else ndefocus /= 2; // number of detected defocus distances
 		vdefocus.resize(ndefocus); // vector of pairs (z", d) of z" angles and defocus distances (double precision numbers)
-		printf("\nRotations angles: ");
+		if (bVerboseOutput) printf("\nRotations angles: ");
 		for (size_t j = 0; j < 2; j++)
 		{
 			for (size_t i = vwhite[j]; i < vwhite[j + 1]; i++)
@@ -572,9 +571,9 @@ void xar::ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<ve
 			dtemp = atof(buffer);
 			j ? pair.b = dtemp : pair.a = dtemp;
 		}
-		printf("Y angle = %g, X' angle = %g ", pair.a, pair.b);
+		if (bVerboseOutput) printf("Y angle = %g, X' angle = %g ", pair.a, pair.b);
 		v2angles.push_back(pair);
-		printf("\nInput defocus plane positions (%d in total): ", ndefocus);
+		if (bVerboseOutput) printf("\nInput defocus plane positions (%d in total): ", ndefocus);
 		for (size_t j = 0; j < ndefocus * 2; j++)
 		{
 			for (size_t i = vwhite[j + 2]; i < vwhite[j + 3]; i++)
@@ -582,11 +581,11 @@ void xar::ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<ve
 			buffer[vwhite[j + 3] - vwhite[j + 2]] = '\0'; // string terminator
 			dtemp = atof(buffer);
 			(j % 2) ? (vdefocus[j / 2]).b = dtemp : (vdefocus[j / 2]).a = dtemp; // even entries are Z" angles, odd entries are defocus distances
-			if (j %2 ) printf("Z'' angle = %g, defocus = %g; ", (vdefocus[j / 2]).a, (vdefocus[j / 2]).b);
+			if (j %2 && bVerboseOutput) printf("Z'' angle = %g, defocus = %g; ", (vdefocus[j / 2]).a, (vdefocus[j / 2]).b);
 		}
 		vvdefocus.push_back(vdefocus);
 	}
-	printf("\n%zd rotational positions in total in the input file.", vvdefocus.size());
+	if (bVerboseOutput) printf("\n%zd rotational positions in total in the input file.", vvdefocus.size());
 
 	fclose(ff0); // close input file
 }
@@ -670,7 +669,8 @@ void xar::FileNames2(vector<index_t> vndefocus, string filenamebase, vector<stri
 	{
 		nfieldB_length = 1 + index_t(log10(double(nangles - 1))); //maximum number of digits corresponding to angles in the output file name
 		sprintf(ndig, "%zd", nfieldB_length); //convert the calculated maximum number of digits corresponding to angles into a string, e.g. 3 into "3"
-		myformat += "_%0" + string(ndig) + "d"; //construct format string for inserting two 0-padded angle indexes into file names - see usage below
+		if (ndefocusmax > 1) myformat += "_%0" + string(ndig) + "d"; //construct format string for inserting two 0-padded angle indexes into file names - see usage below
+		else myformat += "%0" + string(ndig) + "d";
 	}
 
 	index_t ncurrent(0);

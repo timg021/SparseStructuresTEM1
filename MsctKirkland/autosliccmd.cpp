@@ -136,6 +136,7 @@ ANY OTHER PROGRAM).
 #include <math.h>
 #include <cmath>
 #include <ctime>
+#include <chrono>
 
 #include <string>
 #include <iostream>  //  C++ stream IO
@@ -146,6 +147,9 @@ ANY OTHER PROGRAM).
 #include "XA_data.h"
 #include "XA_fft2.h"
 #include "XA_spln2.h"
+#include "XA_nrrand.h"
+#include "XA_tiff.h"
+#include "AddIce.h"
 
 using namespace std;
 
@@ -164,10 +168,6 @@ using namespace std;
 #define walltim() ( omp_get_wtime() )
 double walltimer;
 #endif
-
-const int NSMAX= 1000;   // max number of slices
-const int NCMAX= 1024;   // max characters in file names
-const int NZMAX= 103;    // max atomic number Z
 
 int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string> fileout)
 {
@@ -189,7 +189,7 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		int natom, * Znum, done, status, multiMode(0);
 		long  ltime;
 
-		unsigned long iseed, iseed1;
+		unsigned long iseed;
 		//@@@@@ start TEG code
 		long iseed2;
 		//@@@@@ end TEG code
@@ -207,12 +207,14 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		double timer, deltaz, vz;
 
 		//@@@@@ start TEG code
-		int nmode; // the switch between multislice(0), projection(1), 1st Born(2) approximations or direct output of electrostatic potential V(x,y,z)(3)
-		int noutput; // the switch between intensity(0), phase(1) and complex amplitude(2) output form of the result
+		int nmode; // the switch between multislice(0), projection(1) or 1st Born(2) approximations
+		int noutput; // the switch between intensity(0), phase(1), complex amplitude(2) or 3D potential(3) output form of the result
 		int nfftwinit; // the switch between copying(0) or initializing from new (1) the FFTW plan in autoslic
 		float angleY(0); // sample rotation angle in radians (in xz plane, i.e. around y axis)
 		float angleX(0); // sample rotation angle in radians (in yz' plane, i.e. around x' axis)
-		float ctblength(0); // length of the z-slab (containing the sample) in Angstroms
+		float ctblength(0); // x and y side length of the slab (containing the sample) in Angstroms
+		float ctblengthz(0); // z thickness of the slab (containing the sample) in Angstroms
+		float iceThick(1); // thickness of the optional layer of amorphous ice in Angstroms
 		//@@@@@ end TEG code
 
 		ofstream fp1;
@@ -317,12 +319,17 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			throw std::exception("Error reading line 17 of input parameter array.");
 		if (sscanf(params[17].data(), "%s %d", chaa, &lwobble) != 2)
 			throw std::exception("Error reading line 18 of input parameter array.");
+		if (lwobble != 0) lwobble = 1;
 		if (sscanf(params[18].data(), "%s %g", chaa, &temperature) != 2)
 			throw std::exception("Error reading line 19 of input parameter array.");
 		if (sscanf(params[19].data(), "%s %d", chaa, &nwobble) != 2)
 			throw std::exception("Error reading line 20 of input parameter array.");
-		if (sscanf(params[20].data(), "%s %d", chaa, &iseed1) != 2)
-			throw std::exception("Error reading line 21 of input parameter array.");
+		//!!! TEG NOTE: be careful about this parameter: even though this module can be called to calculate a single configuration,
+		//it needs to know whether multiple configurations are being calculated by the controlling module (MultisliceK.cpp).
+		//if lwobble == 1 and nwobble == 1, the code below will used the exponential model of the DW factor, instead of
+		//calculating multiple configurations
+		//if (sscanf(params[20].data(), "%s %d", chaa, &iseed1) != 2) // this is not used any more
+		//	throw std::exception("Error reading line 21 of input parameter array.");
 		if (sscanf(params[21].data(), "%s %d", chaa, &lcross) != 2)
 			throw std::exception("Error reading line 22 of input parameter array.");
 		if (sscanf(params[22].data(), "%s %s", chaa, cinarg) != 2)
@@ -341,8 +348,29 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		//	throw std::exception("Error reading line 27 of input parameter array.");
 		if (sscanf(params[27].data(), "%s %d", chaa, &noutput) != 2)
 			throw std::exception("Error reading line 28 of input parameter array.");
+		bool boutTIFF;
+		if (noutput == 0 || noutput == 1 || noutput == 3)
+		{
+			if (xar::GetFileExtension(fileout[0]) == string(".TIFF") || xar::GetFileExtension(fileout[0]) == string(".TIF")) 
+				boutTIFF = true;
+			else 
+				if (xar::GetFileExtension(fileout[0]) == string(".GRD")) boutTIFF = false; else throw std::exception("Error: incorrect filename extension.");
+		}
+		else
+		{
+			if (noutput == 2)
+			{
+				if (xar::GetFileExtension(fileout[0]) != string(".GRC")) throw std::exception("Error: incorrect filename extension.");
+			}
+			else throw std::exception("Error: incorrect output format.");
+		}
+
 		if (sscanf(params[28].data(), "%s %d", chaa, &nfftwinit) != 2)
 			throw std::exception("Error reading line 29 of input parameter array.");
+
+		if (sscanf(params[29].data(), "%s %g", chaa, &iceThick) != 2)
+			throw std::exception("Error reading line 30 of input parameter array.");
+
 		//fclose(ff0);
 		//cout << "Input parameter file has been read successfully!\n";
 
@@ -400,8 +428,8 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		}
 
 		//@@@@@ start TEG code
-		if (lwobble == 1 && noutput != 0)
-			throw std::exception("Only intensity output is allowed in the presence of thermal vibrations.");
+		if (lwobble == 1 && nwobble > 1 && !(noutput == 0 || noutput == 3))
+			throw std::exception("Only intensity or 3D potential output is allowed in the presence of thermal vibrations with multiple configurations.");
 		if (lstart == 1) {
 			//cout << "Name of file to start from:" << endl;
 			//cin >> filestart;
@@ -461,7 +489,7 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		//lwobble = askYN("Do you want to include thermal vibrations");
 		//lwobble = 0;
 		//@@@@@ end TEG code
-		if (lwobble == 1) {
+		if (lwobble == 1 or iceThick > 0) {
 			//cout << "Type the temperature in degrees K:" << endl;
 			//cin >> temperature ;
 			//cout << "Type number of configurations to average over:" << endl;
@@ -469,17 +497,15 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			if (nwobble < 1) nwobble = 1;
 			/* get random number seed from time if available
 				otherwise ask for a seed */
-			ltime = (long)time(NULL);
-			iseed = (unsigned)ltime;
-			if (ltime == -1) {
-				//cout << "Type initial seed for random number generator:" << endl;
-				//cin >>  iseed;
-				iseed = iseed1;
-			}
-#ifdef _DEBUG
-			else
-				cout << "Random number seed initialized to " << iseed << endl;
-#endif
+			//@@@ TEG: note that the accuracy of the simple time() function is not enough here:
+			//nanoseconds need to be used in order to create different seeds for different threads
+			std::chrono::system_clock::time_point current_time = std::chrono::system_clock::now();
+			std::chrono::system_clock::duration dtn = current_time.time_since_epoch();
+			auto dtn_nano = std::chrono::duration_cast<std::chrono::nanoseconds>(dtn);
+			ltime = (long)dtn_nano.count();
+			//ltime = (long)time(NULL);
+			iseed = abs(ltime);
+			//printf("\n@@@@@ iseed = %ld", iseed);
 		}
 		else temperature = 0.0F;
 
@@ -584,20 +610,22 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			if (ax > cz) ctblength = ax; else ctblength = cz;
 		else
 			if (by > cz) ctblength = by; else ctblength = cz;
+		ctblengthz = ctblength; // ctblengthz may be increased later if an ice layer is added
 		// rotate the sample as necessary
 		float xc(float(ctblength / 2.0)), yc(float(ctblength / 2.0)), zc(float(ctblength / 2.0)), xxx, yyy, zzz;
 		// rotation around Y axis
+		float sinY(sin(angleY)), cosY(cos(angleY)), sinX(sin(angleX)), cosX(cos(angleX));
 		for (size_t k = 0; k < natom; k++)
 		{
-			xxx = xc + (x[k] - xc) * cos(angleY) + (z[k] - zc) * sin(angleY);
-			zzz = zc + (-x[k] + xc) * sin(angleY) + (z[k] - zc) * cos(angleY);
+			xxx = xc + (x[k] - xc) * cosY + (z[k] - zc) * sinY;
+			zzz = zc + (-x[k] + xc) * sinY + (z[k] - zc) * cosY;
 			x[k] = xxx; z[k] = zzz;
 		}
 		// rotation around X' axis
 		for (size_t k = 0; k < natom; k++)
 		{
-			yyy = yc + (y[k] - yc) * cos(angleX) + (z[k] - zc) * sin(angleX);
-			zzz = zc + (-y[k] + yc) * sin(angleX) + (z[k] - zc) * cos(angleX);
+			yyy = yc + (y[k] - yc) * cosX + (z[k] - zc) * sinX;
+			zzz = zc + (-y[k] + yc) * sinX + (z[k] - zc) * cosX;
 			y[k] = yyy; z[k] = zzz;
 		}
 		//@@@@@ end TEG code
@@ -607,6 +635,7 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		ymin = ymax = y[0];
 		zmin = zmax = z[0];
 		wmin = wmax = wobble[0];
+		float wobbleaver = 0.0f;
 
 		for (i = 0; i < natom; i++) {
 			if (x[i] < xmin) xmin = x[i];
@@ -617,7 +646,9 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			if (z[i] > zmax) zmax = z[i];
 			if (wobble[i] < wmin) wmin = wobble[i];
 			if (wobble[i] > wmax) wmax = wobble[i];
+			wobbleaver += wobble[i];
 		}
+		wobbleaver /= natom; // we need this value in the case of added ice, where this value is used to wobble each atom
 #ifdef _DEBUG
 		cout << "Total specimen range is\n"
 			<< xmin << " to " << xmax << " in x\n"
@@ -627,7 +658,7 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			cout << "Range of thermal rms displacements (300K) = "
 			<< wmin << " to " << wmax << endl;
 #endif	
-		//@@@@@ start TEG code
+		//@@@@@ start TEG code mods
 		if(lwobble == 1 && wmin == 0 && wmax == 0)
 			throw std::exception("Input XYZ file does not contain thermal vibrations for atoms.");
 		// force max dimensions along xzy axes to be equal to the defined CT sample qube side length
@@ -638,7 +669,25 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		xmin = 0; xmax = ctblength;
 		ymin = 0; ymax = ctblength;
 		zmin = 0; zmax = ctblength;
-		//@@@@@ end TEG code
+		
+		// Optionally add amorphous ice
+		// NOTE that here the ice is added only once per illumination direction, so all images at different defocus distances at this direction see the same ice
+		if (iceThick > 0)
+		{
+			if (iceThick < ctblength) 
+				throw std::exception("Error: ice thickness is less than the defined CT sample qube side length.");
+			else 
+			{
+				natom = AddIce(iceThick, ctblength, natom, &Znum, &x, &y, &z, &occ, &wobble, wobbleaver, &iseed);
+				cz = ctblengthz = iceThick;
+			}
+			printf("\nTotal atoms in added ice plus PDB structure = %d", natom);
+			// Write out the modified XYZ file with the added O and H atoms (H2O molecules of the ice)
+			// NOTE that the name of the output XYZ file is created inside this function by changing the extension of the filename passed to it
+			SaveXYZfile(fileout[0], ctblength, ctblengthz, natom, Znum, x, y, z, occ, wobble);
+		}
+		//@@@@@ end TEG code mods
+
 
 		// ---------  setup calculation -----
 		//   set calculation flags
@@ -687,17 +736,16 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		if (lwobble != 1) nwobble = 1;
 		// TEG introduced a cycle over thermal vibration configurations, with each thermal configuration step potentially including multiple defocus distances
 
-		//iseed = (unsigned long)time(NULL) + (unsigned long)iwobble;
-		iseed2 = - (long)abs(time(NULL)); // gasdev requires a negative integer seed for initialization, which should not be changed between successive calls
+		iseed2 = -abs(ltime); // gasdev requires a negative integer seed for initialization, which should not be changed between successive calls
 
 		for (index_t iwobble = 0; iwobble < nwobble; iwobble++)
 		{
-			if (lwobble == 1)
+			if (nwobble > 1)
 				printf("\nThermal configuration no. %zd, iseed2 = %d", iwobble, iseed2);
 
-			if (nmode != 3) // calculate multislice propagation through the molecule
+			if (noutput != 3) // calculate multislice propagation through the molecule
 				aslice.calculate(pix, wave0, depthpix, param, multiMode, natom, &iseed2,
-					Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, nfftwinit, nmode);
+					Znum, x, y, z, occ, wobble, beams, hbeam, kbeam, nbout, ycross, dfdelt, ctblength, ctblengthz, nfftwinit, nmode);
 			//@@@@@ end TEG code
 
 			if (lpartl == 1) {         //    with partial coherence
@@ -754,29 +802,51 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			xar::XArray2DFFT<float> xafft(camp);
 			float xst = (float)GetXStep(camp);
 			float yst = (float)GetYStep(camp);
-			xar::XArray2D<double> Xr2, Yr2, Zr2;
+			xar::XArray2D<double> Xr2, Yr2, Zr2; // squared coordinate differences
+			xar::XArray1D<float> x2, y2, z2; // "wobbled" coordinates of atoms
 
 			// precalculate arrays of squares of coordinate differences for subsequent evaluation of the electrostatic potential
-			if (nmode == 3)
+			if (noutput == 3)
 			{
+				y2.Resize(natom); x2.Resize(natom); z2.Resize(natom);
+				if (lwobble == 1 && nwobble > 1) 
+				{
+					float scale = (float)sqrt(temperature / 300.0);
+					for (size_t k = 0; k < natom; k++) 
+					{
+						x2[k] = x[k] + (float)(wobble[k] * gasdev(&iseed2) * scale);
+						y2[k] = y[k] + (float)(wobble[k] * gasdev(&iseed2) * scale);
+						z2[k] = z[k] + (float)(wobble[k] * gasdev(&iseed2) * scale);
+					}
+				}
+				else
+				{
+					for (size_t k = 0; k < natom; k++)
+					{
+						x2[k] = x[k];
+						y2[k] = y[k];
+						z2[k] = z[k];
+					}
+				}
+
 				Yr2.Resize(ny, natom, 0.0); Xr2.Resize(nx, natom, 0.0); Zr2.Resize(defocus.size(), natom, 0.0);
 				for (iy = 0; iy < ny; iy++)
 				{
 					yyy = ymin + yst * iy;
 					for (size_t k = 0; k < natom; k++)
-						Yr2[iy][k] = (y[k] - yyy) * (y[k] - yyy);
+						Yr2[iy][k] = (y2[k] - yyy) * (y2[k] - yyy);
 				}
 				for (ix = 0; ix < nx; ix++)
 				{
 					xxx = xmin + xst * ix;
 					for (size_t k = 0; k < natom; k++)
-						Xr2[ix][k] = (x[k] - xxx) * (x[k] - xxx);
+						Xr2[ix][k] = (x2[k] - xxx) * (x2[k] - xxx);
 				}
 				for (size_t j = 0; j < defocus.size(); j++)
 				{
 					zzz = zmax + (float)defocus[j].b;
 					for (size_t k = 0; k < natom; k++)
-						Zr2[j][k] = (z[k] - zzz) * (z[k] - zzz);
+						Zr2[j][k] = (z2[k] - zzz) * (z2[k] - zzz);
 				}
 			}
 
@@ -793,7 +863,7 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 			{
 				printf("\n z'' rotation angle = %g (deg), defocus = %g (A)", defocus[j].a, defocus[j].b);
 				
-				if (nmode != 3) // propagate in free space
+				if (noutput != 3) // propagate in free space
 				{
 					// (re)define the transmitted complex amplitude
 					for (ix = 0; ix < nx; ix++)
@@ -806,6 +876,14 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 					else
 						xafft.Fresnel(defocus[j].b, false, double(k2maxo), C3, C5); // propagate to the current defocus distance
 
+					if (defocus[j].a != 0) // rotate around Z"
+					{
+						xar::Re(camp, ampRe0); xar::Im(camp, ampIm0);
+						xar::XArray2DSpln<float> xaSplnRe(ampRe0), xaSplnIm(ampIm0);
+						xaSplnRe.Rotate(ampRe, defocus[j].a, dblYCentre, dblXCentre, 1.0f); // expecting uniform background with unit amplitude
+						xaSplnIm.Rotate(ampIm, defocus[j].a, dblYCentre, dblXCentre, 0.0f); // expecting uniform background with unit amplitude
+						xar::MakeComplex(ampRe, ampIm, camp, false);
+					}
 				}
 				else // evaluate electrostatic potential
 				{
@@ -814,36 +892,76 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 							for (size_t k = 0; k < natom; k++)
 								ampRe[iy][ix] += (float)vatom(Znum[k], sqrt(Xr2[ix][k] + Yr2[iy][k] + Zr2[j][k])); // add up potential contributions from all atoms in the molecule
 
-					// NOTE: we provide for a future option of having a complex electrostatic potential (to account for effective absorption of electrons)
-					xar::MakeComplex(ampRe, ampIm, camp, false);
+					if (lwobble == 1 && nwobble == 1)
+					// TEG: apply DW factor to the calculated projected potential
+					{
+						//printf("\n Calculating DW factor ...");
+						// Debye-Waller factor implemented according to eqs.(4.4)-(4.6) from C.J. Humphreys, Rep.Prog.Phys., vol.42, 1979, pp.1827-1887.
+						double scaleTemp2 = temperature / 300.0;
+						double Bdw(0); // average Debye-Waller factor for all atoms in the structure / square(freq)
+						for (i = 0; i < natom; i++) Bdw += wobble[i] * wobble[i] * scaleTemp2; // wobble[i] contains RMS displacement for an atom at 300K temperature
+						Bdw /= natom;
+						Bdw *= 2.0 * xar::tPI * xar::tPI;
+
+						ampIm.Fill(0);
+						xar::MakeComplex(ampRe, ampIm, camp, false);
+
+						float emM;
+						double mBdw4 = -0.25 * Bdw;
+
+						xar::MakeComplex(ampRe, ampIm, camp, false);
+						xafft.FFT(true);
+
+						double kx, ky, dkx = 1.0 / ax, dky = 1.0 / by, kx2, ky2, k2;
+						int ny2 = ny / 2, nx2 = nx / 2;
+						for (iy = 0; iy < ny; iy++) 
+						{
+							ky = (iy - ny2) * dky;
+							ky2 = ky * ky;
+							for (ix = 0; ix < nx; ix++) 
+							{
+								kx = (ix - nx2) * dkx;
+								kx2 = kx * kx;
+								k2 = ky2 + kx2;
+								emM = (float)exp(mBdw4 * k2); // exp(-M)
+								camp[iy][ix] *= emM;
+							}
+						
+						}
+						xafft.FFT(false);
+						xar::Re(camp, ampRe);
+					}
+
+					if (defocus[j].a != 0) // rotate around Z"
+					{
+						ampRe0 = ampRe;
+						xar::XArray2DSpln<float> xaSplnRe(ampRe0);
+						xaSplnRe.Rotate(ampRe, defocus[j].a, dblYCentre, dblXCentre, 1.0f); // expecting uniform background with unit amplitude
+					}
 				}
 
-				if (defocus[j].a != 0) // rotate around Z"
-				{
-					xar::Re(camp, ampRe0); xar::Im(camp, ampIm0);
-					xar::XArray2DSpln<float> xaSplnRe(ampRe0), xaSplnIm(ampIm0);
-					xaSplnRe.Rotate(ampRe, defocus[j].a, dblYCentre, dblXCentre, 1.0f); // expecting uniform background with unit amplitude
-					xaSplnIm.Rotate(ampIm, defocus[j].a, dblYCentre, dblXCentre, 0.0f); // expecting uniform background with unit amplitude
-					xar::MakeComplex(ampRe, ampIm, camp, false);
-				}
-
-				//GRD/GRC file output
+				//TIFF/GRD/GRC file output
 				switch (noutput)
 				{
 				case 0: // intensity out
 				{
 					xar::XArray2D<float> inten;
-					if (nmode != 3) xar::Abs2(camp, inten);
-					else xar::Abs(camp, inten);
+					xar::Abs2(camp, inten);
 					if (iwobble > 0)
 					{
 						xar::XArray2D<float> inten1;
-						xar::XArData::ReadFileGRD(inten1, fileout[j].data(), wavlen);
+						if (boutTIFF)
+						{
+							xar::TIFFReadFile(inten1, fileout[j].data());
+							inten1.SetHeadPtr(ph2new->Clone());
+						}
+						else xar::XArData::ReadFileGRD(inten1, fileout[j].data(), wavlen);
 						inten += inten1;
 						if (iwobble == (nwobble - 1)) inten /= (float)nwobble;
 					}
 					printf("\n  Writing output file %s ...", fileout[j].c_str());
-					xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
+					if (boutTIFF) xar::TIFFWriteFile(inten, fileout[j].data(), xar::eTIFF32, false);
+					else xar::XArData::WriteFileGRD(inten, fileout[j].data(), xar::eGRDBIN);
 					break;
 				}
 				case 1: // phase out
@@ -851,7 +969,8 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 					xar::XArray2D<float> phase(camp.GetDim1(), camp.GetDim2(), 0.0f);
 					xar::CArg(camp, phase);
 					printf("\n  Writing output file %s ...", fileout[j].c_str());
-					xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
+					if (boutTIFF) xar::TIFFWriteFile(phase, fileout[j].data(), xar::eTIFF32, false);
+					else xar::XArData::WriteFileGRD(phase, fileout[j].data(), xar::eGRDBIN);
 					break;
 				}
 				case 2: // complex amplitude out
@@ -860,11 +979,32 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 					xar::XArData::WriteFileGRC(camp, fileout[j].data(), xar::eGRCBIN);
 					break;
 				}
+				case 3: // 3D potential out
+				{
+					if (iwobble > 0)
+					{
+						if (boutTIFF)
+						{
+							xar::TIFFReadFile(ampRe0, fileout[j].data());
+							ampRe0.SetHeadPtr(ph2new->Clone());
+						}
+						else xar::XArData::ReadFileGRD(ampRe0, fileout[j].data(), wavlen);
+						ampRe += ampRe0;
+						if (iwobble == (nwobble - 1)) ampRe /= (float)nwobble;
+					}
+					printf("\n  Writing output file %s ...", fileout[j].c_str());
+					if (boutTIFF) xar::TIFFWriteFile(ampRe, fileout[j].data(), xar::eTIFF32, false);
+					else xar::XArData::WriteFileGRD(ampRe, fileout[j].data(), xar::eGRDBIN);
+					break;
+				}
 				default:
 					throw std::exception("Error: unknown value of the output mode parameter.");
 				}
 			} // end of cycle over defocus distance
+
+
 		} // end of cycle over iwobble (thermal configurations)
+
 
 		/*   for( ix=0; ix<NPARAM; ix++ ) myFile.setParam( ix, param[ix] );
 
@@ -921,7 +1061,8 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
 		//cout << "\nPress any key to exit ...";
 		//cin >> a;
 
-		//printf("\n@@@@@@Thread exiting. Nthreads = %d\n", thread_counter.GetCount());
+		if (thread_counter.GetCount() < 0)
+			throw std::exception("another thread has requested program termination.");
 		//@@@@@ end TEG code
 	}
 	catch (std::exception& E)
@@ -937,6 +1078,5 @@ int autosliccmd(vector<string> params, vector<xar::Pair> defocus, vector<string>
     return 0;
 
 } /* end main() */
-
 
 

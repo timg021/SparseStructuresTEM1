@@ -206,7 +206,7 @@ fprintf("a=%d", a);
 	XA_API index_t IOFileString2List(const string& infiles, list<string>& listInputFiles, int* piNoProblem);
 	index_t FindRefractiveIndices(const string strMaterialLegendFilename, const vector<float> vEnergies, vector<vector<float> >& vOutDelta, vector<vector<float> >& vOutBeta);
 	index_t ReadSpectrumFile(const string strSpectrumFilename, vector<float>& vOutEnergies, vector<float>& vOutCounts);
-	void ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<vector<Pair> >& vvdefocus);
+	void ReadDefocusParamsFile(string difile, vector<Pair>& v2angles, vector<vector<Pair> >& vvdefocus, bool bVerboseOutput = true);
 	void FileNames(index_t nangles, index_t ndefocus, string filenamebase, vector<string>& output);
 	void FileNames2(vector<index_t> vndefocus, string filenamebase, vector<string>& output);
 

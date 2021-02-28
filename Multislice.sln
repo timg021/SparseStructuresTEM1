@@ -48,11 +48,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "XArrayLibrary", "XArrayLibr
 		XArrayLibrary\XA_head3.h = XArrayLibrary\XA_head3.h
 		XArrayLibrary\XA_ini.cpp = XArrayLibrary\XA_ini.cpp
 		XArrayLibrary\XA_ini.h = XArrayLibrary\XA_ini.h
+		XArrayLibrary\XA_iwfr.h = XArrayLibrary\XA_iwfr.h
 		XArrayLibrary\XA_move2.h = XArrayLibrary\XA_move2.h
 		XArrayLibrary\XA_move3.h = XArrayLibrary\XA_move3.h
 		XArrayLibrary\XA_nrrand.h = XArrayLibrary\XA_nrrand.h
 		XArrayLibrary\XA_spln2.h = XArrayLibrary\XA_spln2.h
+		XArrayLibrary\XA_spln3.h = XArrayLibrary\XA_spln3.h
 		XArrayLibrary\XA_tie.h = XArrayLibrary\XA_tie.h
+		XArrayLibrary\XA_tiff.h = XArrayLibrary\XA_tiff.h
 		XArrayLibrary\XAHWave.cpp = XArrayLibrary\XAHWave.cpp
 		XArrayLibrary\XAHWave.h = XArrayLibrary\XAHWave.h
 		XArrayLibrary\XArray.h = XArrayLibrary\XArray.h
@@ -63,8 +66,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "XArrayLibrary", "XArrayLibr
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdb", "pdb\pdb.vcxproj", "{F8294657-5209-4230-8197-ACEB4A56C396}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdb-compare", "pdb-compare\pdb-compare.vcxproj", "{D075382E-E0CC-447B-9B71-22E0F9519E9F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DB852C38-7E0B-46BF-A389-E0B5B8C10583}"
 	ProjectSection(SolutionItems) = preProject
@@ -104,14 +105,6 @@ Global
 		{F8294657-5209-4230-8197-ACEB4A56C396}.Release|x64.Build.0 = Release|x64
 		{F8294657-5209-4230-8197-ACEB4A56C396}.Release|x86.ActiveCfg = Release|Win32
 		{F8294657-5209-4230-8197-ACEB4A56C396}.Release|x86.Build.0 = Release|Win32
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Debug|x64.ActiveCfg = Debug|x64
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Debug|x64.Build.0 = Debug|x64
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Debug|x86.ActiveCfg = Debug|Win32
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Debug|x86.Build.0 = Debug|Win32
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Release|x64.ActiveCfg = Release|x64
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Release|x64.Build.0 = Release|x64
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Release|x86.ActiveCfg = Release|Win32
-		{D075382E-E0CC-447B-9B71-22E0F9519E9F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

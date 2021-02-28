@@ -5,11 +5,6 @@
 //
 //		Two-dimensional spline interpolations
 //
-//	COPYRIGHT:
-//
-//		Commonwealth Scientific and Industrial Research Organisation, 2001-2007
-//					All Rights Reserved
-//
 //
 /*!
 	\file		XA_spln2.h
@@ -191,11 +186,11 @@ template <class T> void xar::XArray2DSpln<T>::Initialize()
 	{
 		m_wl = 0.0001;
 		m_ylo = 0;
-		m_yhi = (double)m_ny1;
+		m_yhi = (double)m_ny;
 		m_xlo = 0;
-		m_xhi = (double)m_nx1;
+		m_xhi = (double)m_nx;
 	}
-	m_yst = GetXStep(m_rXArray2D);
+	m_yst = GetYStep(m_rXArray2D);
 	m_xst = GetXStep(m_rXArray2D);
 	m_ayst = 1.0 / m_yst;
 	m_axst = 1.0 / m_xst;

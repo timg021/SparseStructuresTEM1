@@ -125,14 +125,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="pdb.c" />
-    <ClCompile Include="pdb_run.c" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="pdb.h" />
+    <ClInclude Include="Seb-inl.h" />
+    <ClInclude Include="Seb.h" />
+    <ClInclude Include="Seb_configure.h" />
+    <ClInclude Include="Seb_point.h" />
+    <ClInclude Include="Subspan-inl.h" />
+    <ClInclude Include="Subspan.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="pdb.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pdb.cpp" />
+    <ClCompile Include="pdb_run.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -202,13 +202,14 @@ autoslic::~autoslic()
                 (ignored if lcross = 0)
 */
 //@@@@@ TEG added parameters ctblength and nmode to the list of this functioin arguments
-// ctblength defines the CT sample box side length in Angstroms
+// ctblength defines the CT sample box x and y side length in Angstroms
+// ctblengthz defines the z-thickness of the CT sample box in Angstroms
 // nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 // nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
 void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, long *iseed2,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode )
+        cfpix &beams, int hb[], int kb[], int nbout, float ycross, float dfdelt, float ctblength, float ctblengthz, int nfftwinit, int nmode )
 {
     int i, ix, iy, iz, ixmid, iymid, nx, ny, nz, iycross, istart, nwobble, nbeams(0),
         nacx,nacy, iqx, iqy, iwobble, ndf, idf, ib, na, islice, nzout, nzbeams,
@@ -290,15 +291,15 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 		messageAS(sbuffer, 2);
 		exit(0);
 	}
-	if (xmax > ctblength || ymax > ctblength || zmax > ctblength)
+	if (xmax > ctblength || ymax > ctblength || zmax > ctblengthz)
 	{
-		sbuffer = "!!!Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample qube side length!!!";
+		sbuffer = "!!!Error: xmax, ymax or zmax in the XYZ file is larger than the defined CT sample box dimensions!!!";
 		messageAS(sbuffer, 2);
 		exit(0);
 	}
 	xmin = 0; xmax = ctblength;
 	ymin = 0; ymax = ctblength;
-	zmin = 0; zmax = ctblength;
+	zmin = 0; zmax = ctblengthz;
 	//@@@@@ end TEG code
 
     // --- leave this in main calling program
@@ -425,7 +426,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
    about the origin and to have the same periodic boundary
    conditions as the sampling grid
 */
-    if( lpartl == 1 ) {
+    if( lpartl == 1 ) { //!!! TEG code is currently only using the lpartl == 0 branch
         
         //sprintf(stemp,"Illumination angle sampling (in mrad) = %f, %f\n",
         //    1000.*rx*wavlen, 1000.*ry*wavlen);
@@ -512,9 +513,9 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
                             //sbuffer= "Thickness range with thermal displacements is "
                             //       + toString(zmin) + " to " + toString(zmax)+" (in z)";
                             //messageAS( sbuffer );
-							if (z2[0] < 0 || z2[natom - 1] > ctblength)
+							if (z2[0] < 0 || z2[natom - 1] > ctblengthz)
 							{
-								sbuffer = "!!!Error: zmin < 0 or zmax > ctblength after the thermal wobble!!!";
+								sbuffer = "!!!Error: zmin < 0 or zmax > ctblengthz after the thermal wobble!!!";
 								messageAS(sbuffer, 2);
 								exit(0);
 							}
@@ -663,7 +664,7 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 /* ---- start coherent method below ----------------
         (remember that waver,i[][] was initialize above) */
 
-    } else {
+    } else { //!!! This is the beginning of the lpartl == 0 branch of temsim code, which is the only branch that TEG code is currently using 
 
         if( lbeams ==1 ) {
             nzbeams = (int) ( (zmax-zmin)/ deltaz + 3.5);
@@ -697,7 +698,8 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 
         /*  add random thermal displacements scaled by temperature if requested 
             remember that initial wobble is at 300K for each direction */
-        if( lwobble == 1 ){
+        //@@@@ TEG: note that I have changed the condition below from if (lwobble == 1) to if (nwobble > 1)
+        if(lwobble == 1 && nwobble > 1){
             scale = (float) sqrt(temperature/300.0) ;
             for( i=0; i<natom; i++) {
 				//x2[i] = x[i] + (float)(wobble[i] * rangauss(iseed) * scale);
@@ -730,9 +732,9 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 			//sbuffer= "Thickness range with thermal displacements is "
 			//       + toString(zmin) + " to " + toString(zmax)+" (in z)";
 			//messageAS( sbuffer );
-			if (z2[0] < 0 || z2[natom - 1] > ctblength)
+			if (z2[0] < 0 || z2[natom - 1] > ctblengthz)
 			{
-				sbuffer = "!!!Error: zmin < 0 or zmax > ctblength after the thermal wobble!!!";
+				sbuffer = "!!!Error: zmin < 0 or zmax > ctblengthz after the thermal wobble!!!";
 				messageAS(sbuffer, 2);
 				exit(0);
 			}
@@ -762,9 +764,14 @@ void autoslic::calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
 
             /* calculate transmission function, skip if layer empty */
             if( na > 0 ) {
-                trlayer( &x2[istart], &y2[istart], &occ2[istart],
-                    &Znum2[istart], na, ax, by, v0, trans,
-                    nx, ny, kx2, ky2, &phirms, &nbeams, k2max );
+                if (lwobble == 1 && nwobble == 1)
+                    trlayerDW(&x2[istart], &y2[istart], &occ2[istart],
+                        &Znum2[istart], na, ax, by, v0, trans,
+                        nx, ny, kx2, ky2, &phirms, &nbeams, k2max, wobble, temperature);
+                else
+                    trlayer( &x2[istart], &y2[istart], &occ2[istart],
+                        &Znum2[istart], na, ax, by, v0, trans,
+                        nx, ny, kx2, ky2, &phirms, &nbeams, k2max );
     
                 /*??? printf("average atompot comparison = %g\n", 
                            phirms/(wavlen*mm0) ); */
@@ -1001,4 +1008,151 @@ void autoslic::trlayer(  const float x[], const float y[], const float occ[],
     return;
 
  }  /* end autoslic::trlayer() */
- 
+
+//@@@@@ start TEG code
+//=============================================================
+/*--------------------- trlayerDW() -----------------------*/
+/*
+  Calculate complex specimen transmission function
+  for one layer using real space projected atomic potentials
+  and the negative exponential model of the Debye-Waller factor
+
+  x[],y[] = real array of atomic coordinates
+  occ[]   = real array of occupancies
+  Znum[]  = array of atomic numbers
+  natom   = number of atoms
+  ax, by  = size of transmission function in Angstroms
+  kev     = beam energy in keV
+  transr  = 2D array to get real part of specimen
+        transmission function
+  transi  = 2D array to get imag. part of specimen
+        transmission function
+  nx, ny  = dimensions of transmission functions
+  *phirms = average phase shift of projected atomic potential
+  *nbeams = will get number of Fourier coefficients
+  k2max   = square of max k = bandwidth limit
+
+*/
+void autoslic::trlayerDW(const float x[], const float y[], const float occ[],
+    const int Znum[], const int natom, const float ax, const float by,
+    const float kev, cfpix& trans, const int nx, const int ny,
+    const float kx2[], const float ky2[],
+    double* phirms, int* nbeams, const float k2max, const float wobble[], const float temperature)
+{
+    int idx, idy, i, ixo, iyo, ix, iy, ixw, iyw, nx1, nx2, ny1, ny2;
+    float k2;
+    double r, rx2, rsq, vz, rmin, rminsq, sum, scale, scalex, scaley;
+
+    const double rmax = 3.0, rmax2 = rmax * rmax; /* max atomic radius in Angstroms */
+
+    // Debye-Waller factor implemented according to eqs.(4.4)-(4.6) from C.J. Humphreys, Rep.Prog.Phys., vol.42, 1979, pp.1827-1887.
+    double scaleTemp2 = temperature / 300.0;
+    double Bdw(0); // average Debye-Waller factor for all atoms in the structure / square(freq)
+    for (i = 0; i < natom; i++) Bdw += wobble[i] * wobble[i] * scaleTemp2; // wobble[i] contains RMS displacement for an atom at 300K temperature
+    Bdw /= natom;
+    Bdw *= 2.0 * twopi * twopi;
+
+    scale = sigma(kev) / 1000.0;  /* in 1/(volt-Angstroms) */
+
+    scalex = ax / nx;
+    scaley = by / ny;
+
+    /* min radius to avoid  singularity */
+    rmin = ax / ((double)nx);
+    r = by / ((double)ny);
+    rmin = 0.25 * sqrt(0.5 * (rmin * rmin + r * r));
+    rminsq = rmin * rmin;
+
+    idx = (int)(nx * rmax / ax) + 1;
+    idy = (int)(ny * rmax / by) + 1;
+
+    for (ix = 0; ix < nx; ix++) {
+        for (iy = 0; iy < ny; iy++)
+            trans.re(ix, iy) = 0.0F;    /* real part trans[iy + ix*ny][0] */
+    }
+
+    /*  run this in parallel  */
+    /*#pragma omp parallel for private(ix,iy,ixo,iyo,nx1,nx2,ny1,ny2,rx2,ixw,iyw,vz,rsq) */
+#pragma omp parallel for private(ix,iy,ixo,iyo,nx1,nx2,ny1,ny2,rx2,ixw,iyw,vz,rsq)
+    for (i = 0; i < natom; i++) {
+        ixo = (int)(x[i] / scalex);
+        iyo = (int)(y[i] / scaley);
+        nx1 = ixo - idx;
+        nx2 = ixo + idx;
+        ny1 = iyo - idy;
+        ny2 = iyo + idy;
+
+        /* add proj. atomic potential at a local region near its center
+           taking advantage of small range of atomic potential */
+
+        for (ix = nx1; ix <= nx2; ix++) {
+            rx2 = x[i] - ((double)ix) * scalex;
+            rx2 = rx2 * rx2;
+            ixw = ix;
+            while (ixw < 0) ixw = ixw + nx;
+            ixw = ixw % nx;
+            for (iy = ny1; iy <= ny2; iy++) {
+                rsq = y[i] - ((double)iy) * scaley;
+                rsq = rx2 + rsq * rsq;
+                if (rsq <= rmax2) {
+                    iyw = iy;
+                    while (iyw < 0) iyw = iyw + ny;
+                    iyw = iyw % ny;
+                    if (rsq < rminsq) rsq = rminsq;
+                    /* r = sqrt( r );
+                    vz = occ[i] * scale * vzatom( Znum[i], r ); slow */
+                    vz = occ[i] * vzatomLUT(Znum[i], rsq);
+                    trans.re(ixw, iyw) += (float)vz;
+                }
+            } /* end for(iy... */
+        }  /* end for(ix... */
+
+    } /* end for(i=0... */
+
+    // TEG: apply DW factor to the calculated projected potential
+    for (ix = 0; ix < nx; ix++)
+        for (iy = 0; iy < ny; iy++)
+            trans.im(ix, iy) = 0.0f;
+    
+    float emM;
+    double mBdw4 = -0.25 * Bdw;
+    trans.fft();
+    for (ix = 0; ix < nx; ix++) {
+        for (iy = 0; iy < ny; iy++) {
+            k2 = ky2[iy] + kx2[ix];
+            emM = (float)exp(mBdw4 * k2); // exp(-M)
+            trans.re(ix, iy) *= emM;
+            trans.im(ix, iy) *= emM;
+        }
+    }
+    trans.ifft();
+
+    /* convert phase to a complex transmission function */
+    sum = 0;
+    for (ix = 0; ix < nx; ix++) {
+        for (iy = 0; iy < ny; iy++) {
+            vz = scale * trans.re(ix, iy);
+            sum += vz;
+            trans.re(ix, iy) = (float)cos(vz);
+            trans.im(ix, iy) = (float)sin(vz);
+        }
+    }
+
+    *phirms = sum / (((double)nx) * ((double)ny));
+
+    /* bandwidth limit the transmission function */
+    *nbeams = 0;
+    trans.fft();
+    for (ix = 0; ix < nx; ix++) {
+        for (iy = 0; iy < ny; iy++) {
+            k2 = ky2[iy] + kx2[ix];
+            if (k2 < k2max) *nbeams += 1;
+            else trans.re(ix, iy) = trans.im(ix, iy) = 0.0F;
+        }
+    }
+    trans.ifft();
+
+    return;
+
+}  /* end autoslic::trlayerDW() */
+//@@@@@ end TEG code

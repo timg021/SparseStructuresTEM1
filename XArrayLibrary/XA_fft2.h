@@ -433,7 +433,7 @@ template <class T> void xar::XArray2DFFT<T>::Kirchhoff(double dblDistance, bool 
 	\brief		Calculates 2D Fresnel integral
 	\param		dblDistance	Propagation distance (in the same units as used in the Wavehead2D)
 	\param		bCheckValidity	Determines the validity of the used implementation for given parameters
-	\param		q2max Defines the optional bandwidth limit
+	\param		q2max Defines the optional bandwidth limit (q2max <= 0.0 is interepreted as infinite aperture)
 	\param		C3 optional 3rd-order spherical aberration (its dimensionality is the same as for dblDistance)
 	\param		C5 optional 5th-order spherical aberration (its dimensionality is the same as for dblDistance)
 	\exception	std::invalid_argument is thrown if any of the two dimensions of the wrapped object
@@ -676,7 +676,7 @@ template <class T> void xar::XArray2DFFT<T>::Fresnel(double dblDistance, bool bC
 
 	fft.Complex2D((std::complex<T> *) u, m_rXArray2D.GetDim1(), 
 		m_rXArray2D.GetDim2(), OouraFft<T>::eDirInv);
-    T fact = T(1.0) / nxy;
+    T fact = T(1.0 / double(nxy));
 	for (k = 0; k < nxy2; k++)	u[k] *= fact;
 }
 

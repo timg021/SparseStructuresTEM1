@@ -103,7 +103,7 @@ int pdb_atomdata_from_file(char * pdbfname, pdbdata * pd)
     fclose(file);
   } 
   else {
-    printf("pdb file was not found (for pdb_check).\n");
+    printf("pdb file %s was not found (for pdb_check).\n", pdbfname);
 	return -1;
   }
 
@@ -154,7 +154,7 @@ int data_from_VestaXYZfile(char* pdbfname, pdbdata* pd)
 		fclose(file);
 	}
 	else {
-		printf("!!!file was not found (in data_from_VestaXYZfile).\n");
+		printf("!!!file %s was not found (in data_from_VestaXYZfile).\n", pdbfname);
 		return -1;
 	}
 
@@ -188,7 +188,7 @@ int data_from_KirklandXYZfile(char* pdbfname, pdbdata* pd)
 
 		if (natoms < 1 || neof != -1)
 		{
-			printf("!!!problem reading data_from_KirklandXYZfile).\n");
+			printf("!!!problem reading file %s (in data_from_KirklandXYZfile).\n", pdbfname);
 			return -1;
 		}
 
@@ -216,7 +216,7 @@ int data_from_KirklandXYZfile(char* pdbfname, pdbdata* pd)
 		fclose(file);
 	}
 	else {
-		printf("!!!file was not found (in data_from_KirklandXYZfile).\n");
+		printf("!!!file %s was not found (in data_from_KirklandXYZfile).\n", pdbfname);
 		return -1;
 	}
 
@@ -255,7 +255,7 @@ int pdb_check(char * pdbfname, int * natoms){
     fclose(file);
   } 
   else {
-    printf("pdb file was not found (for pdb_check).\n");
+    printf("pdb file %s was not found (for pdb_check).\n", pdbfname);
 	return -1;
   }
 
@@ -276,7 +276,7 @@ void pdballocate(pdbdata * pd)
     
     } 
  
-  pd->adata = malloc( pd->natoms * sizeof(atomdata) );
+  pd->adata = (atomdata * ) malloc( pd->natoms * sizeof(atomdata) );
   int i;
   for (i=0;i<pd->natoms;i++){
     initialise_atomdata( &(pd->adata[i]) );
@@ -321,7 +321,7 @@ int isATOMline(char * line)
 {
 
   char * token;
-  token = "\0";
+  //token = "\0";
 
   token = strtok(line," =:\n"); 
 
@@ -343,7 +343,7 @@ int isATOMline(char * line)
 void readline( char * line){
 
   char * token;
-  token = "\0";
+  //token = "\0";
 
   token = strtok(line," =:\n"); 
 

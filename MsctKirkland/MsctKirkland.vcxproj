@@ -139,6 +139,7 @@
     <ClCompile Include="..\XArrayLibrary\XAHWave.cpp" />
     <ClCompile Include="..\XArrayLibrary\XA_file.cpp" />
     <ClCompile Include="..\XArrayLibrary\XA_ini.cpp" />
+    <ClCompile Include="AddIce.cpp" />
     <ClCompile Include="autoslic.cpp" />
     <ClCompile Include="autosliccmd.cpp" />
     <ClCompile Include="cfpix.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="..\XArrayLibrary\XA_ini.h" />
     <ClInclude Include="..\XArrayLibrary\XA_nrrand.h" />
     <ClInclude Include="..\XArrayLibrary\XA_spln2.h" />
+    <ClInclude Include="AddIce.h" />
     <ClInclude Include="autoslic.hpp" />
     <ClInclude Include="autosliccmd.h" />
     <ClInclude Include="cfpix.hpp" />
@@ -173,8 +175,12 @@
     <ClInclude Include="slicelib.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="DefocusOutput.txt" />
+    <Text Include="DefocusRand36_NEW.txt" />
     <Text Include="MsctKirkland.txt" />
+    <Text Include="ReadmeMsctKirkland.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ASP_NEW_Kirck_DW.xyz" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

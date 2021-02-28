@@ -18,14 +18,17 @@
     <Text Include="PhaseRetrieval.txt">
       <Filter>Resource Files</Filter>
     </Text>
-    <Text Include="DefocusInput.txt">
+    <Text Include="DefocusRand36_NEW.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="EvInsideAspartate.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="ReadmePhaseRetrieval.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PhaseRetrieval.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\XArrayLibrary\IXAHWave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\XArrayLibrary\fftwd3drc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DHT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -110,6 +116,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\XArrayLibrary\fftwd3drc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\XArrayLibrary\XA_iwfr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

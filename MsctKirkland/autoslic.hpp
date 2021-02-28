@@ -159,13 +159,14 @@ public:
 
     //  main calculation
 	//@@@@@ TEG added parameters ctblength and nmode to the list of this functioin arguments
-	// ctblength defines the CT sample box side length in Angstroms
+	// ctblength defines the CT sample box x and y side length in Angstroms
+    // ctblengthz defines the z-thickness of the CT sample box in Angstroms
 	// nfftwinit if non-zero, FFTW plan is created, otherwise it is copied
 	// nmode switches between multislice(0), projection(1) and 1st Born(2) approximations
 	void calculate(cfpix &pix, cfpix &wave0, cfpix &depthpix,
         float param[], int multiMode, int natom, long *iseed1,
         int Znum[], float x[], float y[], float z[], float occ[], float wobble[],
-        cfpix &beams, int hb[], int kb[], int nbeams, float ycross, float dfdelt, float ctblength, int nfftwinit, int nmode);
+        cfpix &beams, int hb[], int kb[], int nbeams, float ycross, float dfdelt, float ctblength, float ctblengthz, int nfftwinit, int nmode);
 
 private:
 
@@ -178,6 +179,14 @@ private:
             const float kev, cfpix &trans, const int nx, const int ny,
             const float kx2[], const float ky2[],
             double *phirms, int *nbeams, const float k2max );
+
+        //@@@@@ start TEG code
+        void trlayerDW(const float x[], const float y[], const float occ[],
+            const int Znum[], const int natom, const float ax, const float by,
+            const float kev, cfpix& trans, const int nx, const int ny,
+            const float kx2[], const float ky2[],
+            double* phirms, int* nbeams, const float k2max, const float wobble[], const float temperature);
+        //@@@@@ end TEG code
 
         std::string sbuffer;
 

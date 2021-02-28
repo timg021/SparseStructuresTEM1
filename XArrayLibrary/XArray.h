@@ -149,6 +149,8 @@ namespace xar
 		void SetCmplAt(index_t index, dcomplex cxdVal);
 		//! Fills the array with a given fixed value
 		void Fill(T tVal) { std::fill(XArrayBase<T>::begin(), XArrayBase<T>::end(), tVal); }
+		//! Replaces all values smaller than tThreshold by tNewVal
+		void ThresholdLow(T tThreshold, T tNewVal = T(0), T tMultFactor = T(1));
 		//! Replaces each array member with its modulus
 		void Abs(void);
 		//! Replaces each array member with its square modulus
@@ -323,6 +325,17 @@ namespace xar
 		for (index_t i=0; i<XArrayBase<T>::size(); i++) XArrayBase<T>::operator[](i) = T(fabs(XArrayBase<T>::operator[](i)));
 	}
 
+	
+	template <class T> inline void XArray<T>::ThresholdLow(T tThreshold, T tNewVal, T tMultFactor)
+	// This function is specialized separately for complex T
+	{
+		for (index_t i = 0; i < XArrayBase<T>::size(); i++)
+		{
+			XArrayBase<T>::operator[](i) *= tMultFactor;
+			if (XArrayBase<T>::operator[](i) < tThreshold) XArrayBase<T>::operator[](i) = tNewVal;
+		}
+	}
+
 
 	template <class T> inline void XArray<T>::Abs2() 
 	// This function is specialized separately for complex T
@@ -400,7 +413,7 @@ namespace xar
 		XArrayBase<T>::at(index) = T(val);
 	}
 	
-
+	
 	template <class T> inline dcomplex XArray<T>::GetCmplAt(index_t index) const
 	// This function is specialized separately for complex T
 	{ 
@@ -936,6 +949,16 @@ double dblChi2 = myXArray2D.Chi2(otherXArray);
 		throw std::invalid_argument("invalid_argument '*this' in XArray<dcomplex>::Chi2 (member function undefined)"); 	
 	}
 
+	inline void XArray<fcomplex>::ThresholdLow(fcomplex tThreshold, fcomplex tNewVal, fcomplex tMultFactor)
+	{
+		throw std::invalid_argument("invalid_argument '*this' in XArray<fcomplex>::ThresholdLow (member function undefined)");
+	}
+
+	inline void XArray<dcomplex>::ThresholdLow(dcomplex tThreshold, dcomplex tNewVal, dcomplex tMultFactor)
+	{
+		throw std::invalid_argument("invalid_argument '*this' in XArray<fcomplex>::ThresholdLow (member function undefined)");
+	}
+
 }
 //---------------------------------------------------------------------------
 //	RELATED IN-LINE NON-MEMBER DEFINITIONS
@@ -1055,6 +1078,74 @@ MakeComplex(A, B, C, false);
 		C.SetHeadPtr(A.GetHeadPtr() ? A.GetHeadPtr()->Clone() : 0);
 	}
 	
+
+	//---------------------------------------------------------------------------
+	//Function XArray<T>::MultiplyExpiFi
+	//
+	//	Multiplies a complex XArray object C by exp(iFi) with real XArray object Fi
+	//
+	/*!
+		\brief		Multiplies a complex XArray object C by exp(iA) with real XArray object Fi
+		\param		C	Complex XArray object modified by this function
+		\param		Fi	Real XArray object representing imaginary a phase distribution
+		\param		
+		\exception	std::invalid_argument is thrown if C and A have differented sizes
+		\exception	std::exception and derived exceptions can be thrown indirectly by the functions called
+					from inside this function
+		\return		\a None
+		\par		Description:
+			This function modifies a complex XArray object C according to C = C * exp(iFi) where Fi is a real XArray object.
+		\par		Example:
+\verbatim
+XArray1D<fcomplex> C(20, 1.0f);
+XArray1D<float> Fi(20, 1.0f);
+MultiplyExpiFi(C, Fi);
+\endverbatim
+	*/
+	template <class T> void MultiplyExpiFi(XArray< std::complex<T> >& C, const XArray<T>& Fi)
+	{
+		index_t isize = C.size();
+		if (Fi.size() != isize) throw std::invalid_argument("invalid_argument 'C and Fi' in MultiplyExpiFi (different sizes)");
+
+		for (index_t i = 0; i < isize; i++) C[i] *= std::complex<T>(T(cos(Fi[i])), T(std::sin(Fi[i])));
+	}
+
+
+	//---------------------------------------------------------------------------
+	//Function XArray<T>::ReplaceModulus
+	//
+	//	Replaces modulus of a complex XArray object C with real XArray object A
+	//
+	/*!
+		\brief		Replaces modulus of a complex XArray object C with real XArray object A
+		\param		C	Complex XArray object modified by this function
+		\param		A	Real XArray object representing the new modulus
+		\param
+		\exception	std::invalid_argument is thrown if C and A have differented sizes
+		\exception	std::exception and derived exceptions can be thrown indirectly by the functions called
+					from inside this function
+		\return		\a None
+		\par		Description:
+			This function modifies a complex XArray object C according to C = C / |C| * A where A is a real XArray object.
+		\par		Example:
+	\verbatim
+	XArray1D<fcomplex> C(20, 1.0f);
+	XArray1D<float> A(20, 1.0f);
+	ReplaceModulus(C, A);
+	\endverbatim
+	*/
+	template <class T> void ReplaceModulus(XArray< std::complex<T> >& C, const XArray<T>& A)
+	{
+		index_t isize = C.size();
+		if (A.size() != isize) throw std::invalid_argument("invalid_argument 'C and A' in ReplaceModulus (different sizes)");
+
+		T temp;
+		for (index_t i = 0; i < isize; i++)
+		{
+			temp = abs(C[i]);
+			if (temp) C[i] *= A[i] / temp; else C[i] = A[i];
+		}
+	}
 
 	//---------------------------------------------------------------------------
 	//Function XArray<T>::Re

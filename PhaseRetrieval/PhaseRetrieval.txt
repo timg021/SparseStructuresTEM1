@@ -1,18 +1,23 @@
 //*****Input parameter file for PhaseRetrieval.exe program*****
 1.Input_file_with_rotation_angles_and_defocus_distances: DefocusRand36_NEW.txt
-2.Input_filename_base_of_defocus_series_in_GRD_or_GRC_format: C:\Users\tgureyev\Downloads\Temp\in.grd
-3.Wavelength_in_Angstroms: 0.025
-4.Objective_aperture_in_mrad: 0.0
-5.Spherical_aberration_Cs3,_Cs5_in_mm: 0 0
-6.Maximal_number_of_iterations: 200
-7.Minimal_phase_reconstruction_error: 1.e-8
-8.Output_defocus_distances_min_max_and_step_in_Angstroms: -10.0 0.0 0.0390625
-9.Extra_defocus_for_3D_reconstruction_in_Angstroms: 1.0
-10.3D_Laplacian_filter_mode:_not_apply(0)_apply(1)_apply_filter_only(2): 0
-11.Regularization_parameter_for_inverse_3D_Laplacian_filter: 0.01
-12.Output_intensity(0),_phase(1),_complex_amplitude(2)_or_3D_contrast(3): 3
-13.Output_GRD_or_GRC_file_name_base: C:\Users\tgureyev\Downloads\Temp\zzz.grd
-14.Verbose_output_during_execution_Yes(1)_or_No(0): 1
-15.Number_of_parallel_threads: 20
+2.Filename_template_of_defocus_series_in_TIFF,_GRD_or_GRC_format: C:\Users\tgureyev\Downloads\Temp\asp.grd
+3.Xmin_Xmax_Ymin_Ymax_in_Angstroms_(for_TIFF_input_files_only): 0 10 0 10
+4.Wavelength_in_Angstroms: 0.025
+5.Objective_aperture_in_mrad: 0.0
+6.Spherical_aberration_Cs3,_Cs5_in_mm: 0 0
+7.Phase_retrieval_method_IWFR(1),_CTFL2(2),_MinLogAmp(3)_or_EqB7(4): 1
+8.Save_phase_retrieved_defocused_complex_amplitudes_in_files_Yes(1)_or_No(0): 0
+9.Maximal_number_of_iterations(IWFR): 200
+10.Minimal_phase_reconstruction_error(IWFR)_or_regularization_parameter(CTFL2): 1.e-8
+11.Output_defocus_distances_min_max_and_step_in_Angstroms: -10.0 0.0 0.0390625
+12.Extra_defocus_for_3D_reconstruction_in_Angstroms: 1.0
+13.Low_threshold_value_in_Volts_and_multiplicative_scaling_factor_for_3D_potential: 200 0.9
+14.3D_Laplacian_filter_mode:_not_apply(0)_apply(1)_apply_filter_only(2): 0
+15.Regularization_parameter_for_inverse_3D_Laplacian_filter: 0.01
+16.Reprojection_of_3D_potential:_not_apply(0)_apply(1)_apply_to_imported_potential(2): 1
+17.Slice_thickness_for_multislice_in_Angstroms: 0.1375
+18.File_name_base_of_3D_potential_in_TIFF_or_GRD_format: C:\Users\tgureyev\Downloads\Temp\out.grd
+19.Verbose_output_during_execution_Yes(1)_or_No(0): 0
+20.Number_of_parallel_threads: 20
 //*****
 //*****!!!Don't forget to save this file after editing the parameters

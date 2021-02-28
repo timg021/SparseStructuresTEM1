@@ -57,6 +57,9 @@
     <ClCompile Include="..\XArrayLibrary\XAHWave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AddIce.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="autoslic.hpp">
@@ -131,13 +134,24 @@
     <ClInclude Include="..\XArrayLibrary\XA_nrrand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AddIce.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="MsctKirkland.txt">
       <Filter>Resource Files</Filter>
     </Text>
-    <Text Include="DefocusOutput.txt">
+    <Text Include="ReadmeMsctKirkland.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="DefocusRand36_NEW.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ASP_NEW_Kirck_DW.xyz">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -15,15 +15,25 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pdb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pdb_run.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="pdb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Seb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Seb_configure.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Seb_point.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Seb-inl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subspan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subspan-inl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -31,5 +41,13 @@
     <Text Include="pdb.txt">
       <Filter>Resource Files</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pdb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pdb_run.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
